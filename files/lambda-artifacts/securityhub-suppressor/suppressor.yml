@@ -1,0 +1,9 @@
+Inspector:
+    key: ProductFields."attributes/BENCHMARK_RULE_ID"
+    status: FindingProviderFields.Severity.Label
+Firewall Manager:
+    key: ProductFields."aws/securityhub/ProductName"
+    status: Compliance.Status
+Security Hub:
+    key: ProductFields.ControlId || ProductFields.RuleId
+    status: Compliance.Status
