@@ -18,8 +18,8 @@ variable "eventbridge_suppressor_iam_role_name" {
 
 variable "jira_exclude_account_filter" {
   type        = list(string)
-  description = "A list of account IDs for which no issue will be created in Jira"
   default     = []
+  description = "A list of account IDs for which no issue will be created in Jira"
 }
 
 variable "jira_finding_severity_normalized" {
@@ -36,20 +36,20 @@ variable "jira_integration" {
 
 variable "jira_issue_type" {
   type        = string
-  description = "The issue type for which the Jira issue will be created"
   default     = "Security Advisory"
+  description = "The issue type for which the Jira issue will be created"
 }
 
 variable "jira_project_key" {
   type        = string
-  description = "The project key the Jira issue will be created under"
   default     = null
+  description = "The project key the Jira issue will be created under"
 }
 
 variable "jira_secret_arn" {
   type        = string
-  description = "Secret arn that stores the secrets for Jira api calls. The Secret should include url, apiuser and apikey"
   default     = null
+  description = "Secret arn that stores the secrets for Jira api calls. The Secret should include url, apiuser and apikey"
 }
 
 variable "kms_key_arn" {
