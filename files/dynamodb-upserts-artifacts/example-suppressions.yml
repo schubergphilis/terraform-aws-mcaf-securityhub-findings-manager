@@ -1,0 +1,16 @@
+# PLEASE NOTE: Before actually suppressing certain findings
+# make sure to create an action request and get it approved
+# by your seclead.
+
+---
+Suppressions:
+  "S3.8":
+    - action: SUPPRESSED
+      rules:
+        - arn:aws:s3:::sandbox-example-s3-bucket
+      notes: example-suppression-entry
+  "3.9":
+    - action: SUPPRESSED
+      rules:
+        - ^AWS::::Account:[0-9]{12}$
+      notes: example-suppression-entry-regex
