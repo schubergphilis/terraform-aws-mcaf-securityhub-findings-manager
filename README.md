@@ -1,7 +1,7 @@
 # Security Hub Findings Suppressor
 
 > **_Repository containing terraform module to suppress specific events from security hub based on a dynamodb based configuration._**
-Based on: <https://github.com/schubergphilis/aws-security-hub-suppressor> and <https://github.com/gmtdi/aws-security-hub-suppressor>
+Based on: <https://github.com/schubergphilis/aws-security-hub-suppressor>
 
 The Security Hub Findings Suppressor is a framework designed to automatically suppress findings recorded by the AWS Security Hub service based on a pre-defined and configurable suppression list. This suppression is needed in case some controls or rules are not completely applicable to the resources of a given account. For example, you might want to suppress all DynamoDB Autoscaling configuration findings related to the control `DynamoDB.1`, simply because this feature is not applicable for your workload. Besides the suppression of findings this module is also able to create Jira tickets for all `NEW` findings with a severity higher than a definable threshold.
 
