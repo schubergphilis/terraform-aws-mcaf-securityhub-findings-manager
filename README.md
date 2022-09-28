@@ -10,7 +10,7 @@ This logic is intended to be executed in the Audit Account which is part of the 
 ## Terraform Runtime Requirements
 
 * The lambda's are built and zipped during runtime, this means that the terraform runners/agents needs to have python 3.8 installed.
-* Remark about Terraform Cloud: The `remote` runners from Terraform Cloud have python installed. If you run your own agents make sure that you use a [custom TFC agent image](https://github.com/CCV-Group/tfc-sbp-agent) with python installed.
+* Remark about Terraform Cloud: The `remote` runners from Terraform Cloud have python installed. If you run your own agents make sure that you use a custom TFC agent image with python installed.
 
 ## Components
 
