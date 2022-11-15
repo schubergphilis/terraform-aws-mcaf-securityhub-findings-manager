@@ -49,7 +49,7 @@ def lambda_handler(event: Dict[str, Any], context):
     if event.records:
         for record in event.records:
             if record.event_name != DynamoDBRecordEventName.REMOVE:
-                control_id = record.dynamodb.keys.get('controlId', {}).s_value
+                control_id = record.dynamodb.keys.get('controlId', {})
                 findings_list = get_findings(control_id)
                 if len(findings_list.get('findings')) == 0:
                     logger.warning(f'Could not find any findings with controlId {control_id}')
