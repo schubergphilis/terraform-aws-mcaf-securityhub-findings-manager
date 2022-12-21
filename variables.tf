@@ -98,6 +98,12 @@ variable "s3_bucket_name" {
   description = "The name for the S3 bucket which will be created for storing the function's deployment package"
 }
 
+variable "servicenow_integration" {
+  type        = bool
+  default     = true
+  description = "Whether to enable the ServiceNow integration"
+}
+
 variable "step_function_suppressor_iam_role_name" {
   type        = string
   default     = "StepFunctionSecurityHubSuppressorRole"
