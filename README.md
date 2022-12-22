@@ -54,7 +54,7 @@ Note : The users will be created by the module, but the access_keys need to be g
 
 ### Without Jira & ServiceNow Integration
 
-* This deployment method can be used by setting the value of the variable `jira_integration` to `false`.
+* This deployment method can be used by setting the value of the variable `jira_integration` and `servicenow_integration` to `false`.
 * The module deploys 1 Lambda function: `Suppressor` and configures this Lambda as a target to the EventBridge rule.
 
 ## How it works
