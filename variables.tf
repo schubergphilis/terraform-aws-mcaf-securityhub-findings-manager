@@ -4,6 +4,12 @@ variable "create_allow_all_egress_rule" {
   description = "Whether to create a default any/any egress sg rule for lambda"
 }
 
+variable "create_servicenow_access_keys" {
+  type        = bool
+  default     = false
+  description = "Whether Terraform needs to create and output the access keys for the ServiceNow integration"
+}
+
 variable "dynamodb_table" {
   type        = string
   default     = "securityhub-suppression-list"
@@ -100,7 +106,7 @@ variable "s3_bucket_name" {
 
 variable "servicenow_integration" {
   type        = bool
-  default     = true
+  default     = false
   description = "Whether to enable the ServiceNow integration"
 }
 
