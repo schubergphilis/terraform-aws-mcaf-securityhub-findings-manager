@@ -18,22 +18,21 @@ resource "aws_iam_access_key" "end-user" {
 
 
 //Create custom policies
-resource "aws_iam_policy" "ConfigBiDirectionalPolicy" {
-  name        = "ConfigBiDirectionalPolicy"
-  description = "Ensures bidirectional communication"
+resource "aws_iam_policy" "SQSPolicy" {
+  name        = "SQSPolicy"
+  description = "SQSPolicy"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
         Action = [
-          "cloudformation:RegisterType",
-          "cloudformation:DescribeTypeRegistration",
-          "cloudformation:DeregisterType",
-          "config:PutResourceConfig"
+          "sqs:ReceiveMessage",
+          "sqs:DeleteMessage",
+          "sqs:DeleteMessageBatch"
         ]
         Effect   = "Allow"
-        Resource = "*"
-        Sid      = "ConfigBiDirectionalPolicySID"
+        Resource = "${aws_sqs_queue.servicenow-queue.arn}"
+        Sid      = "SQSPolicy"
       }
     ]
   })
@@ -47,51 +46,30 @@ resource "aws_iam_policy" "SecurityHubPolicy" {
     Statement = [
       {
         Action = [
-          "sqs:ReceiveMessage",
-          "sqs:DeleteMessage",
-          "sqs:DeleteMessageBatch"
-        ]
-        Effect   = "Allow"
-        Resource = "${aws_sqs_queue.servicenow-queue.arn}"
-        Sid      = "SecurityHubPolicySID"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_policy" "SSMActionPolicy" {
-  name        = "SSMActionPolicy"
-  description = "SSMActionPolicy"
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = [
           "securityhub:BatchUpdateFindings"
         ]
         Effect   = "Allow"
         Resource = "*"
-        Sid      = "SSMActionPolicy"
+        Sid      = "SecurityHubPolicy"
       }
     ]
   })
 }
 
-resource "aws_iam_policy" "SSMExecutionPolicy" {
-  name        = "SSMExecutionPolicy"
-  description = "SSMExecutionPolicy"
+resource "aws_iam_policy" "SSMPolicy" {
+  name        = "SSMPolicy"
+  description = "SSMPolicy"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
       {
         Action = [
           "ssm:DescribeAutomationExecutions",
-          "ssm:DescribeDocument",
-          "ssm:StartAutomationExecution"
+          "ssm:DescribeDocument"
         ]
         Effect   = "Allow"
         Resource = "*"
-        Sid      = "SSMExecutionPolicy"
+        Sid      = "SSMPolicy"
       }
     ]
   })
@@ -99,9 +77,9 @@ resource "aws_iam_policy" "SSMExecutionPolicy" {
 
 
 //Link custom policies
-resource "aws_iam_user_policy_attachment" "ConfigBiDirectionalPolicy" {
+resource "aws_iam_user_policy_attachment" "SQSPolicy" {
   user       = aws_iam_user.sync-user.name
-  policy_arn = aws_iam_policy.ConfigBiDirectionalPolicy.arn
+  policy_arn = aws_iam_policy.SQSPolicy.arn
 }
 
 resource "aws_iam_user_policy_attachment" "SecurityHubPolicy" {
@@ -109,14 +87,9 @@ resource "aws_iam_user_policy_attachment" "SecurityHubPolicy" {
   policy_arn = aws_iam_policy.SecurityHubPolicy.arn
 }
 
-resource "aws_iam_user_policy_attachment" "SSMActionPolicy" {
-  user       = aws_iam_user.sync-user.name
-  policy_arn = aws_iam_policy.SSMActionPolicy.arn
-}
-
-resource "aws_iam_user_policy_attachment" "SSMExecutionPolicy" {
+resource "aws_iam_user_policy_attachment" "SSMPolicy" {
   user       = aws_iam_user.end-user.name
-  policy_arn = aws_iam_policy.SSMExecutionPolicy.arn
+  policy_arn = aws_iam_policy.SSMPolicy.arn
 }
 
 //Link managed policies
