@@ -33,6 +33,14 @@ resource "aws_iam_policy" "SQSPolicy" {
         Effect   = "Allow"
         Resource = "${aws_sqs_queue.servicenow-queue.arn}"
         Sid      = "SQSPolicy"
+      },
+      {
+        Action = [
+          "kms:Decrypt"
+        ]
+        Effect   = "Allow"
+        Resource = "${var.kms_key_arn}"
+        Sid      = "SQSKMSPolicy"
       }
     ]
   })
