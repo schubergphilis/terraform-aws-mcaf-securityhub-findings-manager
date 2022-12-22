@@ -67,7 +67,6 @@ resource "aws_iam_policy" "SSMActionPolicy" {
     Statement = [
       {
         Action = [
-          "budgets:ViewBudget",
           "securityhub:BatchUpdateFindings"
         ]
         Effect   = "Allow"
