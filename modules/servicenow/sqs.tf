@@ -1,5 +1,6 @@
 resource "aws_sqs_queue" "servicenow-queue" {
-  name = "AwsServiceManagementConnectorForSecurityHubQueue"
+  name              = "AwsServiceManagementConnectorForSecurityHubQueue"
+  kms_master_key_id = var.kms_key_arn
 }
 
 resource "aws_sqs_queue_policy" "servicenow" {
@@ -16,6 +17,22 @@ resource "aws_sqs_queue_policy" "servicenow" {
       },
       "Action": "SQS:SendMessage",
       "Resource": "${aws_sqs_queue.servicenow-queue.arn}",
+      "Condition": {
+        "ArnEquals": {
+          "aws:SourceArn": "${aws_cloudwatch_event_rule.securityhub.arn}"
+        }
+      }
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "events.amazonaws.com"
+      },
+      "Action": [
+        "kms:GenerateDataKey",
+        "kms:Decrypt"
+        ],
+      "Resource": "${var.kms_key_arn}",
       "Condition": {
         "ArnEquals": {
           "aws:SourceArn": "${aws_cloudwatch_event_rule.securityhub.arn}"
