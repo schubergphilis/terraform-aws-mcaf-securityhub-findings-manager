@@ -49,11 +49,10 @@ resource "aws_iam_policy" "SecurityHubPolicy" {
         Action = [
           "sqs:ReceiveMessage",
           "sqs:DeleteMessage",
-          "sqs:DeleteMessageBatch",
-          "securityhub:BatchUpdateFindings"
+          "sqs:DeleteMessageBatch"
         ]
         Effect   = "Allow"
-        Resource = "*"
+        Resource = "${aws_sqs_queue.servicenow-queue}"
         Sid      = "SecurityHubPolicySID"
       }
     ]
@@ -68,7 +67,8 @@ resource "aws_iam_policy" "SSMActionPolicy" {
     Statement = [
       {
         Action = [
-          "budgets:ViewBudget"
+          "budgets:ViewBudget",
+          "securityhub:BatchUpdateFindings"
         ]
         Effect   = "Allow"
         Resource = "*"
