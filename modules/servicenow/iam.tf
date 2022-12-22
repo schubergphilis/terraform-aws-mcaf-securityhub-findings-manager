@@ -52,7 +52,7 @@ resource "aws_iam_policy" "SecurityHubPolicy" {
           "sqs:DeleteMessageBatch"
         ]
         Effect   = "Allow"
-        Resource = "${aws_sqs_queue.servicenow-queue}"
+        Resource = "${aws_sqs_queue.servicenow-queue.arn}"
         Sid      = "SecurityHubPolicySID"
       }
     ]
