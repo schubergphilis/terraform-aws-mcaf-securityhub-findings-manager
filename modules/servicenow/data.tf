@@ -6,8 +6,3 @@ locals {
     "arn:aws:iam::aws:policy/AWSServiceCatalogAdminReadOnlyAccess"
   ]
 }
-
-# data "aws_iam_policy" "ManagedPolicies" {
-#   for_each = local.ManagedPolicies
-#   arn      = each.value
-# }
