@@ -1,18 +1,11 @@
-resource "aws_iam_user" "sync-user" {
-  name = "SCSyncUser"
-}
-
 module "sync-user" {
   name          = "SCSyncUser"
   source        = "github.com/schubergphilis/terraform-aws-mcaf-user?ref=v0.1.13"
   create_policy = true
   policy        = aws_iam_policy.SQSPolicy.policy
-  policy_arns   = data.aws_iam_policy.ManagedPolicies
+  policy_arns   = local.ManagedPolicies
+  kms_key_id    = var.kms_key_arn
   tags          = var.tags
-}
-
-resource "aws_iam_user" "end-user" {
-  name = "SCEndUser"
 }
 
 //Create custom policies
@@ -79,34 +72,4 @@ resource "aws_iam_policy" "SSMPolicy" {
       }
     ]
   })
-}
-
-
-//Link custom policies
-resource "aws_iam_user_policy_attachment" "SQSPolicy" {
-  user       = aws_iam_user.sync-user.name
-  policy_arn = aws_iam_policy.SQSPolicy.arn
-}
-
-resource "aws_iam_user_policy_attachment" "SecurityHubPolicy" {
-  user       = aws_iam_user.sync-user.name
-  policy_arn = aws_iam_policy.SecurityHubPolicy.arn
-}
-
-resource "aws_iam_user_policy_attachment" "SSMPolicy" {
-  user       = aws_iam_user.end-user.name
-  policy_arn = aws_iam_policy.SSMPolicy.arn
-}
-
-//Link managed policies
-resource "aws_iam_user_policy_attachment" "managed-policies" {
-  for_each   = data.aws_iam_policy.ManagedPolicies
-  user       = aws_iam_user.sync-user.name
-  policy_arn = each.value.arn
-}
-
-resource "aws_iam_user_policy_attachment" "managed-policies-end-user" {
-  for_each   = data.aws_iam_policy.ManagedPolicies
-  user       = aws_iam_user.end-user.name
-  policy_arn = each.value.arn
 }
