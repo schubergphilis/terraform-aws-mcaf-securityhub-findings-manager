@@ -14,3 +14,8 @@ variable "kms_key_arn" {
   type        = string
   description = "The ARN of the KMS key used to encrypt the resources"
 }
+
+variable "tags" {
+  type        = map(string)
+  description = "A mapping of tags to assign to the resources"
+}

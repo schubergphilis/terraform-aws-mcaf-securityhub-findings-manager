@@ -2,20 +2,18 @@ resource "aws_iam_user" "sync-user" {
   name = "SCSyncUser"
 }
 
+module "sync-user" {
+  name          = "SCSyncUser"
+  source        = "github.com/schubergphilis/terraform-aws-mcaf-user?ref=v0.1.13"
+  create_policy = true
+  policy        = aws_iam_policy.SQSPolicy.policy
+  policy_arns   = data.aws_iam_policy.ManagedPolicies
+  tags          = var.tags
+}
+
 resource "aws_iam_user" "end-user" {
   name = "SCEndUser"
 }
-
-resource "aws_iam_access_key" "sync-user" {
-  count = var.create_access_keys ? 1 : 0
-  user  = aws_iam_user.sync-user.name
-}
-
-resource "aws_iam_access_key" "end-user" {
-  count = var.create_access_keys ? 1 : 0
-  user  = aws_iam_user.end-user.name
-}
-
 
 //Create custom policies
 resource "aws_iam_policy" "SQSPolicy" {
