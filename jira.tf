@@ -91,6 +91,7 @@ module "lambda_jira_deployment_package" {
 
 # Lambda function to create Jira ticket for Security Hub findings and set the workflow state to NOTIFIED
 module "lambda_jira_security_hub" {
+  #checkov:skip=CKV_AWS_272:Code signing not used for now
   count                        = var.jira_integration ? 1 : 0
   providers                    = { aws.lambda = aws }
   source                       = "github.com/schubergphilis/terraform-aws-mcaf-lambda?ref=v0.3.3"
