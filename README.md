@@ -110,6 +110,7 @@ Once the event is delivered, the function `securityhub-events-suppressor` will b
 | s3\_bucket\_name | The name for the S3 bucket which will be created for storing the function's deployment package | `string` | n/a | yes |
 | tags | A mapping of tags to assign to the resources | `map(string)` | n/a | yes |
 | create\_allow\_all\_egress\_rule | Whether to create a default any/any egress sg rule for lambda | `bool` | `true` | no |
+| create\_servicenow\_access\_keys | Whether Terraform needs to create and output the access keys for the ServiceNow integration | `bool` | `false` | no |
 | dynamodb\_table | The DynamoDB table containing the items to be suppressed in Security Hub | `string` | `"securityhub-suppression-list"` | no |
 | eventbridge\_suppressor\_iam\_role\_name | The name of the role which will be assumed by EventBridge rules | `string` | `"EventBridgeSecurityHubSuppressorRole"` | no |
 | jira\_exclude\_account\_filter | A list of account IDs for which no issue will be created in Jira | `list(string)` | `[]` | no |
@@ -124,6 +125,7 @@ Once the event is delivered, the function `securityhub-events-suppressor` will b
 | lambda\_log\_level | Sets how verbose lambda Logger should be | `string` | `"INFO"` | no |
 | lambda\_streams\_suppressor\_name | The Lambda which will supress the Security Hub findings in response to DynamoDB streams | `string` | `"securityhub-streams-suppressor"` | no |
 | lambda\_suppressor\_iam\_role\_name | The name of the role which will be assumed by Suppressor Lambda functions | `string` | `"LambdaSecurityHubSuppressorRole"` | no |
+| servicenow\_integration | Whether to enable the ServiceNow integration | `bool` | `false` | no |
 | step\_function\_suppressor\_iam\_role\_name | The name of the role which will be assumed by Suppressor Step function | `string` | `"StepFunctionSecurityHubSuppressorRole"` | no |
 | subnet\_ids | The subnet ids where the lambda's needs to run | `list(string)` | `null` | no |
 
