@@ -43,39 +43,3 @@ resource "aws_iam_policy" "sqs_policy" {
   })
 }
 
-resource "aws_iam_policy" "SecurityHubPolicy" {
-  name        = "SecurityHubPolicy"
-  description = "SecurityHubPolicy"
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = [
-          "securityhub:BatchUpdateFindings"
-        ]
-        Effect   = "Allow"
-        Resource = "*"
-        Sid      = "SecurityHubPolicy"
-      }
-    ]
-  })
-}
-
-resource "aws_iam_policy" "ssm_policy" {
-  name        = "ssm_policy"
-  description = "ssm_policy"
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = [
-          "ssm:DescribeAutomationExecutions",
-          "ssm:DescribeDocument"
-        ]
-        Effect   = "Allow"
-        Resource = "*"
-        Sid      = "ssm_policy"
-      }
-    ]
-  })
-}
