@@ -23,7 +23,7 @@ resource "aws_iam_policy" "sqs_policy" {
           "sqs:DeleteMessageBatch"
         ]
         Effect   = "Allow"
-        Resource = "${aws_sqs_queue.servicenow-queue.arn}"
+        Resource = aws_sqs_queue.servicenow-queue.arn
         Sid      = "SQSPolicy"
       },
       {
