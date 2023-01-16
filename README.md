@@ -43,12 +43,13 @@ There are two different deployment modes for this module. Both the modes deploy 
 
 ### With ServiceNow Integration
 
+Reference design : https://aws.amazon.com/blogs/security/how-to-set-up-two-way-integration-between-aws-security-hub-and-servicenow/
 * This deployment method can be used by setting the value of the variable `servicenow_integration` to `true` (default = false).
 * The module will deploy all the needed resources to support integration with ServiceNow, including (but not limited to) : An SQS Queue, EventBridge Rule and the needed IAM users.
 * When an event in SecurityHub fires, an event will be created by EventBridge and dropped onto an SQS Queue. 
 * ServiceNow will connect with access_key & secret_access_key to the `SCSyncUser` user.
 
-Note : The users will be created by the module, but the access_keys need to be generated in the AWS Console, so that it will not stick in Terraform State. If you want Terraform to create the access keys (and output them), set variable `create_servicenow_access_keys` to `true` (default = false)
+Note : The user will be created by the module, but the access_keys need to be generated in the AWS Console, so that it will not stick in Terraform State. If you want Terraform to create the access keys (and output them), set variable `create_servicenow_access_keys` to `true` (default = false)
 
 ![Step Function Graph](files/step-function-artifacts/securityhub-suppressor-orchestrator-graph.png)
 
