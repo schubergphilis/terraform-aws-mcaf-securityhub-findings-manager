@@ -10,7 +10,7 @@ module "sync-user" {
 }
 
 //Create custom policies
-resource "aws_iam_policy" "SQSPolicy" {
+resource "aws_iam_policy" "sqs_policy" {
   name        = "SQSPolicy"
   description = "SQSPolicy"
   policy = jsonencode({
