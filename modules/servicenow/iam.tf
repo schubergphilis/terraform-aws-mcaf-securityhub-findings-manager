@@ -3,16 +3,21 @@ module "sync-user" {
   name          = "SCSyncUser"
   source        = "github.com/schubergphilis/terraform-aws-mcaf-user?ref=v0.1.13"
   create_policy = true
-  policy        = aws_iam_policy.SQSPolicy.policy
-  policy_arns   = local.ManagedPolicies
-  kms_key_id    = var.kms_key_arn
-  tags          = var.tags
+  policy        = aws_iam_policy.sqs_policy.policy
+  policy_arns = [
+    "arn:aws:iam::aws:policy/service-role/AWSConfigRoleForOrganizations",
+    "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess",
+    "arn:aws:iam::aws:policy/AWSConfigUserAccess",
+    "arn:aws:iam::aws:policy/AWSServiceCatalogAdminReadOnlyAccess"
+  ]
+  kms_key_id = var.kms_key_arn
+  tags       = var.tags
 }
 
 //Create custom policies
-resource "aws_iam_policy" "SQSPolicy" {
-  name        = "SQSPolicy"
-  description = "SQSPolicy"
+resource "aws_iam_policy" "sqs_policy" {
+  name        = "sqs_policy"
+  description = "sqs_policy"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -23,15 +28,15 @@ resource "aws_iam_policy" "SQSPolicy" {
           "sqs:DeleteMessageBatch"
         ]
         Effect   = "Allow"
-        Resource = "${aws_sqs_queue.servicenow-queue.arn}"
-        Sid      = "SQSPolicy"
+        Resource = aws_sqs_queue.servicenow_queue.arn
+        Sid      = "sqs_policy"
       },
       {
         Action = [
           "kms:Decrypt"
         ]
         Effect   = "Allow"
-        Resource = "${var.kms_key_arn}"
+        Resource = var.kms_key_arn
         Sid      = "SQSKMSPolicy"
       }
     ]
@@ -56,9 +61,9 @@ resource "aws_iam_policy" "SecurityHubPolicy" {
   })
 }
 
-resource "aws_iam_policy" "SSMPolicy" {
-  name        = "SSMPolicy"
-  description = "SSMPolicy"
+resource "aws_iam_policy" "ssm_policy" {
+  name        = "ssm_policy"
+  description = "ssm_policy"
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -69,7 +74,7 @@ resource "aws_iam_policy" "SSMPolicy" {
         ]
         Effect   = "Allow"
         Resource = "*"
-        Sid      = "SSMPolicy"
+        Sid      = "ssm_policy"
       }
     ]
   })
