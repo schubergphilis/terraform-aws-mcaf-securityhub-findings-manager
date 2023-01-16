@@ -31,7 +31,7 @@ resource "aws_iam_policy" "sqs_policy" {
           "kms:Decrypt"
         ]
         Effect   = "Allow"
-        Resource = "${var.kms_key_arn}"
+        Resource = var.kms_key_arn
         Sid      = "SQSKMSPolicy"
       }
     ]
