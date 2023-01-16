@@ -3,7 +3,7 @@ module "sync-user" {
   name          = "SCSyncUser"
   source        = "github.com/schubergphilis/terraform-aws-mcaf-user?ref=v0.1.13"
   create_policy = true
-  policy        = aws_iam_policy.SQSPolicy.policy
+  policy        = aws_iam_policy.sqs_policy.policy
   policy_arns   = local.ManagedPolicies
   kms_key_id    = var.kms_key_arn
   tags          = var.tags
