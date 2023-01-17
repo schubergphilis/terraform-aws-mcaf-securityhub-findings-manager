@@ -86,7 +86,7 @@ data "aws_iam_policy_document" "lambda_security_hub_suppressor" {
       "dynamodb:GetItem"
     ]
     resources = [
-      "${aws_dynamodb_table.suppressor_dynamodb_table.arn}"
+      aws_dynamodb_table.suppressor_dynamodb_table.arn
     ]
   }
 
@@ -99,7 +99,7 @@ data "aws_iam_policy_document" "lambda_security_hub_suppressor" {
       "dynamodb:ListStreams"
     ]
     resources = [
-      "${aws_dynamodb_table.suppressor_dynamodb_table.stream_arn}"
+      aws_dynamodb_table.suppressor_dynamodb_table.stream_arn
     ]
   }
 

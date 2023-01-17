@@ -4,9 +4,8 @@ resource "aws_sqs_queue" "servicenow_queue" {
 }
 
 resource "aws_sqs_queue_policy" "servicenow" {
+  policy    = data.aws_iam_policy_document.servicenow_sqs_policy.json
   queue_url = aws_sqs_queue.servicenow_queue.id
-
-  policy = data.aws_iam_policy_document.servicenow_sqs_policy.json
 }
 
 data "aws_iam_policy_document" "servicenow_sqs_policy" {

@@ -11,12 +11,12 @@ EOF
 }
 
 resource "aws_cloudwatch_event_target" "securityhub" {
+  arn       = aws_sqs_queue.servicenow_queue.arn
   rule      = aws_cloudwatch_event_rule.securityhub.name
   target_id = "SendToSQS"
-  arn       = aws_sqs_queue.servicenow_queue.arn
 }
 
 resource "aws_cloudwatch_event_target" "log_group_target" {
-  rule = aws_cloudwatch_event_rule.securityhub.name
   arn  = aws_cloudwatch_log_group.servicenow.arn
+  rule = aws_cloudwatch_event_rule.securityhub.name
 }
