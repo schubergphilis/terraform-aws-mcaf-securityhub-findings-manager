@@ -4,6 +4,12 @@ variable "create_allow_all_egress_rule" {
   description = "Whether to create a default any/any egress sg rule for lambda"
 }
 
+variable "create_servicenow_access_keys" {
+  type        = bool
+  default     = false
+  description = "Whether Terraform needs to create and output the access keys for the ServiceNow integration"
+}
+
 variable "dynamodb_table" {
   type        = string
   default     = "securityhub-suppression-list"
@@ -30,7 +36,7 @@ variable "jira_finding_severity_normalized" {
 
 variable "jira_integration" {
   type        = bool
-  default     = true
+  default     = false
   description = "Whether to create Jira tickets for Security Hub findings. This requires the variables `jira_project_key` and `jira_secret_arn` to be set"
 }
 
@@ -96,6 +102,12 @@ variable "lambda_suppressor_iam_role_name" {
 variable "s3_bucket_name" {
   type        = string
   description = "The name for the S3 bucket which will be created for storing the function's deployment package"
+}
+
+variable "servicenow_integration" {
+  type        = bool
+  default     = false
+  description = "Whether to enable the ServiceNow integration"
 }
 
 variable "step_function_suppressor_iam_role_name" {

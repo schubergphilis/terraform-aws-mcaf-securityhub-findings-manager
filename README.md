@@ -34,15 +34,29 @@ There are two different deployment modes for this module. Both the modes deploy 
 
 ### With Jira Integration
 
-* This deployment method can be used by setting the value of the variable `jira_integration` to `true` (default value).
+* This deployment method can be used by setting the value of the variable `jira_integration` to `true` (default = false).
 * The module deploys two Lambda functions: `Suppressor` and `Jira` along with a Step function which orchestrates these Lambda functions and Step Function as a target to the EventBridge rule.
 * If the finding is not suppressed a ticket is created for findings with a normalized severity higher than a definable threshold. The workflow status in Security Hub is updated from `NEW` to `NOTIFIED`.
 
 ![Step Function Graph](files/step-function-artifacts/securityhub-suppressor-orchestrator-graph.png)
 
-### Without Jira Integration
 
-* This deployment method can be used by setting the value of the variable `jira_integration` to `false`.
+### With ServiceNow Integration
+
+Reference design : https://aws.amazon.com/blogs/security/how-to-set-up-two-way-integration-between-aws-security-hub-and-servicenow/
+
+* This deployment method can be used by setting the value of the variable `servicenow_integration` to `true` (default = false).
+* The module will deploy all the needed resources to support integration with ServiceNow, including (but not limited to) : An SQS Queue, EventBridge Rule and the needed IAM users.
+* When an event in SecurityHub fires, an event will be created by EventBridge and dropped onto an SQS Queue. 
+* ServiceNow will connect with access_key & secret_access_key to the `SCSyncUser` user.
+
+Note : The user will be created by the module, but the access_keys need to be generated in the AWS Console, so that it will not stick in Terraform State. If you want Terraform to create the access keys (and output them), set variable `create_servicenow_access_keys` to `true` (default = false)
+
+![Step Function Graph](files/step-function-artifacts/securityhub-suppressor-orchestrator-graph.png)
+
+### Without Jira & ServiceNow Integration
+
+* This deployment method can be used by setting the value of the variable `jira_integration` and `servicenow_integration` to `false`.
 * The module deploys 1 Lambda function: `Suppressor` and configures this Lambda as a target to the EventBridge rule.
 
 ## How it works
@@ -98,11 +112,12 @@ Once the event is delivered, the function `securityhub-events-suppressor` will b
 | s3\_bucket\_name | The name for the S3 bucket which will be created for storing the function's deployment package | `string` | n/a | yes |
 | tags | A mapping of tags to assign to the resources | `map(string)` | n/a | yes |
 | create\_allow\_all\_egress\_rule | Whether to create a default any/any egress sg rule for lambda | `bool` | `true` | no |
+| create\_servicenow\_access\_keys | Whether Terraform needs to create and output the access keys for the ServiceNow integration | `bool` | `false` | no |
 | dynamodb\_table | The DynamoDB table containing the items to be suppressed in Security Hub | `string` | `"securityhub-suppression-list"` | no |
 | eventbridge\_suppressor\_iam\_role\_name | The name of the role which will be assumed by EventBridge rules | `string` | `"EventBridgeSecurityHubSuppressorRole"` | no |
 | jira\_exclude\_account\_filter | A list of account IDs for which no issue will be created in Jira | `list(string)` | `[]` | no |
 | jira\_finding\_severity\_normalized | Finding severity(in normalized form) threshold for jira ticket creation | `number` | `70` | no |
-| jira\_integration | Whether to create Jira tickets for Security Hub findings. This requires the variables `jira_project_key` and `jira_secret_arn` to be set | `bool` | `true` | no |
+| jira\_integration | Whether to create Jira tickets for Security Hub findings. This requires the variables `jira_project_key` and `jira_secret_arn` to be set | `bool` | `false` | no |
 | jira\_issue\_type | The issue type for which the Jira issue will be created | `string` | `"Security Advisory"` | no |
 | jira\_project\_key | The project key the Jira issue will be created under | `string` | `null` | no |
 | jira\_secret\_arn | Secret arn that stores the secrets for Jira api calls. The Secret should include url, apiuser and apikey | `string` | `null` | no |
@@ -112,6 +127,7 @@ Once the event is delivered, the function `securityhub-events-suppressor` will b
 | lambda\_log\_level | Sets how verbose lambda Logger should be | `string` | `"INFO"` | no |
 | lambda\_streams\_suppressor\_name | The Lambda which will supress the Security Hub findings in response to DynamoDB streams | `string` | `"securityhub-streams-suppressor"` | no |
 | lambda\_suppressor\_iam\_role\_name | The name of the role which will be assumed by Suppressor Lambda functions | `string` | `"LambdaSecurityHubSuppressorRole"` | no |
+| servicenow\_integration | Whether to enable the ServiceNow integration | `bool` | `false` | no |
 | step\_function\_suppressor\_iam\_role\_name | The name of the role which will be assumed by Suppressor Step function | `string` | `"StepFunctionSecurityHubSuppressorRole"` | no |
 | subnet\_ids | The subnet ids where the lambda's needs to run | `list(string)` | `null` | no |
 
