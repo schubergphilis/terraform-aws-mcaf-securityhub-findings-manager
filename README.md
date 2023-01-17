@@ -34,7 +34,7 @@ There are two different deployment modes for this module. Both the modes deploy 
 
 ### With Jira Integration
 
-* This deployment method can be used by setting the value of the variable `jira_integration` to `true` (default value).
+* This deployment method can be used by setting the value of the variable `jira_integration` to `true` (default = false).
 * The module deploys two Lambda functions: `Suppressor` and `Jira` along with a Step function which orchestrates these Lambda functions and Step Function as a target to the EventBridge rule.
 * If the finding is not suppressed a ticket is created for findings with a normalized severity higher than a definable threshold. The workflow status in Security Hub is updated from `NEW` to `NOTIFIED`.
 
@@ -43,12 +43,14 @@ There are two different deployment modes for this module. Both the modes deploy 
 
 ### With ServiceNow Integration
 
+Reference design : https://aws.amazon.com/blogs/security/how-to-set-up-two-way-integration-between-aws-security-hub-and-servicenow/
+
 * This deployment method can be used by setting the value of the variable `servicenow_integration` to `true` (default = false).
 * The module will deploy all the needed resources to support integration with ServiceNow, including (but not limited to) : An SQS Queue, EventBridge Rule and the needed IAM users.
 * When an event in SecurityHub fires, an event will be created by EventBridge and dropped onto an SQS Queue. 
 * ServiceNow will connect with access_key & secret_access_key to the `SCSyncUser` user.
 
-Note : The users will be created by the module, but the access_keys need to be generated in the AWS Console, so that it will not stick in Terraform State. If you want Terraform to create the access keys (and output them), set variable `create_servicenow_access_keys` to `true` (default = false)
+Note : The user will be created by the module, but the access_keys need to be generated in the AWS Console, so that it will not stick in Terraform State. If you want Terraform to create the access keys (and output them), set variable `create_servicenow_access_keys` to `true` (default = false)
 
 ![Step Function Graph](files/step-function-artifacts/securityhub-suppressor-orchestrator-graph.png)
 
@@ -115,7 +117,7 @@ Once the event is delivered, the function `securityhub-events-suppressor` will b
 | eventbridge\_suppressor\_iam\_role\_name | The name of the role which will be assumed by EventBridge rules | `string` | `"EventBridgeSecurityHubSuppressorRole"` | no |
 | jira\_exclude\_account\_filter | A list of account IDs for which no issue will be created in Jira | `list(string)` | `[]` | no |
 | jira\_finding\_severity\_normalized | Finding severity(in normalized form) threshold for jira ticket creation | `number` | `70` | no |
-| jira\_integration | Whether to create Jira tickets for Security Hub findings. This requires the variables `jira_project_key` and `jira_secret_arn` to be set | `bool` | `true` | no |
+| jira\_integration | Whether to create Jira tickets for Security Hub findings. This requires the variables `jira_project_key` and `jira_secret_arn` to be set | `bool` | `false` | no |
 | jira\_issue\_type | The issue type for which the Jira issue will be created | `string` | `"Security Advisory"` | no |
 | jira\_project\_key | The project key the Jira issue will be created under | `string` | `null` | no |
 | jira\_secret\_arn | Secret arn that stores the secrets for Jira api calls. The Secret should include url, apiuser and apikey | `string` | `null` | no |

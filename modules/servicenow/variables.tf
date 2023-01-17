@@ -7,7 +7,7 @@ variable "cloudwatch_retention_days" {
 variable "create_access_keys" {
   type        = bool
   default     = false
-  description = "Whether to create an access_key and secret_access key for both ServiceNow users"
+  description = "Whether to create an access_key and secret_access key for the ServiceNow user"
 }
 
 variable "kms_key_arn" {
