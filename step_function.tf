@@ -19,8 +19,8 @@ data "aws_iam_policy_document" "step_function_security_hub_suppressor" {
       "lambda:InvokeFunction"
     ]
     resources = [
-      "${module.lambda_securityhub_events_suppressor.arn}",
-      "${module.lambda_jira_security_hub[0].arn}"
+      module.lambda_securityhub_events_suppressor.arn,
+      module.lambda_jira_security_hub[0].arn
     ]
   }
 }
@@ -60,7 +60,8 @@ data "aws_iam_policy_document" "eventbridge_security_hub_suppressor" {
       "states:StartExecution"
     ]
     resources = [
-    "${aws_sfn_state_machine.securityhub_suppressor_orchestrator[0].arn}"]
+      aws_sfn_state_machine.securityhub_suppressor_orchestrator[0].arn
+    ]
   }
 }
 
