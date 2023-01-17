@@ -18,20 +18,17 @@ module "sync-user" {
 resource "aws_iam_policy" "sqs_policy" {
   name        = "sqs_policy"
   description = "sqs_policy"
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Action = [
-          "sqs:ReceiveMessage",
-          "sqs:DeleteMessage",
-          "sqs:DeleteMessageBatch"
-        ]
-        Effect   = "Allow"
-        Resource = aws_sqs_queue.servicenow_queue.arn
-        Sid      = "sqs_policy"
-      }
-    ]
-  })
+  policy      = data.aws_iam_policy_document.sqs_policy.json
 }
 
+data "aws_iam_policy_document" "sqs_policy" {
+  statement {
+    actions = [
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:DeleteMessageBatch"
+    ]
+
+    resources = [aws_sqs_queue.servicenow_queue.arn]
+  }
+}

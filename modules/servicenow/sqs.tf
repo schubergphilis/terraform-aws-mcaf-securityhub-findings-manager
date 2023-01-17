@@ -6,25 +6,26 @@ resource "aws_sqs_queue" "servicenow_queue" {
 resource "aws_sqs_queue_policy" "servicenow" {
   queue_url = aws_sqs_queue.servicenow_queue.id
 
-  policy = <<POLICY
-  {
-  "Version": "2008-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "events.amazonaws.com"
-      },
-      "Action": "SQS:SendMessage",
-      "Resource": "${aws_sqs_queue.servicenow_queue.arn}",
-      "Condition": {
-        "ArnEquals": {
-          "aws:SourceArn": "${aws_cloudwatch_event_rule.securityhub.arn}"
-        }
-      }
-    }
-  ]
-}
-  POLICY
+  policy = data.aws_iam_policy_document.servicenow_sqs_policy.json
 }
 
+data "aws_iam_policy_document" "servicenow_sqs_policy" {
+  statement {
+    actions = [
+      "SQS:SendMessage"
+    ]
+
+    resources = [aws_sqs_queue.servicenow_queue.arn]
+
+    principals {
+      identifiers = ["events.amazonaws.com"]
+      type        = "Service"
+    }
+
+    condition {
+      test     = "ArnEquals"
+      values   = [aws_cloudwatch_event_rule.securityhub.arn]
+      variable = "aws:SourceArn"
+    }
+  }
+}
