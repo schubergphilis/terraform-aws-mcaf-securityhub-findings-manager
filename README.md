@@ -34,7 +34,7 @@ There are two different deployment modes for this module. Both the modes deploy 
 
 ### With Jira Integration
 
-* This deployment method can be used by setting the value of the variable `jira_integration` to `true` (default value).
+* This deployment method can be used by setting the value of the variable `jira_integration` to `true` (default = false).
 * The module deploys two Lambda functions: `Suppressor` and `Jira` along with a Step function which orchestrates these Lambda functions and Step Function as a target to the EventBridge rule.
 * If the finding is not suppressed a ticket is created for findings with a normalized severity higher than a definable threshold. The workflow status in Security Hub is updated from `NEW` to `NOTIFIED`.
 

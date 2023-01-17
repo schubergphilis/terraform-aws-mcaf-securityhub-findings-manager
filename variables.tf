@@ -36,7 +36,7 @@ variable "jira_finding_severity_normalized" {
 
 variable "jira_integration" {
   type        = bool
-  default     = true
+  default     = false
   description = "Whether to create Jira tickets for Security Hub findings. This requires the variables `jira_project_key` and `jira_secret_arn` to be set"
 }
 
