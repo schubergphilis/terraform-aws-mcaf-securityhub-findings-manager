@@ -1,9 +1,9 @@
-# Security Hub Findings Suppressor
+# Security Hub Findings Manager
 
-> **_Repository containing terraform module to suppress specific events from security hub based on a dynamodb based configuration._**
-Based on: <https://github.com/schubergphilis/aws-security-hub-suppressor>
+> Previously called: Security Hub Findings Suppressor |
+> Based on: <https://github.com/schubergphilis/aws-security-hub-suppressor>
 
-The Security Hub Findings Suppressor is a framework designed to automatically suppress findings recorded by the AWS Security Hub service based on a pre-defined and configurable suppression list. This suppression is needed in case some controls or rules are not completely applicable to the resources of a given account. For example, you might want to suppress all DynamoDB Autoscaling configuration findings related to the control `DynamoDB.1`, simply because this feature is not applicable for your workload. Besides the suppression of findings this module is also able to create Jira tickets for all `NEW` findings with a severity higher than a definable threshold.
+The Security Hub Findings Manager is a framework designed to automatically suppress findings recorded by the AWS Security Hub service based on a pre-defined and configurable suppression list. This suppression is needed in case some controls or rules are not completely applicable to the resources of a given account. For example, you might want to suppress all DynamoDB Autoscaling configuration findings related to the control `DynamoDB.1`, simply because this feature is not applicable for your workload. Besides the suppression of findings this module is also able to create Jira tickets for all `NEW` findings with a severity higher than a definable threshold.
 
 This logic is intended to be executed in the Audit Account which is part of the AWS Control Tower default account posture and therefore receives events from all child accounts in an organization.
 
@@ -69,7 +69,7 @@ Once the event is delivered, the function `securityhub-events-suppressor` will b
 
 ## How to add a new product to the suppression list
 
-* All resources required by The Security Hub Findings Suppressor are deployed by this module. But the module does not update the DynamoDB Table (the `suppression list`). This can be updates using a variety of methods, via GitHub actions is described below:
+* All resources required by The Security Hub Findings Manager are deployed by this module. But the module does not update the DynamoDB Table (the `suppression list`). This can be updates using a variety of methods, via GitHub actions is described below:
 
 * In the repository calling this module, create a folder called `sechub-suppressor`, add `requirements.txt`, `put_suppressions.py`, and `suppressions.yml` to this folder. Example files are stored in this module under `files/dynamodb-upserts-artifacts`. An example GitHub action is stored in this folder as well.
 
