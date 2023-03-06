@@ -28,7 +28,7 @@ def get_findings(control_value: str) -> Dict[str, list]:
             'Comparison': 'EQUALS'
         }
     ],
-        'ComplianceStatus': [{'Value': 'FAILED', 'Comparison': 'EQUALS'}],
+        'ComplianceStatus': [{'Value': 'FAILED', 'Comparison': 'EQUALS'}, {'Value': 'WARNING', 'Comparison': 'EQUALS'}],
     })
     return {'findings': list(itertools.chain.from_iterable([finding.get('Findings') for finding in findings]))}
 
