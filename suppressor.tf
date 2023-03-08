@@ -225,7 +225,7 @@ resource "aws_cloudwatch_event_rule" "securityhub_events_suppressor_failed_event
   "detail": {
     "findings": {
       "Compliance": {
-        "Status": ["FAILED"]
+        "Status": ["FAILED", "WARNING"]
       },
       "Workflow": {
         "Status": ["NEW", "NOTIFIED"]
