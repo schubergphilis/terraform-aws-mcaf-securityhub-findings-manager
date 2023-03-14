@@ -17,7 +17,7 @@ from aws_lambda_powertools.utilities.typing import LambdaContext
 from yaml_parser import get_file_contents
 
 logger = Logger()
-VALID_STATUSES = ['FAILED', 'HIGH']
+VALID_STATUSES = ['FAILED', 'HIGH', 'WARNING']
 DYNAMODB_TABLE_NAME = os.environ['DYNAMODB_TABLE_NAME']
 YAML_CONFIGURATION_FILE = 'suppressor.yml'
 SUPPRESSED_FINDINGS = []
