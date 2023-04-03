@@ -3,14 +3,18 @@
 > Previously called: Security Hub Findings Suppressor |
 > Based on: <https://github.com/schubergphilis/aws-security-hub-suppressor>
 
-The Security Hub Findings Manager is a framework designed to automatically suppress findings recorded by the AWS Security Hub service based on a pre-defined and configurable suppression list. This suppression is needed in case some controls or rules are not completely applicable to the resources of a given account. For example, you might want to suppress all DynamoDB Autoscaling configuration findings related to the control `DynamoDB.1`, simply because this feature is not applicable for your workload. Besides the suppression of findings this module is also able to create Jira tickets for all `NEW` findings with a severity higher than a definable threshold.
+Security Hub Findings Manager is a framework designed to suppress AWS Security Hub using a configurable suppression list.
 
-This logic is intended to be executed in the Audit Account which is part of the AWS Control Tower default account posture and therefore receives events from all child accounts in an organization.
+This suppression is useful when controls or rules are not applicable in an account. For example, you might want to suppress all DynamoDB Autoscaling configuration findings related to the control `DynamoDB.1` simply because this feature is not applicable for your workload. Besides the suppressing the findings, this module is also able to create Jira tickets for all `NEW` findings with a severity higher than the defined threshold.
 
-## Terraform Runtime Requirements
+This module is intended to be run against the Audit account in a Control Tower installtion, which by default receives events from all child accounts in the organisation.
 
-* The lambda's are built and zipped during runtime, this means that the terraform runners/agents needs to have python 3.8 installed.
-* Remark about Terraform Cloud: The `remote` runners from Terraform Cloud have python installed. If you run your own agents make sure that you use a custom TFC agent image with python installed.
+## Terraform runtime requirements
+
+Important to note:
+
+* The lambdas are built and zipped during runtime, this means that Terraform needs access to Python 3.8
+* Re Terraform Cloud: The "remote" runners from do have Python installed; if you are using self-hosted agents, you'll need to create your own image based that includes Python
 
 ## Components
 
@@ -20,52 +24,51 @@ This logic is intended to be executed in the Audit Account which is part of the 
   * Security Hub Streams: triggered by changes in the DynamoDB suppression table using a DynamoDB Stream.
   * (optional) Security Hub Jira: triggered by EventBridge on events from SecurityHub with a normalized severity higher than a definable threshold (by default `70`)
     * [Normalized](https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Severity.html) severity levels:
-      * 0 - INFORMATIONAL
-      * 1–39 - LOW
-      * 40–69 - MEDIUM
-      * 70–89 - HIGH
-      * 90–100 - CRITICAL
+      * 0 - `INFORMATIONAL`
+      * 1–39 - `LOW`
+      * 40–69 - `MEDIUM`
+      * 70–89 - `HIGH`
+      * 90–100 - `CRITICAL`
 * (optional) Step Function, to orchestrate the Suppressor and Jira lambdas.
 * YML Configuration File (`suppressor.yaml`) that contains the list of products and the field mapping
 
-## Deployment Modes
+## Deployment moded
 
-There are 3 different deployment modes for this module. All the modes deploy a Lambda function which triggers in response to upserts in DynamoDB table and a EventBridge rule with a pattern which detects the import of a new Security Hub finding. In addition to these, additional resources are deployed depending on the chosen deployment mode.
+Each mode deploys a Lambda function that is triggered by upserts to the DynamoDB table and an EventBridge rule which detects new Security Hub findings. In addition to these, additional resources are deployed depending on the chosen deployment mode.
 
-### (Default) Without Jira & ServiceNow Integration
+### (Default) without Jira & ServiceNow integration
 
-* The module deploys 1 Lambda function: `Suppressor` and configures this Lambda as a target to the EventBridge rule.
+* The module deploys one Lambda function: `Suppressor`, and configures it as a target to the EventBridge rule watching for new Security Hub findings
 
-### With Jira Integration
+### With Jira integration
 
-* This deployment method can be used by setting the value of the variable `jira_integration` to `true` (default = false).
-* The module deploys two Lambda functions: `Suppressor` and `Jira` along with a Step function which orchestrates these Lambda functions and Step Function as a target to the EventBridge rule.
-* If the finding is not suppressed a ticket is created for findings with a normalized severity higher than a definable threshold. The workflow status in Security Hub is updated from `NEW` to `NOTIFIED`.
+* The module deploys an additional Lambda function: `Jira`, along with a Step function which orchestrates these Lambda functions and Step Function as a target to the EventBridge rule
+* If the finding is not suppressed and matches the configured severity level, an issue is created in Jira; the Security Hub workflow status will also be changed from `NEW` to `NOTIFIED`
 
 ![Step Function Graph](files/step-function-artifacts/securityhub-suppressor-orchestrator-graph.png)
 
-### With ServiceNow Integration
+### With ServiceNow integration
 
 [Reference design](https://aws.amazon.com/blogs/security/how-to-set-up-two-way-integration-between-aws-security-hub-and-servicenow)
 
-* This deployment method can be used by setting the value of the variable `servicenow_integration` to `true` (default = false).
-* The module will deploy all the needed resources to support integration with ServiceNow, including (but not limited to): An SQS Queue, EventBridge Rule and the needed IAM user.
-* When an event in SecurityHub fires, an event will be created by EventBridge and dropped onto an SQS Queue.
+* The module will deploy additional resources to support ServiceNow integration including (but not limited to): SQS queue, EventBridge rule and the necessary IAM user
+* When an event in SecurityHub fires, an event will be created by EventBridge and dropped onto an SQS queue.
 * ServiceNow will pull the events from the SQS queue with the `SCSyncUser` using `acccess_key` & `secret_access_key`.
 
-Note : The user will be created by the module, but the `acccess_key` & `secret_access_key` need to be generated in the AWS Console, to prevent storing this data in the Terraform state. If you want Terraform to create the `acccess_key` & `secret_access_key` (and output them), set variable `create_servicenow_access_keys` to `true` (default = false)
+> **Note**
+> The user will be created by the module, but the `acccess_key` & `secret_access_key` need to be generated in the AWS Console, to prevent storing this data in the Terraform state. If you want Terraform to create the `acccess_key` & `secret_access_key` (and output them), set variable `create_servicenow_access_keys` to `true` (default = false)
 
 ## How it works
 
-The Security Hub Findings Suppressor listens to AWS EventBridge event bus and triggers an execution when a `Security Hub Findings - Imported` event happens.
+The Security Hub Findings Manager listens to the AWS EventBridge event bus and triggers an execution when the `Security Hub Findings - Imported` event occurs.
 
-Once the event is delivered, the function `securityhub-events-suppressor` will be triggered and will perform the following steps:
+Once the event is delivered, the `securityhub-events-suppressor` function will be triggered and will perform the following:
 
-* Parse the event to determine what is the linked product. For example: Firewall Manager, Inspector or Security Hub.
-* Check whether this product is properly mapped and configured in the YAML configuration file.
-* Extract the AWS resource from the event payload.
-* Upon having the resource and its ARN, the logic checks if that resource is listed in the suppression list.
-* The suppression list contains a collection of items, one per controlId.
+1. Parse the event to determine what is the linked product. For example: Firewall Manager, Inspector or Security Hub.
+1. Check whether this product is properly mapped and configured in the YAML configuration file.
+1. Extract the AWS resource from the event payload.
+1. Upon having the resource and its ARN, the logic checks if that resource is listed in the suppression list.
+1. The suppression list contains a collection of items, one per controlId.
 
 ## How to add a new product to the suppression list
 
@@ -83,7 +86,47 @@ Once the event is delivered, the function `securityhub-events-suppressor` will b
 
 * Commit your changes, push and merge. The pipeline will automatically maintain the set of suppressions and store them in DynamoDB. If all above steps succeed, the finding is suppressed.
 
-# Usage
+## Examples
+
+Suppress a finding in all accounts:
+
+```yaml
+Suppressions:
+  "1.13":
+    - action: SUPPRESSED
+      rules:
+        - ^AWS::::Account:[0-9]{12}$
+      notes: A note about this suppression
+```
+
+Suppress a finding in some accounts (with comments):
+
+```yaml
+Suppressions:
+  EC2.17:
+    - action: SUPPRESSED
+      rules:
+        - ^arn:aws:ec2:eu-west-1:111111111111:instance/i-[0-9a-z]$ # can add comments here like
+        - ^arn:aws:ec2:eu-west-1:222222222222:instance/i-[0-9a-z]$ # the friendly IAM alias to more
+        - ^arn:aws:ec2:eu-west-1:333333333333:instance/i-[0-9a-z]$ # easily identify matches resources
+      notes: A note about this suppression
+```
+
+Suppress finding for specific resources:
+
+```yaml
+   EC2.18:
+     - action: SUPPRESSED
+       rules:
+         - arn:aws:ec2:eu-west-1:111111111111:security-group/sg-0ae8d23e1d28b1437
+         - arn:aws:ec2:eu-west-1:222222222222:security-group/sg-01f1aa5f8407c98b9
+       notes: A note about this suppression
+```
+
+> **Note**
+> There is no leading `^` or trailing `$` as we don't use a regex for specific resources.
+
+## Usage
 
 <!--- BEGIN_TF_DOCS --->
 ## Requirements
