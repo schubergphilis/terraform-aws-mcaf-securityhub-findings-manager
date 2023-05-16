@@ -32,15 +32,15 @@ Important to note:
 * (optional) Step Function, to orchestrate the Suppressor and Jira lambdas.
 * YML Configuration File (`suppressor.yaml`) that contains the list of products and the field mapping
 
-## Deployment moded
+## Deployment Modes
 
 Each mode deploys a Lambda function that is triggered by upserts to the DynamoDB table and an EventBridge rule which detects new Security Hub findings. In addition to these, additional resources are deployed depending on the chosen deployment mode.
 
-### (Default) without Jira & ServiceNow integration
+### (Default) Without Jira & ServiceNow Integration
 
 * The module deploys one Lambda function: `Suppressor`, and configures it as a target to the EventBridge rule watching for new Security Hub findings
 
-### With Jira integration
+### With Jira Integration
 
 * The module deploys an additional Lambda function: `Jira`, along with a Step function which orchestrates these Lambda functions and Step Function as a target to the EventBridge rule
 * An issue is created in Jira if a new finding matches the configured severity level and does not match a suppression rule; the Security Hub workflow status will also be changed from `NEW` to `NOTIFIED`.
@@ -49,7 +49,7 @@ This functionality can be enabled by setting `var.jira_integration` to `true`.
 
 ![Step Function Graph](files/step-function-artifacts/securityhub-suppressor-orchestrator-graph.png)
 
-### With ServiceNow integration
+### With ServiceNow Integration
 
 [Reference design](https://aws.amazon.com/blogs/security/how-to-set-up-two-way-integration-between-aws-security-hub-and-servicenow)
 
