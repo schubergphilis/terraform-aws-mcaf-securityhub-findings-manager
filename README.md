@@ -3,18 +3,18 @@
 > Previously called: Security Hub Findings Suppressor |
 > Based on: <https://github.com/schubergphilis/aws-security-hub-suppressor>
 
-Security Hub Findings Manager is a framework designed to suppress AWS Security Hub using a configurable suppression list.
+Security Hub Findings Manager is a framework designed to suppress AWS Security Hub findings via a configurable suppression list.
 
-This suppression is useful when controls or rules are not applicable in an account. For example, you might want to suppress all DynamoDB Autoscaling configuration findings related to the control `DynamoDB.1` simply because this feature is not applicable for your workload. Besides the suppressing the findings, this module is also able to create Jira tickets for all `NEW` findings with a severity higher than the defined threshold.
+This suppression is useful when controls or rules are not applicable in an account. For example, you might want to suppress all DynamoDB Autoscaling configuration findings related to the control `DynamoDB.1` simply because this feature is not applicable for your workload. In addition to suppressing findings, this module can also create Jira issues for all `NEW` findings that match a defined severity threshold.
 
-This module is intended to be run against the Audit account in a Control Tower installtion, which by default receives events from all child accounts in the organisation.
+This module is intended to be run against the Audit account in a Control Tower installation, which by default receives events from all child accounts in the organization.
 
 ## Terraform runtime requirements
 
 Important to note:
 
 * The lambdas are built and zipped during runtime, this means that Terraform needs access to Python 3.8
-* Re Terraform Cloud: The "remote" runners from do have Python installed; if you are using self-hosted agents, you'll need to create your own image based that includes Python
+* Note when using Terraform Cloud: remote agents already have Python installed but the [hashicorp/tfc-agent](https://hub.docker.com/r/hashicorp/tfc-agent) image used for self-hosted agents does not. If using self-hosted agents, you will need to build your own image that includes Python 3.8.
 
 ## Components
 
@@ -43,7 +43,9 @@ Each mode deploys a Lambda function that is triggered by upserts to the DynamoDB
 ### With Jira integration
 
 * The module deploys an additional Lambda function: `Jira`, along with a Step function which orchestrates these Lambda functions and Step Function as a target to the EventBridge rule
-* If the finding is not suppressed and matches the configured severity level, an issue is created in Jira; the Security Hub workflow status will also be changed from `NEW` to `NOTIFIED`
+* An issue is created in Jira if a new finding matches the configured severity level and does not match a suppression rule; the Security Hub workflow status will also be changed from `NEW` to `NOTIFIED`.
+
+This functionality can be enabled by setting `var.jira_integration` to `true`.
 
 ![Step Function Graph](files/step-function-artifacts/securityhub-suppressor-orchestrator-graph.png)
 
@@ -53,16 +55,18 @@ Each mode deploys a Lambda function that is triggered by upserts to the DynamoDB
 
 * The module will deploy additional resources to support ServiceNow integration including (but not limited to): SQS queue, EventBridge rule and the necessary IAM user
 * When an event in SecurityHub fires, an event will be created by EventBridge and dropped onto an SQS queue.
-* ServiceNow will pull the events from the SQS queue with the `SCSyncUser` using `acccess_key` & `secret_access_key`.
+* ServiceNow will pull the events from the SQS queue with the `SCSyncUser` using `access_key` & `secret_access_key`.
+
+This functionality can be enabled by setting `var.servicenow_integration` to `true`.
 
 > **Note**
-> The user will be created by the module, but the `acccess_key` & `secret_access_key` need to be generated in the AWS Console, to prevent storing this data in the Terraform state. If you want Terraform to create the `acccess_key` & `secret_access_key` (and output them), set variable `create_servicenow_access_keys` to `true` (default = false)
+> The user will be created by the module, but the `access_key` & `secret_access_key` need to be generated in the AWS Console, to prevent storing this data in the Terraform state. If you want Terraform to create the `access_key` & `secret_access_key` (and output them), set `var.create_servicenow_access_keys` to `true`.
 
 ## How it works
 
-The Security Hub Findings Manager listens to the AWS EventBridge event bus and triggers an execution when the `Security Hub Findings - Imported` event occurs.
+The Security Hub Findings Manager listens to the AWS EventBridge event bus and triggers an execution when the ["Security Hub Findings - Imported event](https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-cwe-event-formats.html#securityhub-cwe-event-formats-findings-imported) occurs.
 
-Once the event is delivered, the `securityhub-events-suppressor` function will be triggered and will perform the following:
+Once the event is delivered, the `securityhub-events-suppressor` function will perform the following:
 
 1. Parse the event to determine what is the linked product. For example: Firewall Manager, Inspector or Security Hub.
 1. Check whether this product is properly mapped and configured in the YAML configuration file.
