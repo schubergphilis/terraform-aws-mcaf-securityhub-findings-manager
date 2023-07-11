@@ -1,5 +1,5 @@
 # Usage
-<!--- BEGIN_TF_DOCS --->
+<!-- BEGIN_TF_DOCS -->
 ## Requirements
 
 | Name | Version |
@@ -26,4 +26,4 @@
 
 No output.
 
-<!--- END_TF_DOCS --->
+<!-- END_TF_DOCS -->

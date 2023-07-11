@@ -154,7 +154,7 @@ module "lambda_securityhub_events_suppressor" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
   providers                    = { aws.lambda = aws }
   source                       = "github.com/schubergphilis/terraform-aws-mcaf-lambda?ref=v0.3.3"
-  name                         = var.lambda_events_suppressor_name
+  name                         = var.lambda_events_suppressor.name
   create_allow_all_egress_rule = var.create_allow_all_egress_rule
   create_policy                = false
   create_s3_dummy_object       = false
@@ -163,7 +163,7 @@ module "lambda_securityhub_events_suppressor" {
   handler                      = "securityhub_events.lambda_handler"
   kms_key_arn                  = var.kms_key_arn
   log_retention                = 365
-  memory_size                  = 256
+  memory_size                  = var.lambda_events_suppressor.memory_size
   role_arn                     = module.lambda_security_hub_suppressor_role.arn
   runtime                      = "python3.8"
   s3_bucket                    = var.s3_bucket_name
@@ -171,11 +171,11 @@ module "lambda_securityhub_events_suppressor" {
   s3_object_version            = module.lambda_suppressor_deployment_package.s3_object.version_id
   subnet_ids                   = var.subnet_ids
   tags                         = var.tags
-  timeout                      = 60
+  timeout                      = var.lambda_events_suppressor.timeout
 
   environment = {
     DYNAMODB_TABLE_NAME         = var.dynamodb_table
-    LOG_LEVEL                   = var.lambda_log_level
+    LOG_LEVEL                   = var.lambda_events_suppressor.log_level
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
     POWERTOOLS_SERVICE_NAME     = "securityhub-suppressor"
   }
@@ -186,7 +186,7 @@ module "lambda_securityhub_streams_suppressor" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
   providers                    = { aws.lambda = aws }
   source                       = "github.com/schubergphilis/terraform-aws-mcaf-lambda?ref=v0.3.3"
-  name                         = var.lambda_streams_suppressor_name
+  name                         = var.lambda_streams_suppressor.name
   create_allow_all_egress_rule = var.create_allow_all_egress_rule
   create_policy                = false
   create_s3_dummy_object       = false
@@ -195,7 +195,7 @@ module "lambda_securityhub_streams_suppressor" {
   handler                      = "securityhub_streams.lambda_handler"
   kms_key_arn                  = var.kms_key_arn
   log_retention                = 365
-  memory_size                  = 256
+  memory_size                  = var.lambda_streams_suppressor.memory_size
   role_arn                     = module.lambda_security_hub_suppressor_role.arn
   runtime                      = "python3.8"
   s3_bucket                    = var.s3_bucket_name
@@ -203,11 +203,11 @@ module "lambda_securityhub_streams_suppressor" {
   s3_object_version            = module.lambda_suppressor_deployment_package.s3_object.version_id
   subnet_ids                   = var.subnet_ids
   tags                         = var.tags
-  timeout                      = 60
+  timeout                      = var.lambda_streams_suppressor.timeout
 
   environment = {
     DYNAMODB_TABLE_NAME         = var.dynamodb_table
-    LOG_LEVEL                   = var.lambda_log_level
+    LOG_LEVEL                   = var.lambda_streams_suppressor.log_level
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
     POWERTOOLS_SERVICE_NAME     = "securityhub-suppressor"
   }
@@ -215,7 +215,7 @@ module "lambda_securityhub_streams_suppressor" {
 
 # EventBridge Rule that detect Security Hub events with compliance status as failed
 resource "aws_cloudwatch_event_rule" "securityhub_events_suppressor_failed_events" {
-  name        = "rule-${var.lambda_events_suppressor_name}"
+  name        = "rule-${var.lambda_events_suppressor.name}"
   description = "EventBridge Rule that detects Security Hub events with compliance status as failed and workflow status as new or notified"
 
   event_pattern = <<EOF
@@ -238,16 +238,16 @@ EOF
 
 # Allow Eventbridge to invoke Security Hub Events Lambda function
 resource "aws_lambda_permission" "allow_eventbridge_to_invoke_suppressor_lambda" {
-  count         = var.jira_integration ? 0 : 1
+  count         = var.jira_integration.enabled ? 0 : 1
   action        = "lambda:InvokeFunction"
-  function_name = var.lambda_events_suppressor_name
+  function_name = var.lambda_events_suppressor.name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.securityhub_events_suppressor_failed_events.arn
 }
 
 # Add Security Hub Events Lambda function as a target to the EventBridge rule
 resource "aws_cloudwatch_event_target" "lambda_securityhub_events_suppressor" {
-  count = var.jira_integration ? 0 : 1
+  count = var.jira_integration.enabled ? 0 : 1
   arn   = module.lambda_securityhub_events_suppressor.arn
   rule  = aws_cloudwatch_event_rule.securityhub_events_suppressor_failed_events.name
 }

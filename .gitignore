@@ -7,3 +7,6 @@
 
 # .tfvars files
 *.tfvars
+
+# CheckOv pre-commit external modules path
+**/.external_modules/*

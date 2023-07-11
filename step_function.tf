@@ -1,6 +1,6 @@
 # IAM role to be assumed by Step Function
 module "step_function_security_hub_suppressor_role" {
-  count                 = var.jira_integration ? 1 : 0
+  count                 = var.jira_integration.enabled ? 1 : 0
   source                = "github.com/schubergphilis/terraform-aws-mcaf-role?ref=v0.3.2"
   name                  = var.step_function_suppressor_iam_role_name
   create_policy         = true
@@ -12,7 +12,7 @@ module "step_function_security_hub_suppressor_role" {
 }
 
 data "aws_iam_policy_document" "step_function_security_hub_suppressor" {
-  count = var.jira_integration ? 1 : 0
+  count = var.jira_integration.enabled ? 1 : 0
   statement {
     sid = "LambdaInvokeAccess"
     actions = [
@@ -27,13 +27,15 @@ data "aws_iam_policy_document" "step_function_security_hub_suppressor" {
 
 # Step Function to orchestrate suppressor lambda functions
 resource "aws_sfn_state_machine" "securityhub_suppressor_orchestrator" {
-  count    = var.jira_integration ? 1 : 0
+  #checkov:skip=CKV_AWS_284:x-ray is not enabled due to the simplicity of this state machine and the costs involved with enabling this feature.
+  #checkov:skip=CKV_AWS_285:logging configuration is only supported for SFN type 'EXPRESS'.
+  count    = var.jira_integration.enabled ? 1 : 0
   name     = "securityhub-suppressor-orchestrator"
   role_arn = module.step_function_security_hub_suppressor_role[0].arn
   tags     = var.tags
 
   definition = templatefile("${path.module}/files/step-function-artifacts/securityhub-suppressor-orchestrator.json.tpl", {
-    finding_severity_normalized              = var.jira_finding_severity_normalized
+    finding_severity_normalized              = var.jira_integration.finding_severity_normalized_threshold
     lambda_securityhub_events_suppressor_arn = module.lambda_securityhub_events_suppressor.arn,
     lambda_securityhub_jira_arn              = module.lambda_jira_security_hub[0].arn
   })
@@ -41,7 +43,7 @@ resource "aws_sfn_state_machine" "securityhub_suppressor_orchestrator" {
 
 # IAM role to be assumed by EventBridge
 module "eventbridge_security_hub_suppressor_role" {
-  count                 = var.jira_integration ? 1 : 0
+  count                 = var.jira_integration.enabled ? 1 : 0
   source                = "github.com/schubergphilis/terraform-aws-mcaf-role?ref=v0.3.2"
   name                  = var.eventbridge_suppressor_iam_role_name
   create_policy         = true
@@ -53,7 +55,7 @@ module "eventbridge_security_hub_suppressor_role" {
 }
 
 data "aws_iam_policy_document" "eventbridge_security_hub_suppressor" {
-  count = var.jira_integration ? 1 : 0
+  count = var.jira_integration.enabled ? 1 : 0
   statement {
     sid = "StepFunctionExecutionAccess"
     actions = [
@@ -66,7 +68,7 @@ data "aws_iam_policy_document" "eventbridge_security_hub_suppressor" {
 }
 
 resource "aws_cloudwatch_event_target" "securityhub_suppressor_orchestrator_step_function" {
-  count    = var.jira_integration ? 1 : 0
+  count    = var.jira_integration.enabled ? 1 : 0
   arn      = aws_sfn_state_machine.securityhub_suppressor_orchestrator[0].arn
   role_arn = module.eventbridge_security_hub_suppressor_role[0].arn
   rule     = aws_cloudwatch_event_rule.securityhub_events_suppressor_failed_events.name

@@ -1,8 +1,8 @@
 # IAM role to be assumed by Lambda Function
 module "lambda_jira_security_hub_role" {
-  count                 = var.jira_integration ? 1 : 0
+  count                 = var.jira_integration.enabled ? 1 : 0
   source                = "github.com/schubergphilis/terraform-aws-mcaf-role?ref=v0.3.2"
-  name                  = var.lambda_jira_iam_role_name
+  name                  = var.jira_integration.lambda_settings.iam_role_name
   create_policy         = true
   postfix               = false
   principal_identifiers = ["lambda.amazonaws.com"]
@@ -12,7 +12,7 @@ module "lambda_jira_security_hub_role" {
 }
 
 data "aws_iam_policy_document" "lambda_jira_security_hub" {
-  count = var.jira_integration ? 1 : 0
+  count = var.jira_integration.enabled ? 1 : 0
   statement {
     sid = "TrustEventsToStoreLogEvent"
     actions = [
@@ -32,7 +32,7 @@ data "aws_iam_policy_document" "lambda_jira_security_hub" {
       "secretsmanager:GetSecretValue"
     ]
     resources = [
-      var.jira_secret_arn
+      var.jira_integration.credentials_secret_arn
     ]
   }
 
@@ -70,14 +70,14 @@ data "aws_iam_policy_document" "lambda_jira_security_hub" {
 
 # Lambda VPC Execution role policy attachment
 resource "aws_iam_role_policy_attachment" "lambda_jira_security_hub_role_vpc_policy" {
-  count      = var.jira_integration && var.subnet_ids != null ? 1 : 0
+  count      = var.jira_integration.enabled && var.subnet_ids != null ? 1 : 0
   role       = module.lambda_jira_security_hub_role[0].id
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
 # Create a Lambda zip deployment package with code and dependencies
 module "lambda_jira_deployment_package" {
-  count                    = var.jira_integration ? 1 : 0
+  count                    = var.jira_integration.enabled ? 1 : 0
   source                   = "terraform-aws-modules/lambda/aws"
   version                  = "~> 3.3.0"
   create_function          = false
@@ -92,10 +92,10 @@ module "lambda_jira_deployment_package" {
 # Lambda function to create Jira ticket for Security Hub findings and set the workflow state to NOTIFIED
 module "lambda_jira_security_hub" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
-  count                        = var.jira_integration ? 1 : 0
+  count                        = var.jira_integration.enabled ? 1 : 0
   providers                    = { aws.lambda = aws }
   source                       = "github.com/schubergphilis/terraform-aws-mcaf-lambda?ref=v0.3.3"
-  name                         = var.lambda_jira_name
+  name                         = var.jira_integration.lambda_settings.name
   create_allow_all_egress_rule = var.create_allow_all_egress_rule
   create_policy                = false
   create_s3_dummy_object       = false
@@ -104,7 +104,7 @@ module "lambda_jira_security_hub" {
   handler                      = "securityhub_jira.lambda_handler"
   kms_key_arn                  = var.kms_key_arn
   log_retention                = 365
-  memory_size                  = 256
+  memory_size                  = var.jira_integration.lambda_settings.memory_size
   role_arn                     = module.lambda_jira_security_hub_role[0].arn
   runtime                      = "python3.8"
   s3_bucket                    = var.s3_bucket_name
@@ -112,14 +112,14 @@ module "lambda_jira_security_hub" {
   s3_object_version            = module.lambda_jira_deployment_package[0].s3_object.version_id
   subnet_ids                   = var.subnet_ids
   tags                         = var.tags
-  timeout                      = 60
+  timeout                      = var.jira_integration.lambda_settings.timeout
 
   environment = {
-    EXCLUDE_ACCOUNT_FILTER      = jsonencode(var.jira_exclude_account_filter)
-    JIRA_ISSUE_TYPE             = var.jira_issue_type
-    JIRA_PROJECT_KEY            = var.jira_project_key
-    JIRA_SECRET_ARN             = var.jira_secret_arn
-    LOG_LEVEL                   = var.lambda_log_level
+    EXCLUDE_ACCOUNT_FILTER      = jsonencode(var.jira_integration.exclude_account_ids)
+    JIRA_ISSUE_TYPE             = var.jira_integration.issue_type
+    JIRA_PROJECT_KEY            = var.jira_integration.project_key
+    JIRA_SECRET_ARN             = var.jira_integration.credentials_secret_arn
+    LOG_LEVEL                   = var.jira_integration.lambda_settings.log_level
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
     POWERTOOLS_SERVICE_NAME     = "jira-securityhub"
   }

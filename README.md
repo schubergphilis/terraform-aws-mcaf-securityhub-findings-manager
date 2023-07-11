@@ -83,9 +83,49 @@ Once the event is delivered, the function `securityhub-events-suppressor` will b
 
 * Commit your changes, push and merge. The pipeline will automatically maintain the set of suppressions and store them in DynamoDB. If all above steps succeed, the finding is suppressed.
 
+### Examples
+
+Suppress a finding in all accounts:
+
+```yaml
+Suppressions:
+  "1.13":
+    - action: SUPPRESSED
+      rules:
+        - ^AWS::::Account:[0-9]{12}$
+      notes: A note about this suppression
+```
+
+Suppress a finding in some accounts (with comments):
+
+```yaml
+Suppressions:
+  EC2.17:
+    - action: SUPPRESSED
+      rules:
+        - ^arn:aws:ec2:eu-west-1:111111111111:instance/i-[0-9a-z]$ # can add comments here like
+        - ^arn:aws:ec2:eu-west-1:222222222222:instance/i-[0-9a-z]$ # the friendly IAM alias to more
+        - ^arn:aws:ec2:eu-west-1:333333333333:instance/i-[0-9a-z]$ # easily identify matches resources
+      notes: A note about this suppression
+```
+
+Suppress finding for specific resources:
+
+```yaml
+   EC2.18:
+     - action: SUPPRESSED
+       rules:
+         - arn:aws:ec2:eu-west-1:111111111111:security-group/sg-0ae8d23e1d28b1437
+         - arn:aws:ec2:eu-west-1:222222222222:security-group/sg-01f1aa5f8407c98b9
+       notes: A note about this suppression
+```
+
+> **Note**
+> There is no leading `^` or trailing `$` as we don't use a regex for specific resources.
+
 # Usage
 
-<!--- BEGIN_TF_DOCS --->
+<!-- BEGIN_TF_DOCS -->
 ## Requirements
 
 | Name | Version |
@@ -137,4 +177,4 @@ Once the event is delivered, the function `securityhub-events-suppressor` will b
 | lambda\_securityhub\_events\_suppressor\_sg\_id | This will output the security group id attached to the securityhub\_events\_suppressor Lambda. This can be used to tune ingress and egress rules. |
 | lambda\_securityhub\_streams\_suppressor\_sg\_id | This will output the security group id attached to the securityhub\_streams\_suppressor Lambda. This can be used to tune ingress and egress rules. |
 
-<!--- END_TF_DOCS --->
+<!-- END_TF_DOCS -->
