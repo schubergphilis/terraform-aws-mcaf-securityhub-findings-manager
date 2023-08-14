@@ -1,11 +1,12 @@
 module "sync-user" {
   #checkov:skip=CKV_AWS_273:We really need a user for this setup
-  name          = "SCSyncUser"
-  source        = "github.com/schubergphilis/terraform-aws-mcaf-user?ref=v0.1.13"
-  create_policy = true
-  policy        = aws_iam_policy.sqs_policy.policy
-  kms_key_id    = var.kms_key_arn
-  tags          = var.tags
+  name                  = "SCSyncUser"
+  source                = "github.com/schubergphilis/terraform-aws-mcaf-user?ref=v0.4.0"
+  create_iam_access_key = var.create_access_keys
+  create_policy         = true
+  kms_key_id            = var.kms_key_arn
+  policy                = aws_iam_policy.sqs_policy.policy
+  tags                  = var.tags
 
   policy_arns = [
     "arn:aws:iam::aws:policy/service-role/AWSConfigRoleForOrganizations",
