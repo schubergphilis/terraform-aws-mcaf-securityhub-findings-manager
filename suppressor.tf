@@ -145,7 +145,7 @@ module "lambda_suppressor_deployment_package" {
   runtime                  = "python3.8"
   s3_bucket                = module.lambda_artifacts_bucket.name
   s3_object_storage_class  = "STANDARD"
-  source_path              = "files/lambda-artifacts/securityhub-suppressor"
+  source_path              = "./files/lambda-artifacts/securityhub-suppressor"
   store_on_s3              = true
 }
 
