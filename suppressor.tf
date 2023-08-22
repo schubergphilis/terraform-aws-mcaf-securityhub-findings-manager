@@ -28,7 +28,7 @@ module "lambda_artifacts_bucket" {
   #checkov:skip=CKV_AWS_145:Bug in CheckOV https://github.com/bridgecrewio/checkov/issues/3847
   #checkov:skip=CKV_AWS_19:Bug in CheckOV https://github.com/bridgecrewio/checkov/issues/3847
   name        = var.s3_bucket_name
-  source      = "github.com/schubergphilis/terraform-aws-mcaf-s3?ref=v0.6.0"
+  source      = "github.com/schubergphilis/terraform-aws-mcaf-s3?ref=v0.10.0"
   kms_key_arn = var.kms_key_arn
   logging     = null
   tags        = var.tags
@@ -56,7 +56,7 @@ module "lambda_artifacts_bucket" {
 
 # IAM role to be assumed by Lambda Function
 module "lambda_security_hub_suppressor_role" {
-  source                = "github.com/schubergphilis/terraform-aws-mcaf-role?ref=v0.3.2"
+  source                = "github.com/schubergphilis/terraform-aws-mcaf-role?ref=v0.3.3"
   name                  = var.lambda_suppressor_iam_role_name
   create_policy         = true
   postfix               = false
@@ -139,7 +139,7 @@ resource "aws_iam_role_policy_attachment" "lambda_security_hub_suppressor_role_v
 # Create a Lambda zip deployment package with code and dependencies
 module "lambda_suppressor_deployment_package" {
   source                   = "terraform-aws-modules/lambda/aws"
-  version                  = "~> 3.3.0"
+  version                  = "~> 6.0.0"
   create_function          = false
   recreate_missing_package = false
   runtime                  = "python3.8"
@@ -153,7 +153,7 @@ module "lambda_suppressor_deployment_package" {
 module "lambda_securityhub_events_suppressor" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
   providers                    = { aws.lambda = aws }
-  source                       = "github.com/schubergphilis/terraform-aws-mcaf-lambda?ref=v0.3.3"
+  source                       = "github.com/schubergphilis/terraform-aws-mcaf-lambda?ref=v0.3.13"
   name                         = var.lambda_events_suppressor.name
   create_allow_all_egress_rule = var.create_allow_all_egress_rule
   create_policy                = false
@@ -185,7 +185,7 @@ module "lambda_securityhub_events_suppressor" {
 module "lambda_securityhub_streams_suppressor" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
   providers                    = { aws.lambda = aws }
-  source                       = "github.com/schubergphilis/terraform-aws-mcaf-lambda?ref=v0.3.3"
+  source                       = "github.com/schubergphilis/terraform-aws-mcaf-lambda?ref=v0.3.13"
   name                         = var.lambda_streams_suppressor.name
   create_allow_all_egress_rule = var.create_allow_all_egress_rule
   create_policy                = false
