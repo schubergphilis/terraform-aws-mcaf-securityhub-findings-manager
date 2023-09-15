@@ -85,7 +85,8 @@ Once the event is delivered, the function `securityhub-events-suppressor` will b
 
 ### Examples
 
-Suppress a finding in all accounts:
+Suppress a finding where the resource is the account, i.e. the 'MFA should be enabled for all IAM users that have a console password
+' finding :
 
 ```yaml
 Suppressions:
@@ -96,6 +97,17 @@ Suppressions:
       notes: A note about this suppression
 ```
 
+Suppress a finding for all resources in a specific account:
+
+```yaml
+Suppressions:
+  "EC2.17":
+    - action: SUPPRESSED
+      rules:
+        - ^arn:aws:[^:]*:[^:]*:111111111111:.*$
+      notes: A note about this suppression
+```
+
 Suppress a finding in some accounts (with comments):
 
 ```yaml
@@ -103,9 +115,9 @@ Suppressions:
   EC2.17:
     - action: SUPPRESSED
       rules:
-        - ^arn:aws:ec2:eu-west-1:111111111111:instance/i-[0-9a-z]$ # can add comments here like
-        - ^arn:aws:ec2:eu-west-1:222222222222:instance/i-[0-9a-z]$ # the friendly IAM alias to more
-        - ^arn:aws:ec2:eu-west-1:333333333333:instance/i-[0-9a-z]$ # easily identify matches resources
+        - ^arn:aws:ec2:eu-west-1:111111111111:instance/i-[0-9a-z]+$ # can add comments here like
+        - ^arn:aws:ec2:eu-west-1:222222222222:instance/i-[0-9a-z]+$ # the friendly IAM alias to more
+        - ^arn:aws:ec2:eu-west-1:333333333333:instance/i-[0-9a-z]+$ # easily identify matches resources
       notes: A note about this suppression
 ```
 
@@ -115,13 +127,14 @@ Suppress finding for specific resources:
    EC2.18:
      - action: SUPPRESSED
        rules:
-         - arn:aws:ec2:eu-west-1:111111111111:security-group/sg-0ae8d23e1d28b1437
-         - arn:aws:ec2:eu-west-1:222222222222:security-group/sg-01f1aa5f8407c98b9
+         - ^arn:aws:ec2:eu-west-1:111111111111:security-group/sg-0ae8d23e1d28b1437$
+         - ^arn:aws:ec2:eu-west-1:222222222222:security-group/sg-01f1aa5f8407c98b9$
        notes: A note about this suppression
 ```
 
 > **Note**
-> There is no leading `^` or trailing `$` as we don't use a regex for specific resources.
+> There is also a leading `^` and trailing `$` as the rule is always matched as a regexp. This means that if you do not
+> start with a `^` and end with a `$` it will be matched as a substring and you might match more than anticipated.
 
 # Usage
 
