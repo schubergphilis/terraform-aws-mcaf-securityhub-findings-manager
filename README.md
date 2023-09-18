@@ -86,7 +86,6 @@ Once the event is delivered, the function `securityhub-events-suppressor` will b
 ### Examples
 
 Suppress a finding where the resource is the account, i.e. the 'MFA should be enabled for all IAM users that have a console password' finding:
-' finding :
 
 ```yaml
 Suppressions:
