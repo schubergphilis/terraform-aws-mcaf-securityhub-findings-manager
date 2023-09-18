@@ -82,7 +82,7 @@ module "lambda_jira_deployment_package" {
   version                  = "~> 3.3.0"
   create_function          = false
   recreate_missing_package = false
-  runtime                  = "python3.8"
+  runtime                  = var.runtime
   s3_bucket                = module.lambda_artifacts_bucket.name
   s3_object_storage_class  = "STANDARD"
   source_path              = "${path.module}/files/lambda-artifacts/securityhub-jira"
@@ -106,7 +106,7 @@ module "lambda_jira_security_hub" {
   log_retention                = 365
   memory_size                  = var.jira_integration.lambda_settings.memory_size
   role_arn                     = module.lambda_jira_security_hub_role[0].arn
-  runtime                      = "python3.8"
+  runtime                      = var.runtime
   s3_bucket                    = var.s3_bucket_name
   s3_key                       = module.lambda_jira_deployment_package[0].s3_object.key
   s3_object_version            = module.lambda_jira_deployment_package[0].s3_object.version_id

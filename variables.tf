@@ -112,3 +112,9 @@ variable "tags" {
   default     = {}
   description = "A mapping of tags to assign to the resources"
 }
+
+variable "runtime" {
+  type        = string
+  default     = "python3.8"
+  description = "The runtime for each lambda"
+}
