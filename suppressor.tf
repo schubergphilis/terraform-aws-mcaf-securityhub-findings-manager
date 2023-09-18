@@ -152,8 +152,7 @@ module "lambda_suppressor_deployment_package" {
 # Lambda function to suppress Security Hub findings in response to an EventBridge trigger
 module "lambda_securityhub_events_suppressor" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
-  providers                    = { aws.lambda = aws }
-  source                       = "github.com/schubergphilis/terraform-aws-mcaf-lambda?ref=v0.3.3"
+  source                       = "github.com/schubergphilis/terraform-aws-mcaf-lambda?ref=v0.3.14"
   name                         = var.lambda_events_suppressor.name
   create_allow_all_egress_rule = var.create_allow_all_egress_rule
   create_policy                = false
@@ -184,8 +183,7 @@ module "lambda_securityhub_events_suppressor" {
 # Lambda to suppress Security Hub findings in response to DynamoDB stream event
 module "lambda_securityhub_streams_suppressor" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
-  providers                    = { aws.lambda = aws }
-  source                       = "github.com/schubergphilis/terraform-aws-mcaf-lambda?ref=v0.3.3"
+  source                       = "github.com/schubergphilis/terraform-aws-mcaf-lambda?ref=v0.3.14"
   name                         = var.lambda_streams_suppressor.name
   create_allow_all_egress_rule = var.create_allow_all_egress_rule
   create_policy                = false
