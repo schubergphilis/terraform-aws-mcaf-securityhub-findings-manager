@@ -158,7 +158,7 @@ Suppress finding for specific resources:
 | Name | Source | Version |
 |------|--------|---------|
 | <a name="module_eventbridge_security_hub_suppressor_role"></a> [eventbridge\_security\_hub\_suppressor\_role](#module\_eventbridge\_security\_hub\_suppressor\_role) | github.com/schubergphilis/terraform-aws-mcaf-role | v0.3.2 |
-| <a name="module_lambda_artifacts_bucket"></a> [lambda\_artifacts\_bucket](#module\_lambda\_artifacts\_bucket) | github.com/schubergphilis/terraform-aws-mcaf-s3 | v0.6.0 |
+| <a name="module_lambda_artifacts_bucket"></a> [lambda\_artifacts\_bucket](#module\_lambda\_artifacts\_bucket) | github.com/schubergphilis/terraform-aws-mcaf-s3 | v0.8.0 |
 | <a name="module_lambda_jira_deployment_package"></a> [lambda\_jira\_deployment\_package](#module\_lambda\_jira\_deployment\_package) | terraform-aws-modules/lambda/aws | ~> 3.3.0 |
 | <a name="module_lambda_jira_security_hub"></a> [lambda\_jira\_security\_hub](#module\_lambda\_jira\_security\_hub) | github.com/schubergphilis/terraform-aws-mcaf-lambda | v0.3.3 |
 | <a name="module_lambda_jira_security_hub_role"></a> [lambda\_jira\_security\_hub\_role](#module\_lambda\_jira\_security\_hub\_role) | github.com/schubergphilis/terraform-aws-mcaf-role | v0.3.2 |

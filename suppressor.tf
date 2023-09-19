@@ -27,8 +27,10 @@ resource "aws_dynamodb_table" "suppressor_dynamodb_table" {
 module "lambda_artifacts_bucket" {
   #checkov:skip=CKV_AWS_145:Bug in CheckOV https://github.com/bridgecrewio/checkov/issues/3847
   #checkov:skip=CKV_AWS_19:Bug in CheckOV https://github.com/bridgecrewio/checkov/issues/3847
+  source  = "schubergphilis/mcaf-s3/aws"
+  version = "~> 0.11.0"
+
   name        = var.s3_bucket_name
-  source      = "github.com/schubergphilis/terraform-aws-mcaf-s3?ref=v0.6.0"
   kms_key_arn = var.kms_key_arn
   logging     = null
   tags        = var.tags
