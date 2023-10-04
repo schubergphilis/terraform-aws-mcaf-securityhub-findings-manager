@@ -92,27 +92,29 @@ module "lambda_jira_deployment_package" {
 # Lambda function to create Jira ticket for Security Hub findings and set the workflow state to NOTIFIED
 module "lambda_jira_security_hub" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
-  count                        = var.jira_integration.enabled ? 1 : 0
-  providers                    = { aws.lambda = aws }
-  source                       = "github.com/schubergphilis/terraform-aws-mcaf-lambda?ref=v0.3.3"
-  name                         = var.jira_integration.lambda_settings.name
-  create_allow_all_egress_rule = var.create_allow_all_egress_rule
-  create_policy                = false
-  create_s3_dummy_object       = false
-  description                  = "Lambda to create jira ticket and set the Security Hub workflow status to notified"
-  filename                     = module.lambda_jira_deployment_package[0].local_filename
-  handler                      = "securityhub_jira.lambda_handler"
-  kms_key_arn                  = var.kms_key_arn
-  log_retention                = 365
-  memory_size                  = var.jira_integration.lambda_settings.memory_size
-  role_arn                     = module.lambda_jira_security_hub_role[0].arn
-  runtime                      = "python3.8"
-  s3_bucket                    = var.s3_bucket_name
-  s3_key                       = module.lambda_jira_deployment_package[0].s3_object.key
-  s3_object_version            = module.lambda_jira_deployment_package[0].s3_object.version_id
-  subnet_ids                   = var.subnet_ids
-  tags                         = var.tags
-  timeout                      = var.jira_integration.lambda_settings.timeout
+  count = var.jira_integration.enabled ? 1 : 0
+
+  source  = "schubergphilis/mcaf-lambda/aws"
+  version = "~> 1.0.0"
+
+  name                        = var.jira_integration.lambda_settings.name
+  create_policy               = false
+  create_s3_dummy_object      = false
+  description                 = "Lambda to create jira ticket and set the Security Hub workflow status to notified"
+  filename                    = module.lambda_jira_deployment_package[0].local_filename
+  handler                     = "securityhub_jira.lambda_handler"
+  kms_key_arn                 = var.kms_key_arn
+  log_retention               = 365
+  memory_size                 = var.jira_integration.lambda_settings.memory_size
+  role_arn                    = module.lambda_jira_security_hub_role[0].arn
+  runtime                     = var.jira_integration.lambda_settings.runtime
+  s3_bucket                   = var.s3_bucket_name
+  s3_key                      = module.lambda_jira_deployment_package[0].s3_object.key
+  s3_object_version           = module.lambda_jira_deployment_package[0].s3_object.version_id
+  security_group_egress_rules = var.jira_integration.security_group_egress_rules
+  subnet_ids                  = var.subnet_ids
+  tags                        = var.tags
+  timeout                     = var.jira_integration.lambda_settings.timeout
 
   environment = {
     EXCLUDE_ACCOUNT_FILTER      = jsonencode(var.jira_integration.exclude_account_ids)

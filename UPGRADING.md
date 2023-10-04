@@ -2,6 +2,24 @@
 
 This document captures required refactoring on your part when upgrading to a module version that contains breaking changes.
 
+## Upgrading to v2.0.0
+
+### Variables
+
+The following variable has been replaced:
+
+- `create_allow_all_egress_rule` -> `jira_integration.security_group_egress_rules`
+
+Instead of only being able to allow all egress or block all egress and having to rely on resources outside this module to create specific egress rules this is now supported natively by the module. Moreover this has been finegrained to only the Jira lambda since the maintainers currently see no need to allow finegrained egress control for the suppressor lambdas.
+
+The following variable defaults have been modified:
+
+- `servicenow_integration.cloudwatch_retention_days` -> default: `365` (previous hardcoded: `14`). In order to comply with AWS Security Hub control CloudWatch.16.
+
+### Behaviour
+
+The need to provide a `providers = { aws = aws }`` argument has been removed.
+
 ## Upgrading to v1.0.0
 
 ### Behaviour

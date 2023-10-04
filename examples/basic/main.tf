@@ -3,6 +3,7 @@ provider "aws" {
 }
 
 resource "aws_kms_key" "default" {
+  #checkov:skip=CKV2_AWS_64: In the example no KMS key policy is defined, we do recommend creating a custom policy.
   enable_key_rotation = true
 }
 
@@ -11,8 +12,7 @@ resource "random_pet" "default" {
 }
 
 module "security_hub_manager" {
-  providers = { aws = aws }
-  source    = "../../"
+  source = "../../"
 
   kms_key_arn    = aws_kms_key.default
   s3_bucket_name = "securityhub-suppressor-artifacts-${random_pet.default.id}"

@@ -1,9 +1,3 @@
-variable "create_allow_all_egress_rule" {
-  type        = bool
-  default     = false
-  description = "Whether to create a default any/any egress sg rule for lambda"
-}
-
 variable "dynamodb_table" {
   type        = string
   default     = "securityhub-suppression-list"
@@ -24,18 +18,30 @@ variable "jira_integration" {
     finding_severity_normalized_threshold = optional(number, 70)
     issue_type                            = optional(string, "Security Advisory")
     project_key                           = string
+
+    security_group_egress_rules = optional(list(object({
+      cidr_ipv4   = string
+      description = string
+      from_port   = optional(number, 0)
+      ip_protocol = optional(string, "-1")
+      to_port     = optional(number, 0)
+    })), [])
+
     lambda_settings = optional(object({
       name          = optional(string, "securityhub-jira")
       iam_role_name = optional(string, "LambdaJiraSecurityHubRole")
       log_level     = optional(string, "INFO")
       memory_size   = optional(number, 256)
+      runtime       = optional(string, "python3.8")
       timeout       = optional(number, 60)
       }), {
-      name          = "securityhub-jira"
-      iam_role_name = "LambdaJiraSecurityHubRole"
-      log_level     = "INFO"
-      memory_size   = 256
-      timeout       = 60
+      name                        = "securityhub-jira"
+      iam_role_name               = "LambdaJiraSecurityHubRole"
+      log_level                   = "INFO"
+      memory_size                 = 256
+      runtime                     = "python3.8"
+      timeout                     = 60
+      security_group_egress_rules = []
     })
   })
   default = {
@@ -56,6 +62,7 @@ variable "lambda_events_suppressor" {
     name        = optional(string, "securityhub-events-suppressor")
     log_level   = optional(string, "INFO")
     memory_size = optional(number, 256)
+    runtime     = optional(string, "python3.8")
     timeout     = optional(number, 120)
   })
   default     = {}
@@ -67,6 +74,7 @@ variable "lambda_streams_suppressor" {
     name        = optional(string, "securityhub-streams-suppressor")
     log_level   = optional(string, "INFO")
     memory_size = optional(number, 256)
+    runtime     = optional(string, "python3.8")
     timeout     = optional(number, 120)
   })
   default     = {}
@@ -86,8 +94,9 @@ variable "s3_bucket_name" {
 
 variable "servicenow_integration" {
   type = object({
-    enabled            = optional(bool, false)
-    create_access_keys = optional(bool, false)
+    enabled                   = optional(bool, false)
+    create_access_keys        = optional(bool, false)
+    cloudwatch_retention_days = optional(number, 365)
   })
   default = {
     enabled = false

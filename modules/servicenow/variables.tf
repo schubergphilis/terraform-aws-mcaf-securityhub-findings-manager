@@ -1,6 +1,6 @@
 variable "cloudwatch_retention_days" {
   type        = number
-  default     = 14
+  default     = 365
   description = "Time to retain the CloudWatch Logs for the ServiceNow integration"
 }
 
