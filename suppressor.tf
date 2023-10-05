@@ -155,7 +155,7 @@ module "lambda_suppressor_deployment_package" {
 module "lambda_securityhub_events_suppressor" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
   source  = "schubergphilis/mcaf-lambda/aws"
-  version = "~> 1.0.0"
+  version = "~> 1.1.0"
 
   name                   = var.lambda_events_suppressor.name
   create_policy          = false
@@ -187,7 +187,7 @@ module "lambda_securityhub_events_suppressor" {
 module "lambda_securityhub_streams_suppressor" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
   source  = "schubergphilis/mcaf-lambda/aws"
-  version = "~> 1.0.0"
+  version = "~> 1.1.0"
 
   name                   = var.lambda_streams_suppressor.name
   create_policy          = false

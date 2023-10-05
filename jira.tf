@@ -95,7 +95,7 @@ module "lambda_jira_security_hub" {
   count = var.jira_integration.enabled ? 1 : 0
 
   source  = "schubergphilis/mcaf-lambda/aws"
-  version = "~> 1.0.0"
+  version = "~> 1.1.0"
 
   name                        = var.jira_integration.lambda_settings.name
   create_policy               = false

@@ -18,7 +18,7 @@ The following variable defaults have been modified:
 
 ### Behaviour
 
-The need to provide a `providers = { aws = aws }`` argument has been removed.
+The need to provide a `providers = { aws = aws }` argument has been removed, but is still allowed. E.g. when deploying this module in the audit account typically `providers = { aws = aws.audit }` is passed. 
 
 ## Upgrading to v1.0.0
 
