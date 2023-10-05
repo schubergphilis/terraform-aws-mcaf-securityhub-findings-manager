@@ -1,9 +1,3 @@
-variable "create_allow_all_egress_rule" {
-  type        = bool
-  default     = false
-  description = "Whether to create a default any/any egress sg rule for lambda"
-}
-
 variable "dynamodb_table" {
   type        = string
   default     = "securityhub-suppression-list"
@@ -24,18 +18,33 @@ variable "jira_integration" {
     finding_severity_normalized_threshold = optional(number, 70)
     issue_type                            = optional(string, "Security Advisory")
     project_key                           = string
+
+    security_group_egress_rules = optional(list(object({
+      cidr_ipv4                    = optional(string)
+      cidr_ipv6                    = optional(string)
+      description                  = string
+      from_port                    = optional(number, 0)
+      ip_protocol                  = optional(string, "-1")
+      prefix_list_id               = optional(string)
+      referenced_security_group_id = optional(string)
+      to_port                      = optional(number, 0)
+    })), [])
+
     lambda_settings = optional(object({
       name          = optional(string, "securityhub-jira")
       iam_role_name = optional(string, "LambdaJiraSecurityHubRole")
       log_level     = optional(string, "INFO")
       memory_size   = optional(number, 256)
+      runtime       = optional(string, "python3.8")
       timeout       = optional(number, 60)
       }), {
-      name          = "securityhub-jira"
-      iam_role_name = "LambdaJiraSecurityHubRole"
-      log_level     = "INFO"
-      memory_size   = 256
-      timeout       = 60
+      name                        = "securityhub-jira"
+      iam_role_name               = "LambdaJiraSecurityHubRole"
+      log_level                   = "INFO"
+      memory_size                 = 256
+      runtime                     = "python3.8"
+      timeout                     = 60
+      security_group_egress_rules = []
     })
   })
   default = {
@@ -44,6 +53,11 @@ variable "jira_integration" {
     project_key            = null
   }
   description = "Jira integration settings"
+
+  validation {
+    condition     = alltrue([for o in var.jira_integration.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
+    error_message = "Although \"cidr_ipv4\", \"cidr_ipv6\", \"prefix_list_id\", and \"referenced_security_group_id\" are all marked as optional, you must provide one of them in order to configure the destination of the traffic."
+  }
 }
 
 variable "kms_key_arn" {
@@ -56,10 +70,27 @@ variable "lambda_events_suppressor" {
     name        = optional(string, "securityhub-events-suppressor")
     log_level   = optional(string, "INFO")
     memory_size = optional(number, 256)
+    runtime     = optional(string, "python3.8")
     timeout     = optional(number, 120)
+
+    security_group_egress_rules = optional(list(object({
+      cidr_ipv4                    = optional(string)
+      cidr_ipv6                    = optional(string)
+      description                  = string
+      from_port                    = optional(number, 0)
+      ip_protocol                  = optional(string, "-1")
+      prefix_list_id               = optional(string)
+      referenced_security_group_id = optional(string)
+      to_port                      = optional(number, 0)
+    })), [])
   })
   default     = {}
   description = "Lambda Events Suppressor settings - Supresses the Security Hub findings in response to EventBridge Trigger"
+
+  validation {
+    condition     = alltrue([for o in var.lambda_events_suppressor.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
+    error_message = "Although \"cidr_ipv4\", \"cidr_ipv6\", \"prefix_list_id\", and \"referenced_security_group_id\" are all marked as optional, you must provide one of them in order to configure the destination of the traffic."
+  }
 }
 
 variable "lambda_streams_suppressor" {
@@ -67,10 +98,27 @@ variable "lambda_streams_suppressor" {
     name        = optional(string, "securityhub-streams-suppressor")
     log_level   = optional(string, "INFO")
     memory_size = optional(number, 256)
+    runtime     = optional(string, "python3.8")
     timeout     = optional(number, 120)
+
+    security_group_egress_rules = optional(list(object({
+      cidr_ipv4                    = optional(string)
+      cidr_ipv6                    = optional(string)
+      description                  = string
+      from_port                    = optional(number, 0)
+      ip_protocol                  = optional(string, "-1")
+      prefix_list_id               = optional(string)
+      referenced_security_group_id = optional(string)
+      to_port                      = optional(number, 0)
+    })), [])
   })
   default     = {}
   description = "Lambda Streams Suppressor settings - Supresses the Security Hub findings in response to DynamoDB streams"
+
+  validation {
+    condition     = alltrue([for o in var.lambda_streams_suppressor.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
+    error_message = "Although \"cidr_ipv4\", \"cidr_ipv6\", \"prefix_list_id\", and \"referenced_security_group_id\" are all marked as optional, you must provide one of them in order to configure the destination of the traffic."
+  }
 }
 
 variable "lambda_suppressor_iam_role_name" {
@@ -86,8 +134,9 @@ variable "s3_bucket_name" {
 
 variable "servicenow_integration" {
   type = object({
-    enabled            = optional(bool, false)
-    create_access_keys = optional(bool, false)
+    enabled                   = optional(bool, false)
+    create_access_keys        = optional(bool, false)
+    cloudwatch_retention_days = optional(number, 365)
   })
   default = {
     enabled = false

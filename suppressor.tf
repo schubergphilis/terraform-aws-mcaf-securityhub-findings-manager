@@ -154,26 +154,27 @@ module "lambda_suppressor_deployment_package" {
 # Lambda function to suppress Security Hub findings in response to an EventBridge trigger
 module "lambda_securityhub_events_suppressor" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
-  providers                    = { aws.lambda = aws }
-  source                       = "github.com/schubergphilis/terraform-aws-mcaf-lambda?ref=v0.3.3"
-  name                         = var.lambda_events_suppressor.name
-  create_allow_all_egress_rule = var.create_allow_all_egress_rule
-  create_policy                = false
-  create_s3_dummy_object       = false
-  description                  = "Lambda to suppress Security Hub findings in response to an EventBridge trigger"
-  filename                     = module.lambda_suppressor_deployment_package.local_filename
-  handler                      = "securityhub_events.lambda_handler"
-  kms_key_arn                  = var.kms_key_arn
-  log_retention                = 365
-  memory_size                  = var.lambda_events_suppressor.memory_size
-  role_arn                     = module.lambda_security_hub_suppressor_role.arn
-  runtime                      = "python3.8"
-  s3_bucket                    = var.s3_bucket_name
-  s3_key                       = module.lambda_suppressor_deployment_package.s3_object.key
-  s3_object_version            = module.lambda_suppressor_deployment_package.s3_object.version_id
-  subnet_ids                   = var.subnet_ids
-  tags                         = var.tags
-  timeout                      = var.lambda_events_suppressor.timeout
+  source  = "schubergphilis/mcaf-lambda/aws"
+  version = "~> 1.1.0"
+
+  name                        = var.lambda_events_suppressor.name
+  create_policy               = false
+  create_s3_dummy_object      = false
+  description                 = "Lambda to suppress Security Hub findings in response to an EventBridge trigger"
+  filename                    = module.lambda_suppressor_deployment_package.local_filename
+  handler                     = "securityhub_events.lambda_handler"
+  kms_key_arn                 = var.kms_key_arn
+  log_retention               = 365
+  memory_size                 = var.lambda_events_suppressor.memory_size
+  role_arn                    = module.lambda_security_hub_suppressor_role.arn
+  runtime                     = var.lambda_events_suppressor.runtime
+  s3_bucket                   = var.s3_bucket_name
+  s3_key                      = module.lambda_suppressor_deployment_package.s3_object.key
+  s3_object_version           = module.lambda_suppressor_deployment_package.s3_object.version_id
+  security_group_egress_rules = var.lambda_events_suppressor.security_group_egress_rules
+  subnet_ids                  = var.subnet_ids
+  tags                        = var.tags
+  timeout                     = var.lambda_events_suppressor.timeout
 
   environment = {
     DYNAMODB_TABLE_NAME         = var.dynamodb_table
@@ -186,26 +187,27 @@ module "lambda_securityhub_events_suppressor" {
 # Lambda to suppress Security Hub findings in response to DynamoDB stream event
 module "lambda_securityhub_streams_suppressor" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
-  providers                    = { aws.lambda = aws }
-  source                       = "github.com/schubergphilis/terraform-aws-mcaf-lambda?ref=v0.3.3"
-  name                         = var.lambda_streams_suppressor.name
-  create_allow_all_egress_rule = var.create_allow_all_egress_rule
-  create_policy                = false
-  create_s3_dummy_object       = false
-  description                  = "Lambda to suppress Security Hub findings in response to DynamoDB stream event"
-  filename                     = module.lambda_suppressor_deployment_package.local_filename
-  handler                      = "securityhub_streams.lambda_handler"
-  kms_key_arn                  = var.kms_key_arn
-  log_retention                = 365
-  memory_size                  = var.lambda_streams_suppressor.memory_size
-  role_arn                     = module.lambda_security_hub_suppressor_role.arn
-  runtime                      = "python3.8"
-  s3_bucket                    = var.s3_bucket_name
-  s3_key                       = module.lambda_suppressor_deployment_package.s3_object.key
-  s3_object_version            = module.lambda_suppressor_deployment_package.s3_object.version_id
-  subnet_ids                   = var.subnet_ids
-  tags                         = var.tags
-  timeout                      = var.lambda_streams_suppressor.timeout
+  source  = "schubergphilis/mcaf-lambda/aws"
+  version = "~> 1.1.0"
+
+  name                        = var.lambda_streams_suppressor.name
+  create_policy               = false
+  create_s3_dummy_object      = false
+  description                 = "Lambda to suppress Security Hub findings in response to DynamoDB stream event"
+  filename                    = module.lambda_suppressor_deployment_package.local_filename
+  handler                     = "securityhub_streams.lambda_handler"
+  kms_key_arn                 = var.kms_key_arn
+  log_retention               = 365
+  memory_size                 = var.lambda_streams_suppressor.memory_size
+  role_arn                    = module.lambda_security_hub_suppressor_role.arn
+  runtime                     = var.lambda_streams_suppressor.runtime
+  s3_bucket                   = var.s3_bucket_name
+  s3_key                      = module.lambda_suppressor_deployment_package.s3_object.key
+  s3_object_version           = module.lambda_suppressor_deployment_package.s3_object.version_id
+  security_group_egress_rules = var.lambda_streams_suppressor.security_group_egress_rules
+  subnet_ids                  = var.subnet_ids
+  tags                        = var.tags
+  timeout                     = var.lambda_streams_suppressor.timeout
 
   environment = {
     DYNAMODB_TABLE_NAME         = var.dynamodb_table
