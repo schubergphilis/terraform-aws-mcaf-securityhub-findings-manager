@@ -7,6 +7,10 @@ The Security Hub Findings Manager is a framework designed to automatically suppr
 
 This logic is intended to be executed in the Audit Account which is part of the AWS Control Tower default account posture and therefore receives events from all child accounts in an organization.
 
+> **Note**
+> The Security Hub Findings Manager does not support consolidated control findings. You have to turn this off if you want to use this module.
+> If you manage this setting via code, set the control findings generator to `STANDARD_CONTROL`.
+
 ## Terraform Runtime Requirements
 
 * The lambda's are built and zipped during runtime, this means that the terraform runners/agents needs to have python 3.8 installed.
