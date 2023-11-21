@@ -5,7 +5,7 @@ module "sync-user" {
   create_iam_access_key = var.create_access_keys
   create_policy         = true
   kms_key_id            = var.kms_key_arn
-  policy                = aws_iam_policy.sqs_policy.policy
+  policy                = aws_iam_policy.sqs_sechub.policy
   tags                  = var.tags
 
   policy_arns = [
@@ -17,20 +17,29 @@ module "sync-user" {
 }
 
 //Create custom policies
-resource "aws_iam_policy" "sqs_policy" {
-  name        = "sqs_policy"
-  description = "sqs_policy"
-  policy      = data.aws_iam_policy_document.sqs_policy.json
+resource "aws_iam_policy" "sqs_sechub" {
+  name        = "sqs_sechub"
+  description = "sqs_sechub"
+  policy      = data.aws_iam_policy_document.sqs_sechub.json
 }
 
-data "aws_iam_policy_document" "sqs_policy" {
+data "aws_iam_policy_document" "sqs_sechub" {
   statement {
+    sid = "SqsMessages"
     actions = [
       "sqs:ReceiveMessage",
       "sqs:DeleteMessage",
       "sqs:DeleteMessageBatch"
     ]
-
     resources = [aws_sqs_queue.servicenow_queue.arn]
+  }
+
+  statement {
+    sid = "SecurityHubAccess"
+    actions = [
+      "securityhub:BatchUpdateFindings",
+      "securityhub:GetFindings"
+    ]
+    resources = ["arn:aws:securityhub:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:hub/default"]
   }
 }
