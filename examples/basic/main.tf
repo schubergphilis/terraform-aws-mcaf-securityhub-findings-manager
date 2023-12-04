@@ -14,7 +14,7 @@ resource "random_pet" "default" {
 module "security_hub_manager" {
   source = "../../"
 
-  kms_key_arn    = aws_kms_key.default
+  kms_key_arn    = aws_kms_key.default.arn
   s3_bucket_name = "securityhub-suppressor-artifacts-${random_pet.default.id}"
   tags           = { Terraform = true }
 }
