@@ -14,7 +14,7 @@ resource "random_pet" "default" {
 resource "aws_secretsmanager_secret" "jira_credentials" {
   #checkov:skip=CKV2_AWS_57: automatic rotation of the jira credentials is recommended.
   description = "Security Hub Findings Manager Jira Credentials Secret"
-  kms_key_id  = aws_kms_key.default
+  kms_key_id  = aws_kms_key.default.arn
   name        = "lambda/jira_credentials_secret"
 }
 
@@ -31,7 +31,7 @@ resource "aws_secretsmanager_secret_version" "jira_credentials" {
 module "security_hub_manager" {
   source = "../../"
 
-  kms_key_arn    = aws_kms_key.default
+  kms_key_arn    = aws_kms_key.default.arn
   s3_bucket_name = "securityhub-suppressor-artifacts-${random_pet.default.id}"
   tags           = { Terraform = true }
 
