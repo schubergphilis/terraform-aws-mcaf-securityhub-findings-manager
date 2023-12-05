@@ -7,14 +7,16 @@ resource "aws_kms_key" "default" {
   enable_key_rotation = true
 }
 
-resource "random_pet" "default" {
-  length = 8
+resource "random_string" "random" {
+  length  = 16
+  upper   = false
+  special = false
 }
 
 module "security_hub_manager" {
   source = "../../"
 
   kms_key_arn    = aws_kms_key.default.arn
-  s3_bucket_name = "securityhub-suppressor-artifacts-${random_pet.default.id}"
+  s3_bucket_name = "securityhub-suppressor-artifacts-${random_string.random.result}"
   tags           = { Terraform = true }
 }
