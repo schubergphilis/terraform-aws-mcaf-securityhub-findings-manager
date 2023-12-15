@@ -5,7 +5,7 @@ resource "aws_dynamodb_table" "suppressor_dynamodb_table" {
   hash_key         = "controlId"
   stream_enabled   = true
   stream_view_type = "KEYS_ONLY"
-
+  deletion_protection_enabled = true
   attribute {
     name = "controlId"
     type = "S"
@@ -141,7 +141,7 @@ module "lambda_suppressor_deployment_package" {
   source                   = "terraform-aws-modules/lambda/aws"
   version                  = "~> 6.0.0"
   create_function          = false
-  recreate_missing_package = true
+  recreate_missing_package = false
   runtime                  = "python3.8"
   s3_bucket                = module.lambda_artifacts_bucket.name
   s3_object_storage_class  = "STANDARD"
