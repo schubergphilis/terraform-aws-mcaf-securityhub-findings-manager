@@ -23,6 +23,31 @@ data "aws_iam_policy_document" "step_function_security_hub_suppressor" {
       module.lambda_jira_security_hub[0].arn
     ]
   }
+
+  statement {
+    sid = "CloudwatchLogging"
+    actions = [
+      "logs:CreateLogDelivery",
+      "logs:CreateLogStream",
+      "logs:GetLogDelivery",
+      "logs:UpdateLogDelivery",
+      "logs:DeleteLogDelivery",
+      "logs:ListLogDeliveries",
+      "logs:PutLogEvents",
+      "logs:PutResourcePolicy",
+      "logs:DescribeResourcePolicies",
+      "logs:DescribeLogGroups"
+    ]
+    resources = [
+      "*"
+    ]
+  }
+}
+
+resource "aws_cloudwatch_log_group" "log_group_for_sfn" {
+  name = "/aws/vendedlogs/states/securityhub-suppressor-orchestrator-Logs"
+  retention_in_days = 14
+  kms_key_id        = var.kms_key_arn
 }
 
 # Step Function to orchestrate suppressor lambda functions
@@ -39,6 +64,12 @@ resource "aws_sfn_state_machine" "securityhub_suppressor_orchestrator" {
     lambda_securityhub_events_suppressor_arn = module.lambda_securityhub_events_suppressor.arn,
     lambda_securityhub_jira_arn              = module.lambda_jira_security_hub[0].arn
   })
+
+  logging_configuration {
+    log_destination        = "${aws_cloudwatch_log_group.log_group_for_sfn.arn}:*"
+    include_execution_data = true
+    level                  = "ERROR"
+  }
 }
 
 # IAM role to be assumed by EventBridge
