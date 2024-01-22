@@ -1,8 +1,9 @@
-variable "deletion_protection_enabled" {
+variable "dynamodb_deletion_protection" {
   type        = bool
-  default     = false
+  default     = true
   description = "The DynamoDB table deletion protection option."
 }
+
 variable "dynamodb_table" {
   type        = string
   default     = "securityhub-suppression-list"
