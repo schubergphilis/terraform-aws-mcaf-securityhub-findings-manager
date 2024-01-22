@@ -19,5 +19,4 @@ module "security_hub_manager" {
   kms_key_arn                 = aws_kms_key.default.arn
   s3_bucket_name              = "securityhub-suppressor-artifacts-${random_string.random.result}"
   tags                        = { Terraform = true }
-  deletion_protection_enabled = true
 }
