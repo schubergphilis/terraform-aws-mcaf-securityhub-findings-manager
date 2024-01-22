@@ -2,10 +2,10 @@
 resource "aws_dynamodb_table" "suppressor_dynamodb_table" {
   name                        = var.dynamodb_table
   billing_mode                = "PAY_PER_REQUEST"
+  deletion_protection_enabled = var.deletion_protection_enabled
   hash_key                    = "controlId"
   stream_enabled              = true
   stream_view_type            = "KEYS_ONLY"
-  deletion_protection_enabled = var.deletion_protection_enabled
 
   attribute {
     name = "controlId"
