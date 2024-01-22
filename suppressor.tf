@@ -5,6 +5,7 @@ resource "aws_dynamodb_table" "suppressor_dynamodb_table" {
   hash_key         = "controlId"
   stream_enabled   = true
   stream_view_type = "KEYS_ONLY"
+  deletion_protection_enabled = var.deletion_protection_enabled
 
   attribute {
     name = "controlId"
