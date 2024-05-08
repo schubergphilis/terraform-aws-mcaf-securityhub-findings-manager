@@ -1,27 +1,34 @@
-# DynamoDB table for storing suppressions list
-resource "aws_dynamodb_table" "suppressor_dynamodb_table" {
-  name                        = var.dynamodb_table
-  billing_mode                = "PAY_PER_REQUEST"
-  deletion_protection_enabled = var.dynamodb_deletion_protection
-  hash_key                    = "controlId"
-  stream_enabled              = true
-  stream_view_type            = "KEYS_ONLY"
+# S3 bucket to store suppressions list
+module "suppressions_bucket" {
+  #checkov:skip=CKV_AWS_145:Bug in CheckOV https://github.com/bridgecrewio/checkov/issues/3847
+  #checkov:skip=CKV_AWS_19:Bug in CheckOV https://github.com/bridgecrewio/checkov/issues/3847
+  source  = "schubergphilis/mcaf-s3/aws"
+  version = "~> 0.11.0"
 
-  attribute {
-    name = "controlId"
-    type = "S"
-  }
+  name        = var.suppressions_s3_bucket_name
+  kms_key_arn = var.kms_key_arn
+  logging     = null
+  tags        = var.tags
+  versioning  = true
 
-  point_in_time_recovery {
-    enabled = true
-  }
+  lifecycle_rule = [
+    {
+      id      = "default"
+      enabled = true
 
-  server_side_encryption {
-    enabled     = true
-    kms_key_arn = var.kms_key_arn
-  }
+      abort_incomplete_multipart_upload = {
+        days_after_initiation = 7
+      }
 
-  tags = var.tags
+      expiration = {
+        expired_object_delete_marker = true
+      }
+
+      noncurrent_version_expiration = {
+        noncurrent_days = 7
+      }
+    }
+  ]
 }
 
 # S3 bucket to store Lambda artifacts
@@ -31,7 +38,7 @@ module "lambda_artifacts_bucket" {
   source  = "schubergphilis/mcaf-s3/aws"
   version = "~> 0.11.0"
 
-  name        = var.s3_bucket_name
+  name        = var.lambda_package_s3_bucket_name
   kms_key_arn = var.kms_key_arn
   logging     = null
   tags        = var.tags
@@ -84,25 +91,12 @@ data "aws_iam_policy_document" "lambda_security_hub_suppressor" {
   }
 
   statement {
-    sid = "DynamoDBGetItemAccess"
+    sid = "S3GetObjectAccess"
     actions = [
-      "dynamodb:GetItem"
+      "s3:GetObject"
     ]
     resources = [
-      aws_dynamodb_table.suppressor_dynamodb_table.arn
-    ]
-  }
-
-  statement {
-    sid = "DynamoDBStreamsAccess"
-    actions = [
-      "dynamodb:DescribeStream",
-      "dynamodb:GetRecords",
-      "dynamodb:GetShardIterator",
-      "dynamodb:ListStreams"
-    ]
-    resources = [
-      aws_dynamodb_table.suppressor_dynamodb_table.stream_arn
+      "${module.suppressions_bucket.name.arn}/*"
     ]
   }
 
@@ -169,7 +163,7 @@ module "lambda_securityhub_events_suppressor" {
   memory_size                 = var.lambda_events_suppressor.memory_size
   role_arn                    = module.lambda_security_hub_suppressor_role.arn
   runtime                     = var.lambda_events_suppressor.runtime
-  s3_bucket                   = var.s3_bucket_name
+  s3_bucket                   = var.lambda_package_s3_bucket_name
   s3_key                      = module.lambda_suppressor_deployment_package.s3_object.key
   s3_object_version           = module.lambda_suppressor_deployment_package.s3_object.version_id
   security_group_egress_rules = var.lambda_events_suppressor.security_group_egress_rules
@@ -178,45 +172,45 @@ module "lambda_securityhub_events_suppressor" {
   timeout                     = var.lambda_events_suppressor.timeout
 
   environment = {
-    DYNAMODB_TABLE_NAME         = var.dynamodb_table
+    DYNAMODB_TABLE_NAME         = var.suppressions_s3_bucket_name
     LOG_LEVEL                   = var.lambda_events_suppressor.log_level
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
     POWERTOOLS_SERVICE_NAME     = "securityhub-suppressor"
   }
 }
 
-# Lambda to suppress Security Hub findings in response to DynamoDB stream event
-module "lambda_securityhub_streams_suppressor" {
-  #checkov:skip=CKV_AWS_272:Code signing not used for now
-  source  = "schubergphilis/mcaf-lambda/aws"
-  version = "~> 1.1.0"
+# # Lambda to suppress Security Hub findings in response to DynamoDB stream event
+# module "lambda_securityhub_streams_suppressor" {
+#   #checkov:skip=CKV_AWS_272:Code signing not used for now
+#   source  = "schubergphilis/mcaf-lambda/aws"
+#   version = "~> 1.1.0"
 
-  name                        = var.lambda_streams_suppressor.name
-  create_policy               = false
-  create_s3_dummy_object      = false
-  description                 = "Lambda to suppress Security Hub findings in response to DynamoDB stream event"
-  filename                    = module.lambda_suppressor_deployment_package.local_filename
-  handler                     = "securityhub_streams.lambda_handler"
-  kms_key_arn                 = var.kms_key_arn
-  log_retention               = 365
-  memory_size                 = var.lambda_streams_suppressor.memory_size
-  role_arn                    = module.lambda_security_hub_suppressor_role.arn
-  runtime                     = var.lambda_streams_suppressor.runtime
-  s3_bucket                   = var.s3_bucket_name
-  s3_key                      = module.lambda_suppressor_deployment_package.s3_object.key
-  s3_object_version           = module.lambda_suppressor_deployment_package.s3_object.version_id
-  security_group_egress_rules = var.lambda_streams_suppressor.security_group_egress_rules
-  subnet_ids                  = var.subnet_ids
-  tags                        = var.tags
-  timeout                     = var.lambda_streams_suppressor.timeout
+#   name                        = var.lambda_s3_events_suppressor.name
+#   create_policy               = false
+#   create_s3_dummy_object      = false
+#   description                 = "Lambda to suppress Security Hub findings in response to DynamoDB stream event"
+#   filename                    = module.lambda_suppressor_deployment_package.local_filename
+#   handler                     = "securityhub_streams.lambda_handler"
+#   kms_key_arn                 = var.kms_key_arn
+#   log_retention               = 365
+#   memory_size                 = var.lambda_s3_events_suppressor.memory_size
+#   role_arn                    = module.lambda_security_hub_suppressor_role.arn
+#   runtime                     = var.lambda_s3_events_suppressor.runtime
+#   s3_bucket                   = var.lambda_package_s3_bucket_name
+#   s3_key                      = module.lambda_suppressor_deployment_package.s3_object.key
+#   s3_object_version           = module.lambda_suppressor_deployment_package.s3_object.version_id
+#   security_group_egress_rules = var.lambda_s3_events_suppressor.security_group_egress_rules
+#   subnet_ids                  = var.subnet_ids
+#   tags                        = var.tags
+#   timeout                     = var.lambda_s3_events_suppressor.timeout
 
-  environment = {
-    DYNAMODB_TABLE_NAME         = var.dynamodb_table
-    LOG_LEVEL                   = var.lambda_streams_suppressor.log_level
-    POWERTOOLS_LOGGER_LOG_EVENT = "false"
-    POWERTOOLS_SERVICE_NAME     = "securityhub-suppressor"
-  }
-}
+#   environment = {
+#     DYNAMODB_TABLE_NAME         = var.dynamodb_table
+#     LOG_LEVEL                   = var.lambda_s3_events_suppressor.log_level
+#     POWERTOOLS_LOGGER_LOG_EVENT = "false"
+#     POWERTOOLS_SERVICE_NAME     = "securityhub-suppressor"
+#   }
+# }
 
 # EventBridge Rule that detect Security Hub events with compliance status as failed
 resource "aws_cloudwatch_event_rule" "securityhub_events_suppressor_failed_events" {
@@ -257,9 +251,69 @@ resource "aws_cloudwatch_event_target" "lambda_securityhub_events_suppressor" {
   rule  = aws_cloudwatch_event_rule.securityhub_events_suppressor_failed_events.name
 }
 
-# Create event source mapping between Security Hub Streams Lambda function and DynamoDB streams
-resource "aws_lambda_event_source_mapping" "lambda_securityhub_streams_mapping" {
-  event_source_arn  = aws_dynamodb_table.suppressor_dynamodb_table.stream_arn
-  function_name     = module.lambda_securityhub_streams_suppressor.name
-  starting_position = "LATEST"
+# # Create event source mapping between Security Hub Streams Lambda function and DynamoDB streams
+# resource "aws_lambda_event_source_mapping" "lambda_securityhub_streams_mapping" {
+#   event_source_arn  = aws_dynamodb_table.suppressor_dynamodb_table.stream_arn
+#   function_name     = module.lambda_securityhub_streams_suppressor.name
+#   starting_position = "LATEST"
+# }
+
+resource "aws_s3_bucket_notification" "suppressions_bucket" {
+  bucket      = var.suppressions_bucket.name
+  eventbridge = true
+}
+
+resource "aws_cloudwatch_event_rule" "s3_object_event" {
+  for_each = var.eventbridge_pattern_rules_s3
+
+  name        = "${replace(each.key, "_", "-")}-to-${local.title}-via-s3"
+  description = "Event rule for ${local.title} to receive ${each.key} events from ${each.value.producer_name} via S3"
+
+  event_pattern = jsonencode({
+    "source" : ["aws.s3"],
+    "detail-type" : ["Object Created"],
+    "detail" : {
+      "bucket" : {
+        "name" : [each.value.bucket]
+      }
+      "object" : {
+        "key" : jsondecode(each.value.key_pattern)
+      }
+    }
+  })
+
+  tags = local.tags
+}
+
+resource "aws_cloudwatch_event_target" "s3_object_event" {
+  for_each = var.eventbridge_pattern_rules_s3
+  arn      = "${module.publisher_lambda.arn}:${aws_lambda_alias.publisher.name}"
+  rule     = aws_cloudwatch_event_rule.s3_object_event[each.key].name
+
+  input_transformer {
+    input_paths = {
+      bucket = "$.detail.bucket.name"
+      id     = "$.id"
+      key    = "$.detail.object.key"
+      source = "$.source"
+      time   = "$.time"
+    }
+
+    input_template = "{\"bucket\":\"<bucket>\",\"id\":\"<id>\",\"key\":\"<key>\",\"source\":\"<source>\",\"time\":\"<time>\",\"event_type\":\"${each.key}\",\"producer\":\"${each.value.producer_name}\"}"
+  }
+
+  retry_policy {
+    maximum_event_age_in_seconds = 60
+    maximum_retry_attempts       = 0
+  }
+}
+
+resource "aws_lambda_permission" "s3_object_event" {
+  for_each       = aws_cloudwatch_event_rule.s3_object_event
+  action         = "lambda:InvokeFunction"
+  function_name  = module.publisher_lambda.name
+  principal      = "events.amazonaws.com"
+  qualifier      = aws_lambda_alias.publisher.name
+  source_account = data.aws_caller_identity.current.account_id
+  source_arn     = each.value.arn
 }
