@@ -7,10 +7,6 @@ The Security Hub Findings Manager is a framework designed to automatically suppr
 
 This logic is intended to be executed in the Audit Account which is part of the AWS Control Tower default account posture and therefore receives events from all child accounts in an organization.
 
-> **Note**
-> The Security Hub Findings Manager does not support consolidated control findings. You have to turn this off if you want to use this module.
-> If you manage this setting via code, set the control findings generator to `STANDARD_CONTROL`.
-
 ## Terraform Runtime Requirements
 
 * The lambda's are built and zipped during runtime, this means that the terraform runners/agents needs to have python 3.8 installed.
@@ -18,10 +14,10 @@ This logic is intended to be executed in the Audit Account which is part of the 
 
 ## Components
 
-* DynamoDB Table, referenced as `suppression list`
+* A suppressions backend (currently only S3 is supported)
 * 3 Lambda Functions:
   * Security Hub Events: triggered by EventBridge on events from SecurityHub.
-  * Security Hub Streams: triggered by changes in the DynamoDB suppression table using a DynamoDB Stream.
+  * Security Hub Triggers: triggered by changes in the S3 backend suppression list.
   * (optional) Security Hub Jira: triggered by EventBridge on events from SecurityHub with a normalized severity higher than a definable threshold (by default `70`)
     * [Normalized](https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Severity.html) severity levels:
       * 0 - INFORMATIONAL
@@ -30,15 +26,19 @@ This logic is intended to be executed in the Audit Account which is part of the 
       * 70–89 - HIGH
       * 90–100 - CRITICAL
 * (optional) Step Function, to orchestrate the Suppressor and Jira lambdas.
-* YML Configuration File (`suppressor.yaml`) that contains the list of products and the field mapping
 
 ## Deployment Modes
 
-There are 3 different deployment modes for this module. All the modes deploy a Lambda function which triggers in response to upserts in DynamoDB table and a EventBridge rule with a pattern which detects the import of a new Security Hub finding. In addition to these, additional resources are deployed depending on the chosen deployment mode.
+There are 3 different deployment modes for this module.
+All the modes deploy a Lambda function which triggers in response to upserts in the S3 backend suppression list and an EventBridge rule with a pattern which detects the import of a new Security Hub finding.
+In addition to these, additional resources are deployed depending on the chosen deployment mode.
 
 ### (Default) Without Jira & ServiceNow Integration
 
-* The module deploys 1 Lambda function: `Suppressor` and configures this Lambda as a target to the EventBridge rule.
+The module deploys 2 Lambda functions:
+
+* `securityhub-events-suppressor` and configures this Lambda as a target to the EventBridge rule.
+* `securityhub-trigger-suppressor` and configures this Lambda as a target to the S3 PutObject trigger.
 
 ### With Jira Integration
 
@@ -73,73 +73,13 @@ Once the event is delivered, the function `securityhub-events-suppressor` will b
 
 ## How to add a new product to the suppression list
 
-* All resources required by The Security Hub Findings Manager are deployed by this module. But the module does not update the DynamoDB Table (the `suppression list`). This can be updates using a variety of methods, via GitHub actions is described below:
+Example deployment files are stored in this module under `examples`.
+This module relies heavily on [awsfindingsmanagerlib](https://pypi.org/project/awsfindingsmanagerlib/).
+See their documentation on more detailed specifications.
 
-* In the repository calling this module, create a folder called `sechub-suppressor`, add `requirements.txt`, `put_suppressions.py`, and `suppressions.yml` to this folder. Example files are stored in this module under `files/dynamodb-upserts-artifacts`. An example GitHub action is stored in this folder as well.
+## TF docs
 
-* Add a new element to the `suppressions.yml` configuration file containing the product name, key and status. Key and status fields must be JMESPath expressions.
-  * Fields:
-    * `controlId`: the key field from the event (it is usually a Control Id or a RuleId present in the event)
-      * `action`: the status that will be applied in Security Hub
-      * `dry_run`: a read-only mode to preview what the logic will be handling
-      * `notes`: notes added to the security hub finding. Usually it is a Jira Ticket with the exception approval
-      * `rules`: a list of regular expressions to be matched against the resource ARN present in the EventBridge Event
-
-* Commit your changes, push and merge. The pipeline will automatically maintain the set of suppressions and store them in DynamoDB. If all above steps succeed, the finding is suppressed.
-
-### Examples
-
-Suppress a finding where the resource is the account, i.e. the 'MFA should be enabled for all IAM users that have a console password' finding:
-
-```yaml
-Suppressions:
-  "1.13":
-    - action: SUPPRESSED
-      rules:
-        - ^AWS::::Account:[0-9]{12}$
-      notes: A note about this suppression
-```
-
-Suppress a finding for all resources in a specific account:
-
-```yaml
-Suppressions:
-  "EC2.17":
-    - action: SUPPRESSED
-      rules:
-        - ^arn:aws:[^:]*:[^:]*:111111111111:.*$
-      notes: A note about this suppression
-```
-
-Suppress a finding in some accounts (with comments):
-
-```yaml
-Suppressions:
-  EC2.17:
-    - action: SUPPRESSED
-      rules:
-        - ^arn:aws:ec2:eu-west-1:111111111111:instance/i-[0-9a-z]+$ # can add comments here like
-        - ^arn:aws:ec2:eu-west-1:222222222222:instance/i-[0-9a-z]+$ # the friendly IAM alias to more
-        - ^arn:aws:ec2:eu-west-1:333333333333:instance/i-[0-9a-z]+$ # easily identify matches resources
-      notes: A note about this suppression
-```
-
-Suppress finding for specific resources:
-
-```yaml
-   EC2.18:
-     - action: SUPPRESSED
-       rules:
-         - ^arn:aws:ec2:eu-west-1:111111111111:security-group/sg-0ae8d23e1d28b1437$
-         - ^arn:aws:ec2:eu-west-1:222222222222:security-group/sg-01f1aa5f8407c98b9$
-       notes: A note about this suppression
-```
-
-> **Note**
-> There is also a leading `^` and trailing `$` as the rule is always matched as a regexp. This means that if you do not
-> start with a `^` and end with a `$` it will be matched as a substring and you might match more than anticipated.
-
-# Usage
+Below follow the auto-generated docs of the internals of this module.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
