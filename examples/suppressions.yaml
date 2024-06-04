@@ -1,0 +1,6 @@
+# Comments
+Rules:
+  - note: 'Maybe later'
+    action: 'SUPPRESSED'
+    match_on:
+      security_control_id: 'GuardDuty.1'
