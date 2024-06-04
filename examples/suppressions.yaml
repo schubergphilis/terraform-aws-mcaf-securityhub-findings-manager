@@ -1,0 +1,22 @@
+# Comments
+Rules:
+  - note: 'MF-Neigh'
+    action: 'SUPPRESSED'
+    match_on:
+      security_control_id: 'S3.20'
+  - note: 'Config as code'
+    action: 'SUPPRESSED'
+    match_on:
+      security_control_id: 'S3.14'
+      tags:
+        - key: 'ManagedBy'
+          value: 'Terraform'
+        - key: 'ManagedBy'
+          value: 'CFN'
+  - note: 'Too expensive on non-prod'
+    action: 'SUPPRESSED'
+    match_on:
+      security_control_id: 'S3.9'
+      resource_id_regexps:
+        - '^arn:aws:s3:::.*-dev$'
+        - '^arn:aws:s3:::.*-acc$'
