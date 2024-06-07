@@ -13,14 +13,26 @@ resource "random_string" "random" {
   special = false
 }
 
-module "security_hub_manager" {
+module "aws_securityhub_findings_manager" {
   source = "../../"
 
-  kms_key_arn    = aws_kms_key.default.arn
-  s3_bucket_name = "securityhub-suppressor-artifacts-${random_string.random.result}"
-  tags           = { Terraform = true }
+  kms_key_arn                 = data.aws_kms_key.by_alias.arn
+  artifact_s3_bucket_name     = "securityhub-suppressor-artifacts-${random_string.random.result}"
+  suppressions_s3_bucket_name = "securityhub-findings-manager-suppressions-${random_string.random.result}"
 
   servicenow_integration = {
     enabled = true
   }
+
+  tags = { Terraform = true }
+}
+
+resource "aws_s3_object" "index" {
+  bucket       = "securityhub-findings-manager-suppressions-${random_string.random.result}"
+  key          = "suppressions.yaml"
+  content_type = "application/x-yaml"
+  content      = file("${path.module}/../suppressions.yaml")
+  etag         = md5("${path.module}/../suppressions.yaml")
+
+  depends_on = [module.aws_securityhub_findings_manager]
 }

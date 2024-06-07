@@ -34,9 +34,8 @@ def lambda_handler(event, context):
     findings_manager.register_rules(rules)
     if findings_manager.suppress_matching_findings():
         LOGGER.info("Successfully applied all suppression rules.")
-        return {"finding_state": "suppressed"}
+        return True
     else:
-        LOGGER.warning(
+        raise RuntimeError(
             "No explicit error was raised, but not all suppression rules were applied successfully, please investigate."
         )
-        return {"finding_state": "skipped"}

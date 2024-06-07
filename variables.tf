@@ -1,13 +1,12 @@
-variable "dynamodb_deletion_protection" {
-  type        = bool
-  default     = true
-  description = "The DynamoDB table deletion protection option."
+variable "suppressions_s3_bucket_name" {
+  type        = string
+  description = "The S3 bucket containing the items to be suppressed in Security Hub"
 }
 
-variable "dynamodb_table" {
+variable "suppressions_s3_object_name" {
   type        = string
-  default     = "securityhub-suppression-list"
-  description = "The DynamoDB table containing the items to be suppressed in Security Hub"
+  default     = "suppressions.yaml"
+  description = "The S3 object containing the items to be suppressed in Security Hub"
 }
 
 variable "eventbridge_suppressor_iam_role_name" {
@@ -99,9 +98,9 @@ variable "lambda_events_suppressor" {
   }
 }
 
-variable "lambda_streams_suppressor" {
+variable "lambda_trigger_suppressor" {
   type = object({
-    name        = optional(string, "securityhub-streams-suppressor")
+    name        = optional(string, "securityhub-trigger-suppressor")
     log_level   = optional(string, "INFO")
     memory_size = optional(number, 256)
     runtime     = optional(string, "python3.8")
@@ -119,10 +118,10 @@ variable "lambda_streams_suppressor" {
     })), [])
   })
   default     = {}
-  description = "Lambda Streams Suppressor settings - Supresses the Security Hub findings in response to DynamoDB streams"
+  description = "Lambda Trigger Suppressor settings - Supresses the Security Hub findings in response to S3 file upload triggers"
 
   validation {
-    condition     = alltrue([for o in var.lambda_streams_suppressor.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
+    condition     = alltrue([for o in var.lambda_trigger_suppressor.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
     error_message = "Although \"cidr_ipv4\", \"cidr_ipv6\", \"prefix_list_id\", and \"referenced_security_group_id\" are all marked as optional, you must provide one of them in order to configure the destination of the traffic."
   }
 }
@@ -133,7 +132,7 @@ variable "lambda_suppressor_iam_role_name" {
   description = "The name of the role which will be assumed by both Suppressor Lambda functions"
 }
 
-variable "s3_bucket_name" {
+variable "artifact_s3_bucket_name" {
   type        = string
   description = "The name for the S3 bucket which will be created for storing the function's deployment package"
 }
