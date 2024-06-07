@@ -2,16 +2,21 @@ provider "aws" {
   region = "eu-west-1"
 }
 
-data "aws_caller_identity" "current" {}
+resource "aws_kms_key" "default" {
+  #checkov:skip=CKV2_AWS_64: In the example no KMS key policy is defined, we do recommend creating a custom policy.
+  enable_key_rotation = true
+}
 
-data "aws_kms_key" "by_alias" {
-  key_id = "alias/audit"
+resource "random_string" "random" {
+  length  = 16
+  upper   = false
+  special = false
 }
 
 resource "aws_secretsmanager_secret" "jira_credentials" {
   #checkov:skip=CKV2_AWS_57: automatic rotation of the jira credentials is recommended.
   description = "Security Hub Findings Manager Jira Credentials Secret"
-  kms_key_id  = data.aws_kms_key.by_alias.arn
+  kms_key_id  = aws_kms_key.default.arn
   name        = "lambda/jira_credentials_secret"
 }
 
@@ -29,8 +34,8 @@ module "aws_securityhub_findings_manager" {
   source = "../../"
 
   kms_key_arn                 = data.aws_kms_key.by_alias.arn
-  artifact_s3_bucket_name     = "securityhub-findings-manager-artifacts-${data.aws_caller_identity.current.account_id}"
-  suppressions_s3_bucket_name = "securityhub-findings-manager-suppressions-${data.aws_caller_identity.current.account_id}"
+  artifact_s3_bucket_name     = "securityhub-suppressor-artifacts-${random_string.random.result}"
+  suppressions_s3_bucket_name = "securityhub-findings-manager-suppressions-${random_string.random.result}"
 
   jira_integration = {
     enabled                = true
@@ -50,7 +55,7 @@ module "aws_securityhub_findings_manager" {
 }
 
 resource "aws_s3_object" "index" {
-  bucket       = "securityhub-findings-manager-suppressions-${data.aws_caller_identity.current.account_id}"
+  bucket       = "securityhub-findings-manager-suppressions-${random_string.random.result}"
   key          = "suppressions.yaml"
   content_type = "application/x-yaml"
   content      = file("${path.module}/../suppressions.yaml")

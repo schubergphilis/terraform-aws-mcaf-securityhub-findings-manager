@@ -2,18 +2,23 @@ provider "aws" {
   region = "eu-west-1"
 }
 
-data "aws_caller_identity" "current" {}
+resource "aws_kms_key" "default" {
+  #checkov:skip=CKV2_AWS_64: In the example no KMS key policy is defined, we do recommend creating a custom policy.
+  enable_key_rotation = true
+}
 
-data "aws_kms_key" "by_alias" {
-  key_id = "alias/audit"
+resource "random_string" "random" {
+  length  = 16
+  upper   = false
+  special = false
 }
 
 module "aws_securityhub_findings_manager" {
   source = "../../"
 
   kms_key_arn                 = data.aws_kms_key.by_alias.arn
-  artifact_s3_bucket_name     = "securityhub-findings-manager-artifacts-${data.aws_caller_identity.current.account_id}"
-  suppressions_s3_bucket_name = "securityhub-findings-manager-suppressions-${data.aws_caller_identity.current.account_id}"
+  artifact_s3_bucket_name     = "securityhub-suppressor-artifacts-${random_string.random.result}"
+  suppressions_s3_bucket_name = "securityhub-findings-manager-suppressions-${random_string.random.result}"
 
   servicenow_integration = {
     enabled = true
@@ -23,7 +28,7 @@ module "aws_securityhub_findings_manager" {
 }
 
 resource "aws_s3_object" "index" {
-  bucket       = "securityhub-findings-manager-suppressions-${data.aws_caller_identity.current.account_id}"
+  bucket       = "securityhub-findings-manager-suppressions-${random_string.random.result}"
   key          = "suppressions.yaml"
   content_type = "application/x-yaml"
   content      = file("${path.module}/../suppressions.yaml")
