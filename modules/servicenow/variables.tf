@@ -10,10 +10,10 @@ variable "create_access_keys" {
   description = "Whether to create an access_key and secret_access key for the ServiceNow user"
 }
 
-variable "severity_filter" {
+variable "severity_label_filter" {
   type        = list(string)
   default     = []
-  description = "JSON object describing the events to push to the ServiceNow queue"
+  description = "List describing the events to push to the ServiceNow queue based on the Severity Label"
 }
 
 variable "kms_key_arn" {

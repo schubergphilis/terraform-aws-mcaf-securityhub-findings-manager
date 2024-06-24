@@ -1,8 +1,8 @@
 resource "aws_cloudwatch_event_rule" "securityhub" {
   name        = "snow-RuleLifeCycleEvents"
   description = "Send Security Hub imported findings to the AwsServiceManagementConnectorForSecurityHubQueue SQS."
-  event_pattern = templatefile("${path.module}/findings_filter.json.tftpl", {
-  severity_filter = jsonencode(var.severity_filter) })
+  event_pattern = templatefile("${path.module}/templates/findings_filter.json.tftpl", {
+  severity_filter = jsonencode(var.severity_label_filter) })
 }
 
 resource "aws_cloudwatch_event_target" "securityhub" {
