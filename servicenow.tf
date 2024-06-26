@@ -5,6 +5,7 @@ module "servicenow_integration" {
 
   cloudwatch_retention_days = var.servicenow_integration.cloudwatch_retention_days
   create_access_keys        = var.servicenow_integration.create_access_keys
+  severity_label_filter     = var.servicenow_integration.severity_label_filter
   kms_key_arn               = var.kms_key_arn
   tags                      = var.tags
 }

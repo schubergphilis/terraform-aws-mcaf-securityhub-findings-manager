@@ -1,0 +1,14 @@
+{
+  "detail-type" : ["Security Hub Findings - Imported"],
+  "source" : ["aws.securityhub"]
+   %{ if length(jsondecode(severity_label_filter)) > 0 ~}
+  ,
+  "detail": {
+    "findings": {
+      "Severity": {
+        "Label": ${severity_label_filter}
+       }
+     }
+   }
+   %{ endif ~}
+}
