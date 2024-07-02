@@ -16,7 +16,7 @@ jobs:
   autolabeler:
     runs-on: ubuntu-latest
     steps:
-      - uses: release-drafter/release-drafter@v5
+      - uses: release-drafter/release-drafter@v6
         with:
           config-name: release-drafter-config.yaml
         env:
@@ -79,7 +79,7 @@ jobs:
     needs: autolabeler
     runs-on: ubuntu-latest
     steps:
-      - uses: danielchabr/pr-labels-checker@v3.1
+      - uses: danielchabr/pr-labels-checker@v3.3
         id: lint_pr_labels
         with:
           hasSome: breaking,bug,documentation,enhancement,feature,fix,misc,security

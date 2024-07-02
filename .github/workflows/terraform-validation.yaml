@@ -9,19 +9,20 @@ permissions:
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  TF_IN_AUTOMATION: 1
 
 jobs:
   fmt-lint-validate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
 
       - name: Setup Terraform Linters
-        uses: terraform-linters/setup-tflint@v2
+        uses: terraform-linters/setup-tflint@v4
         with:
           github_token: ${{ github.token }}
 
@@ -29,25 +30,35 @@ jobs:
         id: fmt
         run: terraform fmt -check -recursive
 
-      - name: Terraform Init
-        id: init
+      - name: Terraform Lint
+        id: lint
         run: |
+          echo "Checking ."
+          tflint --format compact
+
           for d in examples/*/; do
-            terraform -chdir=$d init
+            echo "Checking ${d} ..."
+            tflint --chdir=$d --format compact
           done
 
       - name: Terraform Validate
         id: validate
+        if: ${{ !vars.SKIP_TERRAFORM_VALIDATE }}
         run: |
           for d in examples/*/; do
+            echo "Checking ${d} ..."
+            terraform -chdir=$d init
             terraform -chdir=$d validate -no-color
           done
         env:
           AWS_DEFAULT_REGION: eu-west-1
 
-      - name: Terraform Lint
-        id: lint
-        run: tflint --no-color --recursive --format compact
+      - name: Terraform Test
+        id: test
+        if: ${{ !vars.SKIP_TERRAFORM_TESTS }}
+        run: |
+          terraform init
+          terraform test
 
       - uses: actions/github-script@v6
         if: github.event_name == 'pull_request' || always()
@@ -98,12 +109,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Render terraform docs inside the README.md and push changes back to PR branch
-        uses: terraform-docs/gh-actions@v1.0.0
+        uses: terraform-docs/gh-actions@v1.1.0
         with:
           args: --sort-by required
           git-commit-message: "docs(readme): update module usage"
@@ -117,7 +128,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Terraform security scan
         uses: aquasecurity/tfsec-action@v1.0.3
@@ -136,10 +147,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Run Checkov
-        uses: bridgecrewio/checkov-action@v12.2150.0
+        uses: bridgecrewio/checkov-action@v12
         with:
           container_user: 1000
           directory: "/"
@@ -147,10 +158,13 @@ jobs:
           framework: terraform
           output_format: sarif
           quiet: true
-          skip-checks: "CKV_GIT_5"
+          skip_check: "CKV_GIT_5,CKV_GLB_1,CKV_TF_1"
           soft_fail: false
+          skip_path: "examples/"
 
 ### SKIP REASON ###
 # Check | Description | Reason
 
 # CKV_GIT_5 | Ensure GitHub pull requests have at least 2 approvals | We strive for at least 1 approval
+# CKV_GLB_1 | Ensure at least two approving reviews are required to merge a GitLab MR | We strive for at least 1 approval
+# CKV_TF_1 | Ensure Terraform module sources use a commit hash | We think this check is too restrictive and that versioning should be preferred over commit hash
