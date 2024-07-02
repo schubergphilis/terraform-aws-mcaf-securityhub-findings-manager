@@ -16,7 +16,7 @@ resource "random_string" "random" {
 module "aws_securityhub_findings_manager" {
   source = "../../"
 
-  kms_key_arn                 = data.aws_kms_key.by_alias.arn
+  kms_key_arn                 = aws_kms_key.default.arn
   artifact_s3_bucket_name     = "securityhub-suppressor-artifacts-${random_string.random.result}"
   suppressions_s3_bucket_name = "securityhub-findings-manager-suppressions-${random_string.random.result}"
   tags                        = { Terraform = true }
