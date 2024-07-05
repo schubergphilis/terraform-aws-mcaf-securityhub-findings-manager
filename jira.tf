@@ -81,7 +81,7 @@ module "lambda_jira_deployment_package" {
   source                   = "terraform-aws-modules/lambda/aws"
   version                  = "~> 3.3.0"
   create_function          = false
-  recreate_missing_package = false
+  recreate_missing_package = true
   runtime                  = "python3.8"
   s3_bucket                = module.lambda_artifacts_bucket.name
   s3_object_storage_class  = "STANDARD"
