@@ -1,2 +1,2 @@
 aws-lambda-powertools
-awsfindingsmanagerlib
+awsfindingsmanagerlib==1.0.0
