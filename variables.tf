@@ -142,6 +142,7 @@ variable "servicenow_integration" {
     enabled                   = optional(bool, false)
     create_access_keys        = optional(bool, false)
     cloudwatch_retention_days = optional(number, 365)
+    severity_label_filter     = optional(list(string), [])
   })
   default = {
     enabled = false
