@@ -9,7 +9,7 @@ resource "aws_kms_key" "default" {
 
   # Policy to make this example just work, too open for a real app
   policy = templatefile(
-    "${path.module}/kms.json",
+    "${path.module}/../kms.json",
     { account_id = data.aws_caller_identity.current.account_id }
   )
 }
