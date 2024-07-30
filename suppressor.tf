@@ -1,44 +1,11 @@
-# S3 bucket for storing suppressions list
-module "suppressions_bucket" {
+# S3 bucket to store Lambda artifacts and the suppressions list
+module "suppressor_bucket" {
   #checkov:skip=CKV_AWS_145:Bug in CheckOV https://github.com/bridgecrewio/checkov/issues/3847
   #checkov:skip=CKV_AWS_19:Bug in CheckOV https://github.com/bridgecrewio/checkov/issues/3847
   source  = "schubergphilis/mcaf-s3/aws"
   version = "~> 0.11.0"
 
-  name        = var.suppressions_s3_bucket_name
-  kms_key_arn = var.kms_key_arn
-  logging     = null
-  tags        = var.tags
-  versioning  = true
-
-  lifecycle_rule = [
-    {
-      id      = "default"
-      enabled = true
-
-      abort_incomplete_multipart_upload = {
-        days_after_initiation = 7
-      }
-
-      expiration = {
-        expired_object_delete_marker = true
-      }
-
-      noncurrent_version_expiration = {
-        noncurrent_days = 7
-      }
-    }
-  ]
-}
-
-# S3 bucket to store Lambda artifacts
-module "lambda_artifacts_bucket" {
-  #checkov:skip=CKV_AWS_145:Bug in CheckOV https://github.com/bridgecrewio/checkov/issues/3847
-  #checkov:skip=CKV_AWS_19:Bug in CheckOV https://github.com/bridgecrewio/checkov/issues/3847
-  source  = "schubergphilis/mcaf-s3/aws"
-  version = "~> 0.11.0"
-
-  name        = var.artifact_s3_bucket_name
+  name        = var.s3_bucket_name
   kms_key_arn = var.kms_key_arn
   logging     = null
   tags        = var.tags
@@ -93,7 +60,7 @@ data "aws_iam_policy_document" "lambda_security_hub_suppressor" {
   statement {
     sid       = "S3GetObjectAccess"
     actions   = ["s3:GetObject"]
-    resources = ["${module.suppressions_bucket.arn}/*"]
+    resources = ["${module.suppressor_bucket.arn}/*"]
   }
 
   statement {
@@ -142,7 +109,7 @@ module "lambda_suppressor_deployment_package" {
   create_function          = false
   recreate_missing_package = false
   runtime                  = "python3.8"
-  s3_bucket                = module.lambda_artifacts_bucket.name
+  s3_bucket                = module.suppressor_bucket.name
   s3_object_storage_class  = "STANDARD"
   source_path              = "${path.module}/files/lambda-artifacts/securityhub-suppressor"
   store_on_s3              = true
@@ -165,7 +132,7 @@ module "lambda_securityhub_events_suppressor" {
   memory_size                 = var.lambda_events_suppressor.memory_size
   role_arn                    = module.lambda_security_hub_suppressor_role.arn
   runtime                     = var.lambda_events_suppressor.runtime
-  s3_bucket                   = var.artifact_s3_bucket_name
+  s3_bucket                   = var.s3_bucket_name
   s3_key                      = module.lambda_suppressor_deployment_package.s3_object.key
   s3_object_version           = module.lambda_suppressor_deployment_package.s3_object.version_id
   security_group_egress_rules = var.lambda_events_suppressor.security_group_egress_rules
@@ -174,7 +141,7 @@ module "lambda_securityhub_events_suppressor" {
   timeout                     = var.lambda_events_suppressor.timeout
 
   environment = {
-    S3_BUCKET_NAME              = var.suppressions_s3_bucket_name
+    S3_BUCKET_NAME              = var.s3_bucket_name
     S3_OBJECT_NAME              = var.suppressions_s3_object_name
     LOG_LEVEL                   = var.lambda_events_suppressor.log_level
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
@@ -199,7 +166,7 @@ module "lambda_securityhub_trigger_suppressor" {
   memory_size                 = var.lambda_trigger_suppressor.memory_size
   role_arn                    = module.lambda_security_hub_suppressor_role.arn
   runtime                     = var.lambda_trigger_suppressor.runtime
-  s3_bucket                   = var.artifact_s3_bucket_name
+  s3_bucket                   = var.s3_bucket_name
   s3_key                      = module.lambda_suppressor_deployment_package.s3_object.key
   s3_object_version           = module.lambda_suppressor_deployment_package.s3_object.version_id
   security_group_egress_rules = var.lambda_trigger_suppressor.security_group_egress_rules
@@ -208,7 +175,7 @@ module "lambda_securityhub_trigger_suppressor" {
   timeout                     = var.lambda_trigger_suppressor.timeout
 
   environment = {
-    S3_BUCKET_NAME              = var.suppressions_s3_bucket_name
+    S3_BUCKET_NAME              = var.s3_bucket_name
     S3_OBJECT_NAME              = var.suppressions_s3_object_name
     LOG_LEVEL                   = var.lambda_trigger_suppressor.log_level
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
@@ -237,6 +204,8 @@ resource "aws_cloudwatch_event_rule" "securityhub_events_suppressor_failed_event
   }
 }
 EOF
+
+  tags = var.tags
 }
 
 # Allow Eventbridge to invoke Security Hub Events Lambda function
@@ -260,12 +229,12 @@ resource "aws_lambda_permission" "allow_s3_to_invoke_trigger_lambda" {
   action        = "lambda:InvokeFunction"
   function_name = var.lambda_trigger_suppressor.name
   principal     = "s3.amazonaws.com"
-  source_arn    = module.suppressions_bucket.arn
+  source_arn    = module.suppressor_bucket.arn
 }
 
 # Add Security Hub Trigger Lambda function as a target to Suppressions S3 Object Creation Trigger Events
 resource "aws_s3_bucket_notification" "bucket_notification" {
-  bucket = var.suppressions_s3_bucket_name
+  bucket = var.s3_bucket_name
 
   lambda_function {
     lambda_function_arn = module.lambda_securityhub_trigger_suppressor.arn
@@ -275,4 +244,18 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
   }
 
   depends_on = [aws_lambda_permission.allow_s3_to_invoke_trigger_lambda]
+}
+
+# Upload suppressions list to S3
+resource "aws_s3_object" "suppressions" {
+  count = var.suppressions_filepath == "" ? 0 : 1
+
+  bucket       = var.s3_bucket_name
+  key          = var.suppressions_s3_object_name
+  content_type = "application/x-yaml"
+  content      = file(var.suppressions_filepath)
+  source_hash  = filemd5(var.suppressions_filepath)
+  tags         = var.tags
+
+  depends_on = [aws_s3_bucket_notification.bucket_notification]
 }

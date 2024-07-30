@@ -1,6 +1,7 @@
-variable "suppressions_s3_bucket_name" {
+variable "suppressions_filepath" {
   type        = string
-  description = "The S3 bucket containing the items to be suppressed in Security Hub"
+  default     = ""
+  description = "Pathname to the file that stores the suppressions configuration"
 }
 
 variable "suppressions_s3_object_name" {
@@ -132,7 +133,7 @@ variable "lambda_suppressor_iam_role_name" {
   description = "The name of the role which will be assumed by both Suppressor Lambda functions"
 }
 
-variable "artifact_s3_bucket_name" {
+variable "s3_bucket_name" {
   type        = string
   description = "The name for the S3 bucket which will be created for storing the function's deployment package"
 }

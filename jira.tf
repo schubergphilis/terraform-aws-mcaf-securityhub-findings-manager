@@ -83,7 +83,7 @@ module "lambda_jira_deployment_package" {
   create_function          = false
   recreate_missing_package = false
   runtime                  = "python3.8"
-  s3_bucket                = module.lambda_artifacts_bucket.name
+  s3_bucket                = module.suppressor_bucket.name
   s3_object_storage_class  = "STANDARD"
   source_path              = "${path.module}/files/lambda-artifacts/securityhub-jira"
   store_on_s3              = true
@@ -108,7 +108,7 @@ module "lambda_jira_security_hub" {
   memory_size                 = var.jira_integration.lambda_settings.memory_size
   role_arn                    = module.lambda_jira_security_hub_role[0].arn
   runtime                     = var.jira_integration.lambda_settings.runtime
-  s3_bucket                   = var.artifact_s3_bucket_name
+  s3_bucket                   = var.s3_bucket_name
   s3_key                      = module.lambda_jira_deployment_package[0].s3_object.key
   s3_object_version           = module.lambda_jira_deployment_package[0].s3_object.version_id
   security_group_egress_rules = var.jira_integration.security_group_egress_rules
