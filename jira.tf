@@ -83,7 +83,7 @@ module "lambda_jira_deployment_package" {
   create_function          = false
   recreate_missing_package = false
   runtime                  = "python3.8"
-  s3_bucket                = module.lambda_artifacts_bucket.name
+  s3_bucket                = module.suppressor_bucket.name
   s3_object_storage_class  = "STANDARD"
   source_path              = "${path.module}/files/lambda-artifacts/securityhub-jira"
   store_on_s3              = true

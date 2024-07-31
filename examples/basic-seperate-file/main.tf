@@ -27,10 +27,6 @@ module "aws_securityhub_findings_manager" {
   kms_key_arn    = module.kms.arn
   s3_bucket_name = local.s3_bucket_name
 
-  servicenow_integration = {
-    enabled = true
-  }
-
   tags = { Terraform = true }
 }
 

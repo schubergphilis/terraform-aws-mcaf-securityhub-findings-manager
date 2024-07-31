@@ -8,7 +8,7 @@ LOGGER = Logger()
 @LOGGER.inject_lambda_context(log_event=True)
 def lambda_handler(event, context):
     return manage(
-        FindingsManager.suppress_findings_on_matching_rules,
-        (event["detail"]["findings"],),
+        FindingsManager.suppress_matching_findings,
+        (),
         LOGGER
     )
