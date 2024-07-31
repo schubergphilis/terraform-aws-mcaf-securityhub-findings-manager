@@ -79,7 +79,7 @@ Note : The user will be created by the module, but the `acccess_key` & `secret_a
 
 ## How to format the `rules.yaml` file?
 
-> An example file is stored in this module under `examples\rules.yaml`. For more detailed information check out the [awsfindingsmanagerlib](https://pypi.org/project/awsfindingsmanagerlib/).
+> An example file is stored in this module under `examples/rules.yaml`. For more detailed information check out the [awsfindingsmanagerlib](https://pypi.org/project/awsfindingsmanagerlib/).
 
 The general syntax and allowed parameters are:
 
@@ -97,6 +97,7 @@ Rules:
         - 'regex'
 ```
 
+> [!NOTE]
 > `security_control_id` and `rule_or_control_id` are mutually exclusive, but one of them must be set!
 
 <!-- BEGIN_TF_DOCS -->

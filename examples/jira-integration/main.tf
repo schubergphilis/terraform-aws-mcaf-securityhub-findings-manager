@@ -51,7 +51,7 @@ module "aws_securityhub_findings_manager" {
 
     security_group_egress_rules = [{
       cidr_ipv4   = "1.1.1.1/32"
-      description = "Allow access from lambda_jira_security_hub to Jira"
+      description = "Allow access from lambda_jira_securityhub to Jira"
       from_port   = 443
       ip_protocol = "tcp"
       to_port     = 443

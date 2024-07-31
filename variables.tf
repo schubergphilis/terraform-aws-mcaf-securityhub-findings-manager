@@ -37,14 +37,14 @@ variable "jira_integration" {
     })), [])
 
     lambda_settings = optional(object({
-      name          = optional(string, "security-hub-findings-manager-jira")
+      name          = optional(string, "securityhub-findings-manager-jira")
       iam_role_name = optional(string, "SecurityHubFindingsManagerJiraLambda")
       log_level     = optional(string, "INFO")
       memory_size   = optional(number, 256)
       runtime       = optional(string, "python3.8")
       timeout       = optional(number, 60)
       }), {
-      name                        = "security-hub-findings-manager-jira"
+      name                        = "securityhub-findings-manager-jira"
       iam_role_name               = "SecurityHubFindingsManagerJiraLambda"
       log_level                   = "INFO"
       memory_size                 = 256
@@ -73,7 +73,7 @@ variable "kms_key_arn" {
 
 variable "findings_manager_events_lambda" {
   type = object({
-    name        = optional(string, "security-hub-findings-manager-events")
+    name        = optional(string, "securityhub-findings-manager-events")
     log_level   = optional(string, "INFO")
     memory_size = optional(number, 256)
     runtime     = optional(string, "python3.8")
@@ -101,7 +101,7 @@ variable "findings_manager_events_lambda" {
 
 variable "findings_manager_trigger_lambda" {
   type = object({
-    name        = optional(string, "security-hub-findings-manager-trigger")
+    name        = optional(string, "securityhub-findings-manager-trigger")
     log_level   = optional(string, "INFO")
     memory_size = optional(number, 256)
     runtime     = optional(string, "python3.8")

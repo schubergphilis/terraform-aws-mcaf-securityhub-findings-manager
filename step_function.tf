@@ -2,7 +2,9 @@
 module "jira_step_function_iam_role" {
   count = var.jira_integration.enabled ? 1 : 0
 
-  source                = "github.com/schubergphilis/terraform-aws-mcaf-role?ref=v0.3.2"
+  source  = "schubergphilis/mcaf-role/aws"
+  version = "~> 0.3.2"
+
   name                  = var.jira_step_function_iam_role_name
   create_policy         = true
   postfix               = false
@@ -48,7 +50,9 @@ resource "aws_sfn_state_machine" "jira_orchestrator" {
 module "jira_eventbridge_iam_role" {
   count = var.jira_integration.enabled ? 1 : 0
 
-  source                = "github.com/schubergphilis/terraform-aws-mcaf-role?ref=v0.3.2"
+  source  = "schubergphilis/mcaf-role/aws"
+  version = "~> 0.3.2"
+
   name                  = var.jira_eventbridge_iam_role_name
   create_policy         = true
   postfix               = false

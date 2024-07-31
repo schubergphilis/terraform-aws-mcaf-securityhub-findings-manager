@@ -32,7 +32,7 @@ module "findings_manager_bucket" {
 }
 
 # IAM role to be assumed by Lambda function
-module "findings_manager_lambda_role" {
+module "findings_manager_lambda_iam_role" {
   source  = "schubergphilis/mcaf-role/aws"
   version = "~> 0.3.2"
 
@@ -41,11 +41,11 @@ module "findings_manager_lambda_role" {
   postfix               = false
   principal_identifiers = ["lambda.amazonaws.com"]
   principal_type        = "Service"
-  role_policy           = data.aws_iam_policy_document.findings_manager_lambda_role.json
+  role_policy           = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
   tags                  = var.tags
 }
 
-data "aws_iam_policy_document" "findings_manager_lambda_role" {
+data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
   statement {
     sid = "TrustEventsToStoreLogEvent"
     actions = [
@@ -101,7 +101,7 @@ data "aws_iam_policy_document" "findings_manager_lambda_role" {
 resource "aws_iam_role_policy_attachment" "findings_manager_lambda_iam_role_vpc_policy_attachment" {
   count = var.subnet_ids != null ? 1 : 0
 
-  role       = module.findings_manager_lambda_role.id
+  role       = module.findings_manager_lambda_iam_role.id
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
@@ -134,7 +134,7 @@ module "findings_manager_events_lambda" {
   kms_key_arn                 = var.kms_key_arn
   log_retention               = 365
   memory_size                 = var.findings_manager_events_lambda.memory_size
-  role_arn                    = module.findings_manager_lambda_role.arn
+  role_arn                    = module.findings_manager_lambda_iam_role.arn
   runtime                     = var.findings_manager_events_lambda.runtime
   s3_bucket                   = var.s3_bucket_name
   s3_key                      = module.findings_manager_lambda_deployment_package.s3_object.key
@@ -168,7 +168,7 @@ module "findings_manager_trigger_lambda" {
   kms_key_arn                 = var.kms_key_arn
   log_retention               = 365
   memory_size                 = var.findings_manager_trigger_lambda.memory_size
-  role_arn                    = module.findings_manager_lambda_role.arn
+  role_arn                    = module.findings_manager_lambda_iam_role.arn
   runtime                     = var.findings_manager_trigger_lambda.runtime
   s3_bucket                   = var.s3_bucket_name
   s3_key                      = module.findings_manager_lambda_deployment_package.s3_object.key
