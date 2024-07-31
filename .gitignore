@@ -1,4 +1,4 @@
-#  Local .terraform directories
+# Local .terraform directories
 **/.terraform/*
 
 # .tfstate files
@@ -10,3 +10,6 @@
 
 # CheckOv pre-commit external modules path
 **/.external_modules/*
+
+# Local Lambda function package directories
+**/builds/*

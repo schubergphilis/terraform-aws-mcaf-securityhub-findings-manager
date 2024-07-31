@@ -19,7 +19,7 @@ data "aws_iam_policy_document" "step_function_securityhub_findings_manager" {
       "lambda:InvokeFunction"
     ]
     resources = [
-      module.lambda_securityhub_findings_manager_events.arn,
+      module.lambda_findings_manager_events.arn,
       module.lambda_jira_securityhub[0].arn
     ]
   }
@@ -35,9 +35,9 @@ resource "aws_sfn_state_machine" "securityhub_findings_manager_orchestrator" {
   tags     = var.tags
 
   definition = templatefile("${path.module}/files/step-function-artifacts/securityhub-findings-manager-orchestrator.json.tpl", {
-    finding_severity_normalized              = var.jira_integration.finding_severity_normalized_threshold
-    lambda_securityhub_findings_manager_events_arn = module.lambda_securityhub_findings_manager_events.arn,
-    lambda_securityhub_jira_arn              = module.lambda_jira_securityhub[0].arn
+    finding_severity_normalized        = var.jira_integration.finding_severity_normalized_threshold
+    lambda_findings_manager_events_arn = module.lambda_findings_manager_events.arn,
+    lambda_securityhub_jira_arn        = module.lambda_jira_securityhub[0].arn
   })
 }
 
@@ -71,5 +71,5 @@ resource "aws_cloudwatch_event_target" "securityhub_findings_manager_orchestrato
   count    = var.jira_integration.enabled ? 1 : 0
   arn      = aws_sfn_state_machine.securityhub_findings_manager_orchestrator[0].arn
   role_arn = module.eventbridge_securityhub_findings_manager_role[0].arn
-  rule     = aws_cloudwatch_event_rule.securityhub_findings_manager_failed_events.name
+  rule     = aws_cloudwatch_event_rule.securityhub_findings_events.name
 }

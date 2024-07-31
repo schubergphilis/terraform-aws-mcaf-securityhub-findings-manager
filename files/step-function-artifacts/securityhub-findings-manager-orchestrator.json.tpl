@@ -7,7 +7,7 @@
         "Resource": "arn:aws:states:::lambda:invoke",
         "Parameters": {
           "Payload.$": "$",
-          "FunctionName": "${lambda_securityhub_findings_manager_events_arn}"
+          "FunctionName": "${lambda_findings_manager_events_arn}"
         },
         "Retry": [
           {
