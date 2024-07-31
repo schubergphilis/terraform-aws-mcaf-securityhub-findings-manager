@@ -1,11 +1,12 @@
 # Security Hub Findings Manager
 
-> Previously called: Security Hub Findings Suppressor |
-> Based on: <https://github.com/schubergphilis/aws-security-hub-suppressor>
-
 The Security Hub Findings Manager is a framework designed to automatically suppress findings recorded by the AWS Security Hub service based on a pre-defined and configurable suppression list. This suppression is needed in case some controls or rules are not completely applicable to the resources of a given account. For example, you might want to suppress all DynamoDB Autoscaling configuration findings related to the control `DynamoDB.1`, simply because this feature is not applicable for your workload. Besides the suppression of findings this module is also able to create Jira tickets for all `NEW` findings with a severity higher than a definable threshold.
 
 This logic is intended to be executed in the Audit Account which is part of the AWS Control Tower default account posture and therefore receives events from all child accounts in an organization.
+
+> [!NOTE]
+> This module relies heavily on [awsfindingsmanagerlib](https://pypi.org/project/awsfindingsmanagerlib/).
+> See the [documentation](https://github.com/schubergphilis/awsfindingsmanagerlib/blob/main/docs/index.rst) of this library on more detailed specifications of the suppression logic.
 
 ## Terraform Runtime Requirements
 
@@ -37,13 +38,13 @@ In addition to these, additional resources are deployed depending on the chosen 
 
 The module deploys 2 Lambda functions:
 
-* `securityhub-events-suppressor` and configures this Lambda as a target to the EventBridge rule.
+* `securityhub-events-suppressor` and configures this Lambda as a target to the EventBridge rule `Security Hub Findings - Imported` eventd.
 * `securityhub-trigger-suppressor` and configures this Lambda as a target to the S3 PutObject trigger.
 
 ### With Jira Integration
 
 * This deployment method can be used by setting the value of the variable `jira_integration` to `true` (default = false).
-* The module deploys two Lambda functions: `Suppressor` and `Jira` along with a Step function which orchestrates these Lambda functions and Step Function as a target to the EventBridge rule.
+* The module deploys an additional `Jira` lambda function along with a Step function which orchestrates these Lambda functions and Step Function as a target to the EventBridge rule.
 * If the finding is not suppressed a ticket is created for findings with a normalized severity higher than a definable threshold. The workflow status in Security Hub is updated from `NEW` to `NOTIFIED`.
 
 ![Step Function Graph](files/step-function-artifacts/securityhub-suppressor-orchestrator-graph.png)
@@ -60,27 +61,27 @@ The module deploys 2 Lambda functions:
 
 Note : The user will be created by the module, but the `acccess_key` & `secret_access_key` need to be generated in the AWS Console, to prevent storing this data in the Terraform state. If you want Terraform to create the `acccess_key` & `secret_access_key` (and output them), set variable `create_servicenow_access_keys` to `true` (default = false)
 
-## How it works
 
-The Security Hub Findings Suppressor listens to AWS EventBridge event bus and triggers an execution when a `Security Hub Findings - Imported` event happens.
+## How to format the `suppressions.yaml` file?
+- An example file is stored in this module under `examples\suppressions.yaml`. For more detailed information check out the [awsfindingsmanagerlib](https://pypi.org/project/awsfindingsmanagerlib/).
 
-Once the event is delivered, the function `securityhub-events-suppressor` will be triggered and will perform the following steps:
+The general syntax and allowed parameters are:
 
-* Parse the event to determine what is the linked product. For example: Firewall Manager, Inspector or Security Hub.
-* Check whether this product is properly mapped and configured in the YAML configuration file.
-* Extract the AWS resource from the event payload.
-* Upon having the resource and its ARN, the logic checks if that resource is listed in the suppression list.
-* The suppression list contains a collection of items, one per controlId.
+```yaml
+Rules:
+  - note: 'str'
+    action: 'SUPPRESSED'
+    match_on:
+      security_control_id: 'str' #When `Consolidated control findings` is On
+      control_id: 'str' #When `Consolidated control findings` is Off
+      tags:
+        - key: 'str'
+          value: 'str'
+      resource_id_regexps:
+        - 'regex'
+```
 
-## How to add a new product to the suppression list
-
-Example deployment files are stored in this module under `examples`.
-This module relies heavily on [awsfindingsmanagerlib](https://pypi.org/project/awsfindingsmanagerlib/).
-See their documentation on more detailed specifications.
-
-## TF docs
-
-Below follow the auto-generated docs of the internals of this module.
+`security_control_id` and `control_id` are mutually exclusive.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements

@@ -6,11 +6,51 @@ This document captures required refactoring on your part when upgrading to a mod
 
 ### Variables
 
-todo
+The following variables have been removed:
+- `dynamodb_deletion_protection` & `dynamodb_table`
+
+The suppressions.yaml file can now directly be pushed to an S3 bucket either by using the `suppressions_filepath` and `suppressions_s3_object_name` variable or by pusing the file via an custom `aws_s3_object` resource or via any other way. The suppressor lambda now triggers on S3 Object Creation Trigger Events.
+
+The following variable has been renamed:
+- `lambda_streams_suppressor` -> `lambda_trigger_suppressor`
+
+### Outputs
+The following output has been removed:
+- `dynamodb_arn`
+
+The following output has been renamed:
+- `lambda_securityhub_streams_suppressor_sg_id` -> `lambda_securityhub_trigger_suppressor_sg_id`
 
 ### Behaviour
 
-todo
+New functionality:
+- Suppressing consolidated control findings is now supported
+- Suppressing based on tags is now supported
+
+See the README, section `## How to format the suppressions.yaml file?` for more information on the keys you need to use to control this.
+
+The suppression.yaml file needs to be written in a different syntax. The script below can be used to easily convert your current suppressions.yaml file to the new format. 
+
+```python
+import yaml
+
+suppressions = yaml.safe_load(open('suppressions.yaml', 'r'))
+
+output = {
+    'Rules': [{
+            'note': suppression['notes'],
+            'action': suppression['action'],
+            'match_on': {
+                'control_id': control_id,
+                'resource_id': suppression['rules']
+            }
+        }
+        for control_id, controls in suppressions['Suppressions'].items()
+        for suppression in controls]
+}
+
+print(yaml.dump(output, indent=2))
+```
 
 ## Upgrading to v2.0.0
 

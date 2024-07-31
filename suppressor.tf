@@ -33,7 +33,9 @@ module "suppressor_bucket" {
 
 # IAM role to be assumed by Lambda Function
 module "lambda_security_hub_suppressor_role" {
-  source                = "github.com/schubergphilis/terraform-aws-mcaf-role?ref=v0.3.2"
+  source  = "schubergphilis/mcaf-role/aws"
+  version = "~> 0.3.2"
+
   name                  = var.lambda_suppressor_iam_role_name
   create_policy         = true
   postfix               = false
@@ -187,6 +189,7 @@ module "lambda_securityhub_trigger_suppressor" {
 resource "aws_cloudwatch_event_rule" "securityhub_events_suppressor_failed_events" {
   name        = "rule-${var.lambda_events_suppressor.name}"
   description = "EventBridge Rule that detects Security Hub events with compliance status as failed and workflow status as new or notified"
+  tags        = var.tags
 
   event_pattern = <<EOF
 {
@@ -204,8 +207,6 @@ resource "aws_cloudwatch_event_rule" "securityhub_events_suppressor_failed_event
   }
 }
 EOF
-
-  tags = var.tags
 }
 
 # Allow Eventbridge to invoke Security Hub Events Lambda function
@@ -234,7 +235,7 @@ resource "aws_lambda_permission" "allow_s3_to_invoke_trigger_lambda" {
 
 # Add Security Hub Trigger Lambda function as a target to Suppressions S3 Object Creation Trigger Events
 resource "aws_s3_bucket_notification" "bucket_notification" {
-  bucket = var.s3_bucket_name
+  bucket = module.suppressor_bucket.name
 
   lambda_function {
     lambda_function_arn = module.lambda_securityhub_trigger_suppressor.arn
@@ -250,7 +251,7 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
 resource "aws_s3_object" "suppressions" {
   count = var.suppressions_filepath == "" ? 0 : 1
 
-  bucket       = var.s3_bucket_name
+  bucket       = module.suppressor_bucket.name
   key          = var.suppressions_s3_object_name
   content_type = "application/x-yaml"
   content      = file(var.suppressions_filepath)
