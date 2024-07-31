@@ -10,9 +10,9 @@ variable "rules_s3_object_name" {
   description = "The S3 object containing the rules to be applied to Security Hub findings"
 }
 
-variable "jira_eventbridge_findings_manager_iam_role_name" {
+variable "jira_eventbridge_iam_role_name" {
   type        = string
-  default     = "JiraEventBridgeFindingsManagerRole"
+  default     = "SecurityHubFindingsManagerJiraEventBridge"
   description = "The name of the role which will be assumed by EventBridge rules for Jira integration"
 }
 
@@ -37,15 +37,15 @@ variable "jira_integration" {
     })), [])
 
     lambda_settings = optional(object({
-      name          = optional(string, "findings-manager-jira")
-      iam_role_name = optional(string, "LambdaFindingsManagerJiraRole")
+      name          = optional(string, "security-hub-findings-manager-jira")
+      iam_role_name = optional(string, "SecurityHubFindingsManagerJiraLambda")
       log_level     = optional(string, "INFO")
       memory_size   = optional(number, 256)
       runtime       = optional(string, "python3.8")
       timeout       = optional(number, 60)
       }), {
-      name                        = "findings-manager-jira"
-      iam_role_name               = "LambdaFindingsManagerJiraRole"
+      name                        = "security-hub-findings-manager-jira"
+      iam_role_name               = "SecurityHubFindingsManagerJiraLambda"
       log_level                   = "INFO"
       memory_size                 = 256
       runtime                     = "python3.8"
@@ -58,7 +58,7 @@ variable "jira_integration" {
     credentials_secret_arn = null
     project_key            = null
   }
-  description = "Jira integration settings"
+  description = "Findings Manager - Jira integration settings"
 
   validation {
     condition     = alltrue([for o in var.jira_integration.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
@@ -71,9 +71,9 @@ variable "kms_key_arn" {
   description = "The ARN of the KMS key used to encrypt the resources"
 }
 
-variable "lambda_findings_manager_events" {
+variable "findings_manager_events_lambda" {
   type = object({
-    name        = optional(string, "findings-manager-events")
+    name        = optional(string, "security-hub-findings-manager-events")
     log_level   = optional(string, "INFO")
     memory_size = optional(number, 256)
     runtime     = optional(string, "python3.8")
@@ -94,14 +94,14 @@ variable "lambda_findings_manager_events" {
   description = "Findings Manager Lambda settings - Manage Security Hub findings in response to EventBridge events"
 
   validation {
-    condition     = alltrue([for o in var.lambda_findings_manager_events.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
+    condition     = alltrue([for o in var.findings_manager_events_lambda.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
     error_message = "Although \"cidr_ipv4\", \"cidr_ipv6\", \"prefix_list_id\", and \"referenced_security_group_id\" are all marked as optional, you must provide one of them in order to configure the destination of the traffic."
   }
 }
 
-variable "lambda_findings_manager_trigger" {
+variable "findings_manager_trigger_lambda" {
   type = object({
-    name        = optional(string, "findings-manager-trigger")
+    name        = optional(string, "security-hub-findings-manager-trigger")
     log_level   = optional(string, "INFO")
     memory_size = optional(number, 256)
     runtime     = optional(string, "python3.8")
@@ -122,14 +122,14 @@ variable "lambda_findings_manager_trigger" {
   description = "Findings Manager Lambda settings - Manage Security Hub findings in response to S3 file upload triggers"
 
   validation {
-    condition     = alltrue([for o in var.lambda_findings_manager_trigger.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
+    condition     = alltrue([for o in var.findings_manager_trigger_lambda.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
     error_message = "Although \"cidr_ipv4\", \"cidr_ipv6\", \"prefix_list_id\", and \"referenced_security_group_id\" are all marked as optional, you must provide one of them in order to configure the destination of the traffic."
   }
 }
 
-variable "lambda_findings_manager_iam_role_name" {
+variable "findings_manager_lambda_iam_role_name" {
   type        = string
-  default     = "LambdaFindingsManagerRole"
+  default     = "SecurityHubFindingsManagerLambda"
   description = "The name of the role which will be assumed by both Findings Manager Lambda functions"
 }
 
@@ -151,9 +151,9 @@ variable "servicenow_integration" {
   description = "ServiceNow integration settings"
 }
 
-variable "jira_step_function_findings_manager_iam_role_name" {
+variable "jira_step_function_iam_role_name" {
   type        = string
-  default     = "JiraStepFunctionFindingsManagerRole"
+  default     = "SecurityHubFindingsManagerJiraStepFunction"
   description = "The name of the role which will be assumed by AWS Step Function for Jira integration"
 }
 
