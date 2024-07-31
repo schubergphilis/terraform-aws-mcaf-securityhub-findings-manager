@@ -40,6 +40,10 @@ One of the functions which triggers in response to upserts in the S3 backend rul
 The other functions gets invoked by EventBridge events for new Security Hub findings.
 In addition to these, additional resources are deployed depending on the chosen deployment mode.
 
+> [!NOTE]
+> In case of first time deploy, be mindful that there can be a delay between creating S3 triggers and those being fully functional.
+> Re-create the rules object later to have rules run on your findings history in that case.
+
 ### (Default) Without Jira & ServiceNow Integration
 
 The module deploys 2 Lambda functions:

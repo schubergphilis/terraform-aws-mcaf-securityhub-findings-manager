@@ -29,7 +29,7 @@ You can add the `rules.yaml` file to the bucket in any way you like after deploy
 This way you can separate management of your infrastructure and security.
 If this separation is not necessary in your case you also let this module directly upload the file for you by setting the `rules_filepath` variable to a filepath to your `rules.yaml` file.
 In either case, be mindful that there can be a delay between creating S3 triggers and those being fully functional.
-Re-create the object later to have rules run your findings history in that case.
+Re-create the rules object later to have rules run on your findings history in that case.
 
 ### Outputs (v3.0.0)
 

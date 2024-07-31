@@ -262,5 +262,6 @@ resource "aws_s3_object" "rules" {
   source_hash  = filemd5(var.rules_filepath)
   tags         = var.tags
 
+  # Even with this in place, the creation sometimes doesn't get picked up on a first deploy
   depends_on = [aws_s3_bucket_notification.findings_manager_trigger]
 }
