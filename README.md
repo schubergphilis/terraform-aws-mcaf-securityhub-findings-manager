@@ -1,8 +1,14 @@
 # Security Hub Findings Manager
 
-The Security Hub Findings Manager is a framework designed to automatically suppress findings recorded by the AWS Security Hub service based on a pre-defined and configurable suppression list. This suppression is needed in case some controls or rules are not completely applicable to the resources of a given account. For example, you might want to suppress all DynamoDB Autoscaling configuration findings related to the control `DynamoDB.1`, simply because this feature is not applicable for your workload. Besides the suppression of findings this module is also able to create Jira tickets for all `NEW` findings with a severity higher than a definable threshold.
+The Security Hub Findings Manager is a framework designed to automatically manage findings recorded by the AWS Security Hub service based on a pre-defined and configurable rules list.
+At the moment only finding suppression is supported.
+This suppression is needed in case some controls or rules are not completely applicable to the resources of a given account.
+For example, you might want to suppress all DynamoDB Autoscaling configuration findings related to the control `DynamoDB.1`, simply because this feature is not applicable for your workload.
+Besides the findings management this module is also able to integrate with Jira and ServiceNow.
 
-This logic is intended to be executed in the Audit Account which is part of the AWS Control Tower default account posture and therefore receives events from all child accounts in an organization.
+The manager can be deployed in the Audit/Security Account of an AWS reference multi-account setup.
+This account receives events from all child accounts in an organization.
+This way, a comprehensive overview of the organization's security posture can be easily maintained.
 
 > [!NOTE]
 > This module relies heavily on [awsfindingsmanagerlib](https://pypi.org/project/awsfindingsmanagerlib/).
@@ -15,31 +21,31 @@ This logic is intended to be executed in the Audit Account which is part of the 
 
 ## Components
 
-* A suppressions backend (currently only S3 is supported)
-* 3 Lambda Functions:
-  * Security Hub Events: triggered by EventBridge on events from SecurityHub.
-  * Security Hub Triggers: triggered by changes in the S3 backend suppression list.
-  * (optional) Security Hub Jira: triggered by EventBridge on events from SecurityHub with a normalized severity higher than a definable threshold (by default `70`)
-    * [Normalized](https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Severity.html) severity levels:
-      * 0 - INFORMATIONAL
-      * 1–39 - LOW
-      * 40–69 - MEDIUM
-      * 70–89 - HIGH
-      * 90–100 - CRITICAL
-* (optional) Step Function, to orchestrate the Suppressor and Jira lambdas.
+This is a high-level overview of the constituent components.
+For a more complete overview see [Resources](#resources) and [Modules](#modules).
+
+* A rules backend (currently only S3 is supported)
+* 2 Lambda Functions
+  * Security Hub Events: triggered by EventBridge on events from Security Hub
+  * Security Hub Triggers: triggered by changes in the S3 backend rules list
+* Infrastructure to facilitate the Lambda functions (IAM role, EventBridge integration, S3 Trigger Notifications)
+* (optional) Jira integration components
+* (optional) ServiceNow integration components
 
 ## Deployment Modes
 
 There are 3 different deployment modes for this module.
-All the modes deploy a Lambda function which triggers in response to upserts in the S3 backend suppression list and an EventBridge rule with a pattern which detects the import of a new Security Hub finding.
+All the modes deploy two Lambda function.
+One of the functions which triggers in response to upserts in the S3 backend rules list.
+The other functions gets invoked by EventBridge events for new Security Hub findings.
 In addition to these, additional resources are deployed depending on the chosen deployment mode.
 
 ### (Default) Without Jira & ServiceNow Integration
 
 The module deploys 2 Lambda functions:
 
-* `securityhub-events-suppressor` and configures this Lambda as a target to the EventBridge rule `Security Hub Findings - Imported` eventd.
-* `securityhub-trigger-suppressor` and configures this Lambda as a target to the S3 PutObject trigger.
+* `securityhub-findings-manager-events`, this function is the target for the EventBridge rule `Security Hub Findings - Imported` events.
+* `securityhub-findings-manager-trigger`, this function is the target to the S3 PutObject trigger.
 
 ### With Jira Integration
 
@@ -47,7 +53,17 @@ The module deploys 2 Lambda functions:
 * The module deploys an additional `Jira` lambda function along with a Step function which orchestrates these Lambda functions and Step Function as a target to the EventBridge rule.
 * If the finding is not suppressed a ticket is created for findings with a normalized severity higher than a definable threshold. The workflow status in Security Hub is updated from `NEW` to `NOTIFIED`.
 
-![Step Function Graph](files/step-function-artifacts/securityhub-suppressor-orchestrator-graph.png)
+Only events from Security Hub with a normalized severity level higher than a definable threshold (by default `70`) trigger the Jira integration.
+
+[Normalized severity levels](https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Severity.html):
+
+* 0 - INFORMATIONAL
+* 1–39 - LOW
+* 40–69 - MEDIUM
+* 70–89 - HIGH
+* 90–100 - CRITICAL
+
+![Step Function Graph](files/step-function-artifacts/securityhub-findings-manager-orchestrator-graph.png)
 
 ### With ServiceNow Integration
 
@@ -55,15 +71,15 @@ The module deploys 2 Lambda functions:
 
 * This deployment method can be used by setting the value of the variable `servicenow_integration` to `true` (default = false).
 * The module will deploy all the needed resources to support integration with ServiceNow, including (but not limited to): An SQS Queue, EventBridge Rule and the needed IAM user.
-* When an event in SecurityHub fires, an event will be created by EventBridge and dropped onto an SQS Queue.
+* When an event in Security Hub fires, an event will be created by EventBridge and dropped onto an SQS Queue.
 * With the variable `severity_filter` it can be configured which findings will be forwarded based on the severity label.
 * ServiceNow will pull the events from the SQS queue with the `SCSyncUser` using `acccess_key` & `secret_access_key`.
 
 Note : The user will be created by the module, but the `acccess_key` & `secret_access_key` need to be generated in the AWS Console, to prevent storing this data in the Terraform state. If you want Terraform to create the `acccess_key` & `secret_access_key` (and output them), set variable `create_servicenow_access_keys` to `true` (default = false)
 
-## How to format the `suppressions.yaml` file?
+## How to format the `rules.yaml` file?
 
-> An example file is stored in this module under `examples\suppressions.yaml`. For more detailed information check out the [awsfindingsmanagerlib](https://pypi.org/project/awsfindingsmanagerlib/).
+> An example file is stored in this module under `examples\rules.yaml`. For more detailed information check out the [awsfindingsmanagerlib](https://pypi.org/project/awsfindingsmanagerlib/).
 
 The general syntax and allowed parameters are:
 
@@ -81,7 +97,7 @@ Rules:
         - 'regex'
 ```
 
-`security_control_id` and `rule_or_control_id` are mutually exclusive.
+> `security_control_id` and `rule_or_control_id` are mutually exclusive, but one of them must be set!
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements

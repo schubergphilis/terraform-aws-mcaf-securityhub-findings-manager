@@ -1,5 +1,5 @@
 # IAM role to be assumed by Lambda Function
-module "lambda_jira_security_hub_role" {
+module "lambda_jira_securityhub_role" {
   count                 = var.jira_integration.enabled ? 1 : 0
   source                = "github.com/schubergphilis/terraform-aws-mcaf-role?ref=v0.3.2"
   name                  = var.jira_integration.lambda_settings.iam_role_name
@@ -7,11 +7,11 @@ module "lambda_jira_security_hub_role" {
   postfix               = false
   principal_identifiers = ["lambda.amazonaws.com"]
   principal_type        = "Service"
-  role_policy           = data.aws_iam_policy_document.lambda_jira_security_hub[0].json
+  role_policy           = data.aws_iam_policy_document.lambda_jira_securityhub[0].json
   tags                  = var.tags
 }
 
-data "aws_iam_policy_document" "lambda_jira_security_hub" {
+data "aws_iam_policy_document" "lambda_jira_securityhub" {
   count = var.jira_integration.enabled ? 1 : 0
   statement {
     sid = "TrustEventsToStoreLogEvent"
@@ -69,9 +69,9 @@ data "aws_iam_policy_document" "lambda_jira_security_hub" {
 }
 
 # Lambda VPC Execution role policy attachment
-resource "aws_iam_role_policy_attachment" "lambda_jira_security_hub_role_vpc_policy" {
+resource "aws_iam_role_policy_attachment" "lambda_jira_securityhub_role_vpc_policy" {
   count      = var.jira_integration.enabled && var.subnet_ids != null ? 1 : 0
-  role       = module.lambda_jira_security_hub_role[0].id
+  role       = module.lambda_jira_securityhub_role[0].id
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
@@ -83,14 +83,14 @@ module "lambda_jira_deployment_package" {
   create_function          = false
   recreate_missing_package = false
   runtime                  = "python3.8"
-  s3_bucket                = module.suppressor_bucket.name
+  s3_bucket                = module.findings_manager_bucket.name
   s3_object_storage_class  = "STANDARD"
   source_path              = "${path.module}/files/lambda-artifacts/securityhub-jira"
   store_on_s3              = true
 }
 
 # Lambda function to create Jira ticket for Security Hub findings and set the workflow state to NOTIFIED
-module "lambda_jira_security_hub" {
+module "lambda_jira_securityhub" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
   count = var.jira_integration.enabled ? 1 : 0
 
@@ -106,7 +106,7 @@ module "lambda_jira_security_hub" {
   kms_key_arn                 = var.kms_key_arn
   log_retention               = 365
   memory_size                 = var.jira_integration.lambda_settings.memory_size
-  role_arn                    = module.lambda_jira_security_hub_role[0].arn
+  role_arn                    = module.lambda_jira_securityhub_role[0].arn
   runtime                     = var.jira_integration.lambda_settings.runtime
   s3_bucket                   = var.s3_bucket_name
   s3_key                      = module.lambda_jira_deployment_package[0].s3_object.key

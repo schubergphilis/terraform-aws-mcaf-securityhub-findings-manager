@@ -17,13 +17,13 @@ module "kms" {
 }
 
 # It can take a long time before S3 notifications become active
-# You may want to deploy an empty set of suppressions before the actual ones or do a trick with yaml comments
+# You may want to deploy an empty set of rules before the actual ones or do a trick with yaml comments
 module "aws_securityhub_findings_manager" {
   source = "../../"
 
   kms_key_arn           = module.kms.arn
   s3_bucket_name        = "securityhub-findings-manager-artifacts" # Replace with a globally unique bucket name
-  suppressions_filepath = "${path.module}/../suppressions.yaml"
+  rules_filepath = "${path.module}/../rules.yaml"
 
   tags = { Terraform = true }
 }

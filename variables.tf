@@ -1,19 +1,19 @@
-variable "suppressions_filepath" {
+variable "rules_filepath" {
   type        = string
   default     = ""
-  description = "Pathname to the file that stores the suppressions configuration"
+  description = "Pathname to the file that stores the manager rules"
 }
 
-variable "suppressions_s3_object_name" {
+variable "rules_s3_object_name" {
   type        = string
-  default     = "suppressions.yaml"
-  description = "The S3 object containing the items to be suppressed in Security Hub"
+  default     = "rules.yaml"
+  description = "The S3 object containing the rules to be applied to Security Hub findings"
 }
 
-variable "eventbridge_suppressor_iam_role_name" {
+variable "jira_eventbridge_findings_manager_iam_role_name" {
   type        = string
-  default     = "EventBridgeSecurityHubSuppressorRole"
-  description = "The name of the role which will be assumed by EventBridge rules"
+  default     = "JiraEventBridgeFindingsManagerRole"
+  description = "The name of the role which will be assumed by EventBridge rules for Jira integration"
 }
 
 variable "jira_integration" {
@@ -37,15 +37,15 @@ variable "jira_integration" {
     })), [])
 
     lambda_settings = optional(object({
-      name          = optional(string, "securityhub-jira")
-      iam_role_name = optional(string, "LambdaJiraSecurityHubRole")
+      name          = optional(string, "findings-manager-jira")
+      iam_role_name = optional(string, "LambdaFindingsManagerJiraRole")
       log_level     = optional(string, "INFO")
       memory_size   = optional(number, 256)
       runtime       = optional(string, "python3.8")
       timeout       = optional(number, 60)
       }), {
-      name                        = "securityhub-jira"
-      iam_role_name               = "LambdaJiraSecurityHubRole"
+      name                        = "findings-manager-jira"
+      iam_role_name               = "LambdaFindingsManagerJiraRole"
       log_level                   = "INFO"
       memory_size                 = 256
       runtime                     = "python3.8"
@@ -71,9 +71,9 @@ variable "kms_key_arn" {
   description = "The ARN of the KMS key used to encrypt the resources"
 }
 
-variable "lambda_events_suppressor" {
+variable "lambda_findings_manager_events" {
   type = object({
-    name        = optional(string, "securityhub-events-suppressor")
+    name        = optional(string, "findings-manager-events")
     log_level   = optional(string, "INFO")
     memory_size = optional(number, 256)
     runtime     = optional(string, "python3.8")
@@ -91,17 +91,17 @@ variable "lambda_events_suppressor" {
     })), [])
   })
   default     = {}
-  description = "Lambda Events Suppressor settings - Supresses the Security Hub findings in response to EventBridge Trigger"
+  description = "Findings Manager Lambda settings - Manage Security Hub findings in response to EventBridge events"
 
   validation {
-    condition     = alltrue([for o in var.lambda_events_suppressor.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
+    condition     = alltrue([for o in var.lambda_findings_manager_events.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
     error_message = "Although \"cidr_ipv4\", \"cidr_ipv6\", \"prefix_list_id\", and \"referenced_security_group_id\" are all marked as optional, you must provide one of them in order to configure the destination of the traffic."
   }
 }
 
-variable "lambda_trigger_suppressor" {
+variable "lambda_findings_manager_trigger" {
   type = object({
-    name        = optional(string, "securityhub-trigger-suppressor")
+    name        = optional(string, "findings-manager-trigger")
     log_level   = optional(string, "INFO")
     memory_size = optional(number, 256)
     runtime     = optional(string, "python3.8")
@@ -119,18 +119,18 @@ variable "lambda_trigger_suppressor" {
     })), [])
   })
   default     = {}
-  description = "Lambda Trigger Suppressor settings - Supresses the Security Hub findings in response to S3 file upload triggers"
+  description = "Findings Manager Lambda settings - Manage Security Hub findings in response to S3 file upload triggers"
 
   validation {
-    condition     = alltrue([for o in var.lambda_trigger_suppressor.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
+    condition     = alltrue([for o in var.lambda_findings_manager_trigger.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
     error_message = "Although \"cidr_ipv4\", \"cidr_ipv6\", \"prefix_list_id\", and \"referenced_security_group_id\" are all marked as optional, you must provide one of them in order to configure the destination of the traffic."
   }
 }
 
-variable "lambda_suppressor_iam_role_name" {
+variable "lambda_findings_manager_iam_role_name" {
   type        = string
-  default     = "LambdaSecurityHubSuppressorRole"
-  description = "The name of the role which will be assumed by both Suppressor Lambda functions"
+  default     = "LambdaFindingsManagerRole"
+  description = "The name of the role which will be assumed by both Findings Manager Lambda functions"
 }
 
 variable "s3_bucket_name" {
@@ -151,16 +151,16 @@ variable "servicenow_integration" {
   description = "ServiceNow integration settings"
 }
 
-variable "step_function_suppressor_iam_role_name" {
+variable "jira_step_function_findings_manager_iam_role_name" {
   type        = string
-  default     = "StepFunctionSecurityHubSuppressorRole"
-  description = "The name of the role which will be assumed by Suppressor Step function"
+  default     = "JiraStepFunctionFindingsManagerRole"
+  description = "The name of the role which will be assumed by AWS Step Function for Jira integration"
 }
 
 variable "subnet_ids" {
   type        = list(string)
   default     = null
-  description = "The subnet ids where the lambda's needs to run"
+  description = "The subnet ids where the Lambda functions needs to run"
 }
 
 variable "tags" {
