@@ -61,9 +61,9 @@ The module deploys 2 Lambda functions:
 
 Note : The user will be created by the module, but the `acccess_key` & `secret_access_key` need to be generated in the AWS Console, to prevent storing this data in the Terraform state. If you want Terraform to create the `acccess_key` & `secret_access_key` (and output them), set variable `create_servicenow_access_keys` to `true` (default = false)
 
-
 ## How to format the `suppressions.yaml` file?
-- An example file is stored in this module under `examples\suppressions.yaml`. For more detailed information check out the [awsfindingsmanagerlib](https://pypi.org/project/awsfindingsmanagerlib/).
+
+> An example file is stored in this module under `examples\suppressions.yaml`. For more detailed information check out the [awsfindingsmanagerlib](https://pypi.org/project/awsfindingsmanagerlib/).
 
 The general syntax and allowed parameters are:
 
@@ -72,8 +72,8 @@ Rules:
   - note: 'str'
     action: 'SUPPRESSED'
     match_on:
-      security_control_id: 'str' #When `Consolidated control findings` is On
-      control_id: 'str' #When `Consolidated control findings` is Off
+      security_control_id: 'str' # When `Consolidated control findings` is On
+      rule_or_control_id: 'str' # When `Consolidated control findings` is Off
       tags:
         - key: 'str'
           value: 'str'
@@ -81,7 +81,7 @@ Rules:
         - 'regex'
 ```
 
-`security_control_id` and `control_id` are mutually exclusive.
+`security_control_id` and `rule_or_control_id` are mutually exclusive.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
