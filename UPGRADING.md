@@ -42,7 +42,7 @@ New functionality:
 
 See the README, section `## How to format the suppressions.yaml file?` for more information on the keys you need to use to control this.
 
-The suppression.yaml file needs to be written in a different syntax. The script below can be used to easily convert your current suppressions.yaml file to the new format.
+The `suppression.yaml` file needs to be written in a different syntax. The script below can be used to easily convert your current `suppressions.yaml` file to the new format.
 
 ```python
 import yaml
@@ -56,7 +56,7 @@ output = {
             'action': suppression['action'],
             'match_on': {
                 'rule_or_control_id': control_id,
-                'resource_id': suppression['rules']
+                'resource_id_regexps': suppression['rules']
             }
         }
         for control_id, controls in suppressions['Suppressions'].items()
@@ -69,7 +69,7 @@ print(yaml.dump(output, indent=2))
 
 ## Upgrading to v2.0.0
 
-### Variables
+### Variables (v2.0.0)
 
 The following variable has been replaced:
 
@@ -81,20 +81,20 @@ The following variable defaults have been modified:
 
 - `servicenow_integration.cloudwatch_retention_days` -> default: `365` (previous hardcoded: `14`). In order to comply with AWS Security Hub control CloudWatch.16.
 
-### Behaviour
+### Behaviour (v2.0.0)
 
 The need to provide a `providers = { aws = aws }` argument has been removed, but is still allowed. E.g. when deploying this module in the audit account typically `providers = { aws = aws.audit }` is passed.
 
 ## Upgrading to v1.0.0
 
-### Behaviour
+### Behaviour (v1.0.0)
 
 - Timeouts of the suppressor lambdas have been increased to 120 seconds. The current timeout of 60 seconds is not always enough to process 100 records of findings.
 - The `create_servicenow_access_keys` variable, now called `servicenow_integration.create_access_keys` was not used in the code and therefore the default behaviour was that access keys would be created. This issue has been resolved.
 - The `create_allow_all_egress_rule` variable has been set to `false`.
 - The `tags` variable is now optional.
 
-### Variables
+### Variables (v1.0.0)
 
 The following variables have been replaced by a new variable `jira_integration`:
 

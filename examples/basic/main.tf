@@ -1,8 +1,3 @@
-locals {
-  # Replace with a globally unique bucket name
-  s3_bucket_name = "securityhub-findings-manager"
-}
-
 provider "aws" {
   region = "eu-west-1"
 }
@@ -21,23 +16,14 @@ module "kms" {
   )
 }
 
+# It can take a long time before S3 notifications become active
+# You may want to deploy an empty set of suppressions before the actual ones or do a trick with yaml comments
 module "aws_securityhub_findings_manager" {
   source = "../../"
 
-  kms_key_arn    = module.kms.arn
-  s3_bucket_name = local.s3_bucket_name
+  kms_key_arn           = module.kms.arn
+  s3_bucket_name        = "securityhub-findings-manager-artifacts" # Replace with a globally unique bucket name
+  suppressions_filepath = "${path.module}/../suppressions.yaml"
 
   tags = { Terraform = true }
-}
-
-# It can take a long time before S3 notifications become active
-# You may want to deploy this resource a few minutes after those above
-resource "aws_s3_object" "suppressions" {
-  bucket       = local.s3_bucket_name
-  key          = "suppressions.yaml"
-  content_type = "application/x-yaml"
-  content      = file("${path.module}/../suppressions.yaml")
-  source_hash  = filemd5("${path.module}/../suppressions.yaml")
-
-  depends_on = [module.aws_securityhub_findings_manager]
 }
