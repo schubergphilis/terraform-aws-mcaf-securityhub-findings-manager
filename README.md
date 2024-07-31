@@ -107,7 +107,7 @@ Rules:
 | <a name="module_lambda_jira_deployment_package"></a> [lambda\_jira\_deployment\_package](#module\_lambda\_jira\_deployment\_package) | terraform-aws-modules/lambda/aws | ~> 3.3.0 |
 | <a name="module_lambda_jira_security_hub"></a> [lambda\_jira\_security\_hub](#module\_lambda\_jira\_security\_hub) | schubergphilis/mcaf-lambda/aws | ~> 1.1.0 |
 | <a name="module_lambda_jira_security_hub_role"></a> [lambda\_jira\_security\_hub\_role](#module\_lambda\_jira\_security\_hub\_role) | github.com/schubergphilis/terraform-aws-mcaf-role | v0.3.2 |
-| <a name="module_lambda_security_hub_suppressor_role"></a> [lambda\_security\_hub\_suppressor\_role](#module\_lambda\_security\_hub\_suppressor\_role) | github.com/schubergphilis/terraform-aws-mcaf-role | v0.3.2 |
+| <a name="module_lambda_security_hub_suppressor_role"></a> [lambda\_security\_hub\_suppressor\_role](#module\_lambda\_security\_hub\_suppressor\_role) | schubergphilis/mcaf-role/aws | ~> 0.3.2 |
 | <a name="module_lambda_securityhub_events_suppressor"></a> [lambda\_securityhub\_events\_suppressor](#module\_lambda\_securityhub\_events\_suppressor) | schubergphilis/mcaf-lambda/aws | ~> 1.1.0 |
 | <a name="module_lambda_securityhub_trigger_suppressor"></a> [lambda\_securityhub\_trigger\_suppressor](#module\_lambda\_securityhub\_trigger\_suppressor) | schubergphilis/mcaf-lambda/aws | ~> 1.1.0 |
 | <a name="module_lambda_suppressor_deployment_package"></a> [lambda\_suppressor\_deployment\_package](#module\_lambda\_suppressor\_deployment\_package) | terraform-aws-modules/lambda/aws | ~> 3.3.0 |
