@@ -15,11 +15,11 @@ The following variables have been renamed:
 
 - `suppressions_filepath` -> `rules_filepath`
 - `suppressions_s3_object_name` -> `rules_s3_object_name`
-- `eventbridge_suppressor_iam_role_name` -> `jira_eventbridge_findings_manager_iam_role_name`
-- `lambda_events_suppressor` -> `lambda_findings_manager_events`
-- `lambda_streams_suppressor` -> `lambda_findings_manager_trigger`
-- `lambda_suppressor_iam_role_name` -> `lambda_findings_manager_iam_role_name`
-- `step_function_suppressor_iam_role_name` -> `jira_step_function_findings_manager_iam_role_name`
+- `lambda_events_suppressor` -> `findings_manager_events_lambda`
+- `lambda_streams_suppressor` -> `findings_manager_trigger_lambda`
+- `lambda_suppressor_iam_role_name` -> `findings_manager_lambda_iam_role_name`
+- `eventbridge_suppressor_iam_role_name` -> `jira_eventbridge_iam_role_name`
+- `step_function_suppressor_iam_role_name` -> `jira_step_function_iam_role_name`
 
 A Lambda function now triggers on S3 Object Creation Trigger Events.
 By default it is triggered by putting a new (version of) an object called `rules.yaml` in the bucket created by this module.
@@ -39,9 +39,9 @@ The following output has been removed:
 
 The following output has been renamed:
 
-- `lambda_jira_security_hub_sg_id` -> `lambda_jira_securityhub_sg_id`
-- `lambda_securityhub_events_suppressor_sg_id` -> `lambda_findings_manager_events_sg_id`
-- `lambda_securityhub_streams_suppressor_sg_id` -> `lambda_findings_manager_trigger_sg_id`
+- `lambda_jira_security_hub_sg_id` -> `jira_lambda_sg_id`
+- `lambda_securityhub_events_suppressor_sg_id` -> `findings_manager_events_lambda_sg_id`
+- `lambda_securityhub_streams_suppressor_sg_id` -> `findings_manager_trigger_lambda_sg_id`
 
 ### Behavior (v3.0.0)
 
