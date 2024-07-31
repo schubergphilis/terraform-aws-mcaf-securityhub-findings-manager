@@ -2,6 +2,16 @@
 
 This document captures required refactoring on your part when upgrading to a module version that contains breaking changes.
 
+## Upgrading to v3.0.0
+
+### Variables
+
+todo
+
+### Behaviour
+
+todo
+
 ## Upgrading to v2.0.0
 
 ### Variables

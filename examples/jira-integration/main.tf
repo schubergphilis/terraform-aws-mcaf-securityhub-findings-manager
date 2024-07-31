@@ -1,13 +1,20 @@
+locals {
+  # Replace with a globally unique bucket name
+  s3_bucket_name = "securityhub-findings-manager"
+}
+
 provider "aws" {
   region = "eu-west-1"
 }
 
 data "aws_caller_identity" "current" {}
 
-resource "aws_kms_key" "default" {
-  enable_key_rotation = true
+module "kms" {
+  source  = "schubergphilis/mcaf-kms/aws"
+  version = "~> 0.3.0"
 
-  # Policy to make this example just work, too open for a real app
+  name = "securityhub-findings-manager"
+
   policy = templatefile(
     "${path.module}/../kms.json",
     { account_id = data.aws_caller_identity.current.account_id }
@@ -17,7 +24,7 @@ resource "aws_kms_key" "default" {
 resource "aws_secretsmanager_secret" "jira_credentials" {
   #checkov:skip=CKV2_AWS_57: automatic rotation of the jira credentials is recommended.
   description = "Security Hub Findings Manager Jira Credentials Secret"
-  kms_key_id  = aws_kms_key.default.arn
+  kms_key_id  = module.kms.arn
   name        = "lambda/jira_credentials_secret"
 }
 
@@ -31,15 +38,10 @@ resource "aws_secretsmanager_secret_version" "jira_credentials" {
   })
 }
 
-locals {
-  # Replace with a globally unique bucket name
-  s3_bucket_name = "securityhub-findings-manager"
-}
-
 module "aws_securityhub_findings_manager" {
   source = "../../"
 
-  kms_key_arn    = aws_kms_key.default.arn
+  kms_key_arn    = module.kms.arn
   s3_bucket_name = local.s3_bucket_name
 
   jira_integration = {

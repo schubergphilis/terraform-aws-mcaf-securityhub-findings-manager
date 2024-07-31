@@ -1,28 +1,30 @@
+locals {
+  # Replace with a globally unique bucket name
+  s3_bucket_name = "securityhub-findings-manager"
+}
+
 provider "aws" {
   region = "eu-west-1"
 }
 
 data "aws_caller_identity" "current" {}
 
-resource "aws_kms_key" "default" {
-  enable_key_rotation = true
+module "kms" {
+  source  = "schubergphilis/mcaf-kms/aws"
+  version = "~> 0.3.0"
 
-  # Policy to make this example just work, too open for a real app
+  name = "securityhub-findings-manager"
+
   policy = templatefile(
     "${path.module}/../kms.json",
     { account_id = data.aws_caller_identity.current.account_id }
   )
 }
 
-locals {
-  # Replace with a globally unique bucket name
-  s3_bucket_name = "securityhub-findings-manager"
-}
-
 module "aws_securityhub_findings_manager" {
   source = "../../"
 
-  kms_key_arn    = aws_kms_key.default.arn
+  kms_key_arn    = module.kms.arn
   s3_bucket_name = local.s3_bucket_name
 
   tags = { Terraform = true }
