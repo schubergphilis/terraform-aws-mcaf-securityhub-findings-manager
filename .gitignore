@@ -1,4 +1,4 @@
-#  Local .terraform directories
+# Local .terraform directories
 **/.terraform/*
 
 # .tfstate files
@@ -8,5 +8,11 @@
 # .tfvars files
 *.tfvars
 
+# This is a module, not a stand-alone deployment
+.terraform.lock.hcl
+
 # CheckOv pre-commit external modules path
 **/.external_modules/*
+
+# Local Lambda function package directories
+**/builds/*

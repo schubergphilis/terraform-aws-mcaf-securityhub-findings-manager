@@ -1,19 +1,69 @@
-variable "suppressions_filepath" {
-  type        = string
-  default     = ""
-  description = "Pathname to the file that stores the suppressions configuration"
+variable "findings_manager_events_lambda" {
+  type = object({
+    name        = optional(string, "securityhub-findings-manager-events")
+    log_level   = optional(string, "INFO")
+    memory_size = optional(number, 256)
+    runtime     = optional(string, "python3.8")
+    timeout     = optional(number, 120)
+
+    security_group_egress_rules = optional(list(object({
+      cidr_ipv4                    = optional(string)
+      cidr_ipv6                    = optional(string)
+      description                  = string
+      from_port                    = optional(number, 0)
+      ip_protocol                  = optional(string, "-1")
+      prefix_list_id               = optional(string)
+      referenced_security_group_id = optional(string)
+      to_port                      = optional(number, 0)
+    })), [])
+  })
+  default     = {}
+  description = "Findings Manager Lambda settings - Manage Security Hub findings in response to EventBridge events"
+
+  validation {
+    condition     = alltrue([for o in var.findings_manager_events_lambda.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
+    error_message = "Although \"cidr_ipv4\", \"cidr_ipv6\", \"prefix_list_id\", and \"referenced_security_group_id\" are all marked as optional, you must provide one of them in order to configure the destination of the traffic."
+  }
 }
 
-variable "suppressions_s3_object_name" {
+variable "findings_manager_lambda_iam_role_name" {
   type        = string
-  default     = "suppressions.yaml"
-  description = "The S3 object containing the items to be suppressed in Security Hub"
+  default     = "SecurityHubFindingsManagerLambda"
+  description = "The name of the role which will be assumed by both Findings Manager Lambda functions"
 }
 
-variable "eventbridge_suppressor_iam_role_name" {
+variable "findings_manager_trigger_lambda" {
+  type = object({
+    name        = optional(string, "securityhub-findings-manager-trigger")
+    log_level   = optional(string, "INFO")
+    memory_size = optional(number, 256)
+    runtime     = optional(string, "python3.8")
+    timeout     = optional(number, 120)
+
+    security_group_egress_rules = optional(list(object({
+      cidr_ipv4                    = optional(string)
+      cidr_ipv6                    = optional(string)
+      description                  = string
+      from_port                    = optional(number, 0)
+      ip_protocol                  = optional(string, "-1")
+      prefix_list_id               = optional(string)
+      referenced_security_group_id = optional(string)
+      to_port                      = optional(number, 0)
+    })), [])
+  })
+  default     = {}
+  description = "Findings Manager Lambda settings - Manage Security Hub findings in response to S3 file upload triggers"
+
+  validation {
+    condition     = alltrue([for o in var.findings_manager_trigger_lambda.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
+    error_message = "Although \"cidr_ipv4\", \"cidr_ipv6\", \"prefix_list_id\", and \"referenced_security_group_id\" are all marked as optional, you must provide one of them in order to configure the destination of the traffic."
+  }
+}
+
+variable "jira_eventbridge_iam_role_name" {
   type        = string
-  default     = "EventBridgeSecurityHubSuppressorRole"
-  description = "The name of the role which will be assumed by EventBridge rules"
+  default     = "SecurityHubFindingsManagerJiraEventBridge"
+  description = "The name of the role which will be assumed by EventBridge rules for Jira integration"
 }
 
 variable "jira_integration" {
@@ -37,15 +87,15 @@ variable "jira_integration" {
     })), [])
 
     lambda_settings = optional(object({
-      name          = optional(string, "securityhub-jira")
-      iam_role_name = optional(string, "LambdaJiraSecurityHubRole")
+      name          = optional(string, "securityhub-findings-manager-jira")
+      iam_role_name = optional(string, "SecurityHubFindingsManagerJiraLambda")
       log_level     = optional(string, "INFO")
       memory_size   = optional(number, 256)
       runtime       = optional(string, "python3.8")
       timeout       = optional(number, 60)
       }), {
-      name                        = "securityhub-jira"
-      iam_role_name               = "LambdaJiraSecurityHubRole"
+      name                        = "securityhub-findings-manager-jira"
+      iam_role_name               = "SecurityHubFindingsManagerJiraLambda"
       log_level                   = "INFO"
       memory_size                 = 256
       runtime                     = "python3.8"
@@ -58,7 +108,7 @@ variable "jira_integration" {
     credentials_secret_arn = null
     project_key            = null
   }
-  description = "Jira integration settings"
+  description = "Findings Manager - Jira integration settings"
 
   validation {
     condition     = alltrue([for o in var.jira_integration.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
@@ -66,76 +116,27 @@ variable "jira_integration" {
   }
 }
 
+variable "jira_step_function_iam_role_name" {
+  type        = string
+  default     = "SecurityHubFindingsManagerJiraStepFunction"
+  description = "The name of the role which will be assumed by AWS Step Function for Jira integration"
+}
+
 variable "kms_key_arn" {
   type        = string
   description = "The ARN of the KMS key used to encrypt the resources"
 }
 
-variable "lambda_events_suppressor" {
-  type = object({
-    name        = optional(string, "securityhub-events-suppressor")
-    log_level   = optional(string, "INFO")
-    memory_size = optional(number, 256)
-    runtime     = optional(string, "python3.8")
-    timeout     = optional(number, 120)
-
-    security_group_egress_rules = optional(list(object({
-      cidr_ipv4                    = optional(string)
-      cidr_ipv6                    = optional(string)
-      description                  = string
-      from_port                    = optional(number, 0)
-      ip_protocol                  = optional(string, "-1")
-      prefix_list_id               = optional(string)
-      referenced_security_group_id = optional(string)
-      to_port                      = optional(number, 0)
-    })), [])
-  })
-  default     = {}
-  description = "Lambda Events Suppressor settings - Supresses the Security Hub findings in response to EventBridge Trigger"
-
-  validation {
-    condition     = alltrue([for o in var.lambda_events_suppressor.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
-    error_message = "Although \"cidr_ipv4\", \"cidr_ipv6\", \"prefix_list_id\", and \"referenced_security_group_id\" are all marked as optional, you must provide one of them in order to configure the destination of the traffic."
-  }
-}
-
-variable "lambda_trigger_suppressor" {
-  type = object({
-    name        = optional(string, "securityhub-trigger-suppressor")
-    log_level   = optional(string, "INFO")
-    memory_size = optional(number, 256)
-    runtime     = optional(string, "python3.8")
-    timeout     = optional(number, 120)
-
-    security_group_egress_rules = optional(list(object({
-      cidr_ipv4                    = optional(string)
-      cidr_ipv6                    = optional(string)
-      description                  = string
-      from_port                    = optional(number, 0)
-      ip_protocol                  = optional(string, "-1")
-      prefix_list_id               = optional(string)
-      referenced_security_group_id = optional(string)
-      to_port                      = optional(number, 0)
-    })), [])
-  })
-  default     = {}
-  description = "Lambda Trigger Suppressor settings - Supresses the Security Hub findings in response to S3 file upload triggers"
-
-  validation {
-    condition     = alltrue([for o in var.lambda_trigger_suppressor.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
-    error_message = "Although \"cidr_ipv4\", \"cidr_ipv6\", \"prefix_list_id\", and \"referenced_security_group_id\" are all marked as optional, you must provide one of them in order to configure the destination of the traffic."
-  }
-}
-
-variable "lambda_suppressor_iam_role_name" {
+variable "rules_filepath" {
   type        = string
-  default     = "LambdaSecurityHubSuppressorRole"
-  description = "The name of the role which will be assumed by both Suppressor Lambda functions"
+  default     = ""
+  description = "Pathname to the file that stores the manager rules"
 }
 
-variable "s3_bucket_name" {
+variable "rules_s3_object_name" {
   type        = string
-  description = "The name for the S3 bucket which will be created for storing the function's deployment package"
+  default     = "rules.yaml"
+  description = "The S3 object containing the rules to be applied to Security Hub findings manager"
 }
 
 variable "servicenow_integration" {
@@ -151,16 +152,15 @@ variable "servicenow_integration" {
   description = "ServiceNow integration settings"
 }
 
-variable "step_function_suppressor_iam_role_name" {
-  type        = string
-  default     = "StepFunctionSecurityHubSuppressorRole"
-  description = "The name of the role which will be assumed by Suppressor Step function"
-}
-
 variable "subnet_ids" {
   type        = list(string)
   default     = null
-  description = "The subnet ids where the lambda's needs to run"
+  description = "The subnet ids where the Lambda functions needs to run"
+}
+
+variable "s3_bucket_name" {
+  type        = string
+  description = "The name for the S3 bucket which will be created for storing the function's deployment package"
 }
 
 variable "tags" {

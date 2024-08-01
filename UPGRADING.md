@@ -11,17 +11,26 @@ The following variables have been removed:
 - `dynamodb_table`
 - `dynamodb_deletion_protection`
 
-The suppressor lambda now triggers on S3 Object Creation Trigger Events.
-By default it is triggered by putting a new (version of) an object called `suppressions.yaml` in the bucket created by this module.
-This filename can be customized with the `suppressions_s3_object_name` variable.
+The following variables have been introduced:
+- `rules_filepath`
+- `rules_s3_object_name`
 
-You can add the `suppressions.yaml` file to the bucket in any way you like after deploying this module, for instance with an `aws_s3_object` resource.
+The following variables have been renamed:
+- `lambda_events_suppressor` -> `findings_manager_events_lambda`
+- `lambda_streams_suppressor` -> `findings_manager_trigger_lambda`
+- `lambda_suppressor_iam_role_name` -> `findings_manager_lambda_iam_role_name`
+- `eventbridge_suppressor_iam_role_name` -> `jira_eventbridge_iam_role_name`
+- `step_function_suppressor_iam_role_name` -> `jira_step_function_iam_role_name`
+
+A Lambda function now triggers on S3 Object Creation Trigger Events.
+By default it is triggered by putting a new (version of) an object called `rules.yaml` in the bucket created by this module.
+This filename can be customized with the `rules_s3_object_name` variable.
+
+You can add the `rules.yaml` file to the bucket in any way you like after deploying this module, for instance with an `aws_s3_object` resource.
 This way you can separate management of your infrastructure and security.
-If this separation is not necessary in your case you more also let this module directly upload the file for you by setting the `suppressions_filepath` variable to a filepath to your `suppressions.yaml` file.
-
-The following variable has been renamed:
-
-- `lambda_streams_suppressor` -> `lambda_trigger_suppressor`
+If this separation is not necessary in your case you also let this module directly upload the file for you by setting the `rules_filepath` variable to a filepath to your `rules.yaml` file.
+In either case, be mindful that there can be a delay between creating S3 triggers and those being fully functional.
+Re-create the rules object later to have rules run on your findings history in that case.
 
 ### Outputs (v3.0.0)
 
@@ -31,41 +40,45 @@ The following output has been removed:
 
 The following output has been renamed:
 
-- `lambda_securityhub_streams_suppressor_sg_id` -> `lambda_securityhub_trigger_suppressor_sg_id`
+- `lambda_jira_security_hub_sg_id` -> `jira_lambda_sg_id`
+- `lambda_securityhub_events_suppressor_sg_id` -> `findings_manager_events_lambda_sg_id`
+- `lambda_securityhub_streams_suppressor_sg_id` -> `findings_manager_trigger_lambda_sg_id`
 
 ### Behaviour (v3.0.0)
 
 New functionality:
 
-- Suppressing consolidated control findings is now supported
-- Suppressing based on tags is now supported
+- Managing consolidated control findings is now supported
+- Managing based on tags is now supported
 
-See the README, section `## How to format the suppressions.yaml file?` for more information on the keys you need to use to control this.
+See the README, section `## How to format the rules.yaml file?` for more information on the keys you need to use to control this.
 
-The `suppression.yaml` file needs to be written in a different syntax. The script below can be used to easily convert your current `suppressions.yaml` file to the new format.
+The `rules.yaml` file needs to be written in a different syntax. The script below can be used to easily convert your current `suppressions.yml` file to the new format.
 
 ```python
 import yaml
 
-suppressions = yaml.safe_load(open('suppressions.yaml', 'r'))
+suppressions = yaml.safe_load(open('suppressions.yml'))['Suppressions']
 
-output = {
+rules = {
     'Rules': [
         {
-            'note': suppression['notes'],
-            'action': suppression['action'],
+            'note': content['notes'],
+            'action': content['action'],
             'match_on': {
-                'rule_or_control_id': control_id,
-                'resource_id_regexps': suppression['rules']
+                'rule_or_control_id': rule_or_control_id,
+                'resource_id_regexps': content['rules']
             }
         }
-        for control_id, controls in suppressions['Suppressions'].items()
-        for suppression in controls
+        for rule_or_control_id, contents in suppressions.items()
+        for content in contents
     ]
 }
 
-print(yaml.dump(output, indent=2))
+print(yaml.dump(rules, indent=2))
 ```
+
+If you do not want to rename your file from `suppressions.yml` to `rules.yaml` you can override the name using the `rules_s3_object_name` variable. 
 
 ## Upgrading to v2.0.0
 

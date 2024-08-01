@@ -51,7 +51,7 @@ module "aws_securityhub_findings_manager" {
 
     security_group_egress_rules = [{
       cidr_ipv4   = "1.1.1.1/32"
-      description = "Allow access from lambda_jira_security_hub to Jira"
+      description = "Allow access from lambda_jira_securityhub to Jira"
       from_port   = 443
       ip_protocol = "tcp"
       to_port     = 443
@@ -63,12 +63,12 @@ module "aws_securityhub_findings_manager" {
 
 # It can take a long time before S3 notifications become active
 # You may want to deploy this resource a few minutes after those above
-resource "aws_s3_object" "suppressions" {
+resource "aws_s3_object" "rules" {
   bucket       = local.s3_bucket_name
-  key          = "suppressions.yaml"
+  key          = "rules.yaml"
   content_type = "application/x-yaml"
-  content      = file("${path.module}/../suppressions.yaml")
-  source_hash  = filemd5("${path.module}/../suppressions.yaml")
+  content      = file("${path.module}/../rules.yaml")
+  source_hash  = filemd5("${path.module}/../rules.yaml")
 
   depends_on = [module.aws_securityhub_findings_manager]
 }

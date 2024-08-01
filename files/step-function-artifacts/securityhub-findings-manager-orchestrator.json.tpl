@@ -1,13 +1,13 @@
 {
-    "Comment": "Step Function to orchestrate Security Hub suppressor Lambda functions",
-    "StartAt": "invoke-securityhub-events-suppressor",
+    "Comment": "Step Function to orchestrate Security Hub findings manager Lambda functions",
+    "StartAt": "invoke-securityhub-findings-manager-events",
     "States": {
-      "invoke-securityhub-events-suppressor": {
+      "invoke-securityhub-findings-manager-events": {
         "Type": "Task",
         "Resource": "arn:aws:states:::lambda:invoke",
         "Parameters": {
           "Payload.$": "$",
-          "FunctionName": "${lambda_securityhub_events_suppressor_arn}"
+          "FunctionName": "${findings_manager_events_lambda}"
         },
         "Retry": [
           {
@@ -89,7 +89,7 @@
         "OutputPath": "$.Payload",
         "Parameters": {
           "Payload.$": "$",
-          "FunctionName": "${lambda_securityhub_jira_arn}"
+          "FunctionName": "${jira_lambda}"
         },
         "Retry": [
           {
