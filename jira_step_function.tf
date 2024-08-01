@@ -7,7 +7,6 @@ module "jira_step_function_iam_role" {
 
   name                  = var.jira_step_function_iam_role_name
   create_policy         = true
-  postfix               = false
   principal_identifiers = ["states.amazonaws.com"]
   principal_type        = "Service"
   role_policy           = data.aws_iam_policy_document.jira_step_function_iam_role[0].json
@@ -55,7 +54,6 @@ module "jira_eventbridge_iam_role" {
 
   name                  = var.jira_eventbridge_iam_role_name
   create_policy         = true
-  postfix               = false
   principal_identifiers = ["events.amazonaws.com"]
   principal_type        = "Service"
   role_policy           = data.aws_iam_policy_document.jira_eventbridge_iam_role[0].json

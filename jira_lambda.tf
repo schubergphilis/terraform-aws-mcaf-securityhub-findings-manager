@@ -7,7 +7,6 @@ module "jira_lambda_iam_role" {
 
   name                  = var.jira_integration.lambda_settings.iam_role_name
   create_policy         = true
-  postfix               = false
   principal_identifiers = ["lambda.amazonaws.com"]
   principal_type        = "Service"
   role_policy           = data.aws_iam_policy_document.jira_lambda_iam_role[0].json

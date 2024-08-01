@@ -4,11 +4,12 @@ The Security Hub Findings Manager is a framework designed to automatically manag
 At the moment only finding suppression is supported.
 This suppression is needed in case some controls or rules are not completely applicable to the resources of a given account.
 For example, you might want to suppress all DynamoDB Autoscaling configuration findings related to the control `DynamoDB.1`, simply because this feature is not applicable for your workload.
-Besides the findings management this module is also able to integrate with Jira and ServiceNow.
+Besides the findings management this module is also able to integrate with Jira and ServiceNow. To ensure tickets are created for all `NEW` findings with a severity higher than a definable threshold.
 
-The manager can be deployed in the Audit/Security Account of an AWS reference multi-account setup.
-This account receives events from all child accounts in an organization.
-This way, a comprehensive overview of the organization's security posture can be easily maintained.
+> [!TIP]  
+> We recommend deploying this module in the Audit/Security Account of an AWS reference multi-account setup.
+> This account receives events from all child accounts in an organization.
+> This way, a comprehensive overview of the organization's security posture can be easily maintained.
 
 > [!NOTE]
 > This module relies heavily on [awsfindingsmanagerlib](https://pypi.org/project/awsfindingsmanagerlib/).
@@ -24,23 +25,19 @@ This way, a comprehensive overview of the organization's security posture can be
 This is a high-level overview of the constituent components.
 For a more complete overview see [Resources](#resources) and [Modules](#modules).
 
-* A rules backend (currently only S3 is supported)
-* 2 Lambda Functions
-  * Security Hub Events: triggered by EventBridge on events from Security Hub
-  * Security Hub Triggers: triggered by changes in the S3 backend rules list
-* Infrastructure to facilitate the Lambda functions (IAM role, EventBridge integration, S3 Trigger Notifications)
-* (optional) Jira integration components
-* (optional) ServiceNow integration components
+* A rules backend (currently only S3 is supported).
+* 2 Lambda Functions:
+  * Security Hub Findings Manager Events: triggered by EventBridge events for new Security Hub findings.
+  * Security Hub Findings Manager Triggers: triggered by changes in the S3 backend rules list.
+* Infrastructure to facilitate the Lambda functions (IAM role, EventBridge integration, S3 Trigger Notifications).
+* (optional) Jira integration components.
+* (optional) ServiceNow integration components.
 
 ## Deployment Modes
 
-There are 3 different deployment modes for this module.
-All the modes deploy two Lambda function.
-One of the functions which triggers in response to upserts in the S3 backend rules list.
-The other functions gets invoked by EventBridge events for new Security Hub findings.
-In addition to these, additional resources are deployed depending on the chosen deployment mode.
+There are 3 different deployment modes for this module:
 
-> [!NOTE]
+> [!IMPORTANT] 
 > In case of first time deploy, be mindful that there can be a delay between creating S3 triggers and those being fully functional.
 > Re-create the rules object later to have rules run on your findings history in that case.
 
@@ -76,10 +73,12 @@ Only events from Security Hub with a normalized severity level higher than a def
 * This deployment method can be used by setting the value of the variable `servicenow_integration` to `true` (default = false).
 * The module will deploy all the needed resources to support integration with ServiceNow, including (but not limited to): An SQS Queue, EventBridge Rule and the needed IAM user.
 * When an event in Security Hub fires, an event will be created by EventBridge and dropped onto an SQS Queue.
-* With the variable `severity_filter` it can be configured which findings will be forwarded based on the severity label.
+* With the variable `severity_label_filter` it can be configured which findings will be forwarded based on the severity label.
 * ServiceNow will pull the events from the SQS queue with the `SCSyncUser` using `acccess_key` & `secret_access_key`.
 
-Note : The user will be created by the module, but the `acccess_key` & `secret_access_key` need to be generated in the AWS Console, to prevent storing this data in the Terraform state. If you want Terraform to create the `acccess_key` & `secret_access_key` (and output them), set variable `create_servicenow_access_keys` to `true` (default = false)
+> [!WARNING] 
+> The user will be created by the module, but the `acccess_key` & `secret_access_key` need to be generated in the AWS Console, to prevent storing this data in the Terraform state. 
+> If you want Terraform to create the `acccess_key` & `secret_access_key` (and output them), set variable `create_servicenow_access_keys` to `true` (default = false)
 
 ## How to format the `rules.yaml` file?
 
@@ -101,7 +100,7 @@ Rules:
         - 'regex'
 ```
 
-> [!NOTE]
+> [!IMPORTANT]
 > `security_control_id` and `rule_or_control_id` are mutually exclusive, but one of them must be set!
 
 <!-- BEGIN_TF_DOCS -->

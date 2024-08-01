@@ -11,10 +11,11 @@ The following variables have been removed:
 - `dynamodb_table`
 - `dynamodb_deletion_protection`
 
-The following variables have been renamed:
+The following variables have been introduced:
+- `rules_filepath`
+- `rules_s3_object_name`
 
-- `suppressions_filepath` -> `rules_filepath`
-- `suppressions_s3_object_name` -> `rules_s3_object_name`
+The following variables have been renamed:
 - `lambda_events_suppressor` -> `findings_manager_events_lambda`
 - `lambda_streams_suppressor` -> `findings_manager_trigger_lambda`
 - `lambda_suppressor_iam_role_name` -> `findings_manager_lambda_iam_role_name`
@@ -43,7 +44,7 @@ The following output has been renamed:
 - `lambda_securityhub_events_suppressor_sg_id` -> `findings_manager_events_lambda_sg_id`
 - `lambda_securityhub_streams_suppressor_sg_id` -> `findings_manager_trigger_lambda_sg_id`
 
-### Behavior (v3.0.0)
+### Behaviour (v3.0.0)
 
 New functionality:
 
@@ -52,12 +53,12 @@ New functionality:
 
 See the README, section `## How to format the rules.yaml file?` for more information on the keys you need to use to control this.
 
-The `rules.yaml` file needs to be written in a different syntax. The script below can be used to easily convert your current `rules.yaml` file to the new format.
+The `rules.yaml` file needs to be written in a different syntax. The script below can be used to easily convert your current `suppressions.yml` file to the new format.
 
 ```python
 import yaml
 
-suppressions = yaml.safe_load(open('rules.yaml'))['Suppressions']
+suppressions = yaml.safe_load(open('suppressions.yml'))['Suppressions']
 
 rules = {
     'Rules': [
@@ -76,6 +77,8 @@ rules = {
 
 print(yaml.dump(rules, indent=2))
 ```
+
+If you do not want to rename your file from `suppressions.yml` to `rules.yaml` you can override the name using the `rules_s3_object_name` variable. 
 
 ## Upgrading to v2.0.0
 

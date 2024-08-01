@@ -98,7 +98,7 @@ data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
 }
 
 # Lambda VPC Execution role policy attachment
-resource "aws_iam_role_policy_attachment" "findings_manager_lambda_iam_role_vpc_policy_attachment" {
+resource "aws_iam_role_policy_attachment" "findings_manager_lambda_iam_role" {
   count = var.subnet_ids != null ? 1 : 0
 
   role       = module.findings_manager_lambda_iam_role.id
@@ -118,6 +118,10 @@ module "findings_manager_lambda_deployment_package" {
   source_path              = "${path.module}/files/lambda-artifacts/securityhub-findings-manager"
   store_on_s3              = true
 }
+
+################################################################################
+# Events Lambda
+################################################################################
 
 # Lambda function to manage Security Hub findings in response to an EventBridge event
 module "findings_manager_events_lambda" {
@@ -150,40 +154,6 @@ module "findings_manager_events_lambda" {
     LOG_LEVEL                   = var.findings_manager_events_lambda.log_level
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
     POWERTOOLS_SERVICE_NAME     = "securityhub-findings-manager-events"
-  }
-}
-
-# Lambda to manage Security Hub findings in response to S3 rules file uploads
-module "findings_manager_trigger_lambda" {
-  #checkov:skip=CKV_AWS_272:Code signing not used for now
-  source  = "schubergphilis/mcaf-lambda/aws"
-  version = "~> 1.1.0"
-
-  name                        = var.findings_manager_trigger_lambda.name
-  create_policy               = false
-  create_s3_dummy_object      = false
-  description                 = "Lambda to manage Security Hub findings in response to S3 rules file uploads"
-  filename                    = module.findings_manager_lambda_deployment_package.local_filename
-  handler                     = "securityhub_trigger.lambda_handler"
-  kms_key_arn                 = var.kms_key_arn
-  log_retention               = 365
-  memory_size                 = var.findings_manager_trigger_lambda.memory_size
-  role_arn                    = module.findings_manager_lambda_iam_role.arn
-  runtime                     = var.findings_manager_trigger_lambda.runtime
-  s3_bucket                   = var.s3_bucket_name
-  s3_key                      = module.findings_manager_lambda_deployment_package.s3_object.key
-  s3_object_version           = module.findings_manager_lambda_deployment_package.s3_object.version_id
-  security_group_egress_rules = var.findings_manager_trigger_lambda.security_group_egress_rules
-  subnet_ids                  = var.subnet_ids
-  tags                        = var.tags
-  timeout                     = var.findings_manager_trigger_lambda.timeout
-
-  environment = {
-    S3_BUCKET_NAME              = var.s3_bucket_name
-    S3_OBJECT_NAME              = var.rules_s3_object_name
-    LOG_LEVEL                   = var.findings_manager_trigger_lambda.log_level
-    POWERTOOLS_LOGGER_LOG_EVENT = "false"
-    POWERTOOLS_SERVICE_NAME     = "securityhub-findings-manager-trigger"
   }
 }
 
@@ -227,6 +197,44 @@ resource "aws_cloudwatch_event_target" "findings_manager_events_lambda" {
 
   arn  = module.findings_manager_events_lambda.arn
   rule = aws_cloudwatch_event_rule.securityhub_findings_events.name
+}
+
+################################################################################
+# Trigger Lambda
+################################################################################
+
+# Lambda to manage Security Hub findings in response to S3 rules file uploads
+module "findings_manager_trigger_lambda" {
+  #checkov:skip=CKV_AWS_272:Code signing not used for now
+  source  = "schubergphilis/mcaf-lambda/aws"
+  version = "~> 1.1.0"
+
+  name                        = var.findings_manager_trigger_lambda.name
+  create_policy               = false
+  create_s3_dummy_object      = false
+  description                 = "Lambda to manage Security Hub findings in response to S3 rules file uploads"
+  filename                    = module.findings_manager_lambda_deployment_package.local_filename
+  handler                     = "securityhub_trigger.lambda_handler"
+  kms_key_arn                 = var.kms_key_arn
+  log_retention               = 365
+  memory_size                 = var.findings_manager_trigger_lambda.memory_size
+  role_arn                    = module.findings_manager_lambda_iam_role.arn
+  runtime                     = var.findings_manager_trigger_lambda.runtime
+  s3_bucket                   = var.s3_bucket_name
+  s3_key                      = module.findings_manager_lambda_deployment_package.s3_object.key
+  s3_object_version           = module.findings_manager_lambda_deployment_package.s3_object.version_id
+  security_group_egress_rules = var.findings_manager_trigger_lambda.security_group_egress_rules
+  subnet_ids                  = var.subnet_ids
+  tags                        = var.tags
+  timeout                     = var.findings_manager_trigger_lambda.timeout
+
+  environment = {
+    S3_BUCKET_NAME              = var.s3_bucket_name
+    S3_OBJECT_NAME              = var.rules_s3_object_name
+    LOG_LEVEL                   = var.findings_manager_trigger_lambda.log_level
+    POWERTOOLS_LOGGER_LOG_EVENT = "false"
+    POWERTOOLS_SERVICE_NAME     = "securityhub-findings-manager-trigger"
+  }
 }
 
 # Allow S3 to invoke S3 Trigger Lambda function
