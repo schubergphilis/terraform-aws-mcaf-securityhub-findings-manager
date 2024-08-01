@@ -38,7 +38,6 @@ module "findings_manager_lambda_iam_role" {
 
   name                  = var.findings_manager_lambda_iam_role_name
   create_policy         = true
-  postfix               = false
   principal_identifiers = ["lambda.amazonaws.com"]
   principal_type        = "Service"
   role_policy           = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
