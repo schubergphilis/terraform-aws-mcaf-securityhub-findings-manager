@@ -239,10 +239,11 @@ module "findings_manager_trigger_lambda" {
 
 # Allow S3 to invoke S3 Trigger Lambda function
 resource "aws_lambda_permission" "s3_invoke_findings_manager_trigger_lambda" {
-  action        = "lambda:InvokeFunction"
-  function_name = var.findings_manager_trigger_lambda.name
-  principal     = "s3.amazonaws.com"
-  source_arn    = module.findings_manager_bucket.arn
+  action         = "lambda:InvokeFunction"
+  function_name  = var.findings_manager_trigger_lambda.name
+  principal      = "s3.amazonaws.com"
+  source_account = data.aws_caller_identity.current.account_id
+  source_arn     = module.findings_manager_bucket.arn
 }
 
 # Add Security Hub Trigger Lambda function as a target to rules S3 Object Creation Trigger Events
