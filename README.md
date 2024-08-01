@@ -65,7 +65,7 @@ Note : The user will be created by the module, but the `acccess_key` & `secret_a
 
 > An example file is stored in this module under `examples\suppressions.yaml`. For more detailed information check out the [awsfindingsmanagerlib](https://pypi.org/project/awsfindingsmanagerlib/).
 
-The general syntax and allowed parameters are:
+The general syntax and allowed parameters are: 
 
 ```yaml
 Rules:
