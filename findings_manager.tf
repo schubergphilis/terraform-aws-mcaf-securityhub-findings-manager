@@ -111,7 +111,7 @@ module "findings_manager_lambda_deployment_package" {
 
   create_function          = false
   recreate_missing_package = false
-  runtime                  = "python3.8"
+  runtime                  = var.findings_manager_events_lambda.runtime
   s3_bucket                = module.findings_manager_bucket.name
   s3_object_storage_class  = "STANDARD"
   source_path              = "${path.module}/files/lambda-artifacts/securityhub-findings-manager"

@@ -88,7 +88,7 @@ module "jira_lambda_deployment_package" {
 
   create_function          = false
   recreate_missing_package = false
-  runtime                  = "python3.8"
+  runtime                  = var.jira_integration.lambda_settings.runtime
   s3_bucket                = module.findings_manager_bucket.name
   s3_object_storage_class  = "STANDARD"
   source_path              = "${path.module}/files/lambda-artifacts/findings-manager-jira"
