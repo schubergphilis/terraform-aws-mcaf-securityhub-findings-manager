@@ -3,7 +3,7 @@ module "findings_manager_bucket" {
   #checkov:skip=CKV_AWS_145:Bug in CheckOV https://github.com/bridgecrewio/checkov/issues/3847
   #checkov:skip=CKV_AWS_19:Bug in CheckOV https://github.com/bridgecrewio/checkov/issues/3847
   source  = "schubergphilis/mcaf-s3/aws"
-  version = "~> 0.11.0"
+  version = "~> 0.14.1"
 
   name        = var.s3_bucket_name
   kms_key_arn = var.kms_key_arn
@@ -34,7 +34,7 @@ module "findings_manager_bucket" {
 # IAM role to be assumed by Lambda function
 module "findings_manager_lambda_iam_role" {
   source  = "schubergphilis/mcaf-role/aws"
-  version = "~> 0.3.2"
+  version = "~> 0.4.0"
 
   name                  = var.findings_manager_lambda_iam_role_name
   create_policy         = true
@@ -104,18 +104,12 @@ resource "aws_iam_role_policy_attachment" "findings_manager_lambda_iam_role" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
-# Create a Lambda zip deployment package with code and dependencies
-module "findings_manager_lambda_deployment_package" {
-  source  = "terraform-aws-modules/lambda/aws"
-  version = "~> 3.3.0"
-
-  create_function          = false
-  recreate_missing_package = false
-  runtime                  = "python3.8"
-  s3_bucket                = module.findings_manager_bucket.name
-  s3_object_storage_class  = "STANDARD"
-  source_path              = "${path.module}/files/lambda-artifacts/securityhub-findings-manager"
-  store_on_s3              = true
+resource "aws_s3_object" "lambda_package_finding_manager" {
+  bucket     = module.findings_manager_bucket.id
+  key        = "${var.findings_manager_events_lambda.name}-lambda_function_${var.python_version}.zip"
+  kms_key_id = var.kms_key_arn
+  source     = "${path.module}/files/pkg/securityhub-findings-manager/lambda_function_${var.python_version}.zip"
+  tags       = var.tags
 }
 
 ################################################################################
@@ -126,22 +120,22 @@ module "findings_manager_lambda_deployment_package" {
 module "findings_manager_events_lambda" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
   source  = "schubergphilis/mcaf-lambda/aws"
-  version = "~> 1.1.0"
+  version = "~> 1.4.1"
 
   name                        = var.findings_manager_events_lambda.name
   create_policy               = false
   create_s3_dummy_object      = false
   description                 = "Lambda to manage Security Hub findings in response to an EventBridge event"
-  filename                    = module.findings_manager_lambda_deployment_package.local_filename
   handler                     = "securityhub_events.lambda_handler"
   kms_key_arn                 = var.kms_key_arn
   log_retention               = 365
   memory_size                 = var.findings_manager_events_lambda.memory_size
   role_arn                    = module.findings_manager_lambda_iam_role.arn
   runtime                     = var.findings_manager_events_lambda.runtime
-  s3_bucket                   = var.s3_bucket_name
-  s3_key                      = module.findings_manager_lambda_deployment_package.s3_object.key
-  s3_object_version           = module.findings_manager_lambda_deployment_package.s3_object.version_id
+  s3_bucket                   = "${var.s3_bucket_name}-lambda-${data.aws_caller_identity.current.account_id}"
+  s3_key                      = aws_s3_object.lambda_package_finding_manager.key
+  s3_object_version           = aws_s3_object.lambda_package_finding_manager.version_id
+  source_code_hash            = aws_s3_object.lambda_package_finding_manager.checksum_sha256
   security_group_egress_rules = var.findings_manager_events_lambda.security_group_egress_rules
   subnet_ids                  = var.subnet_ids
   tags                        = var.tags
@@ -154,6 +148,7 @@ module "findings_manager_events_lambda" {
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
     POWERTOOLS_SERVICE_NAME     = "securityhub-findings-manager-events"
   }
+  depends_on = [aws_s3_object.lambda_package_finding_manager]
 }
 
 # EventBridge Rule that detect Security Hub events with compliance status as failed
@@ -206,22 +201,23 @@ resource "aws_cloudwatch_event_target" "findings_manager_events_lambda" {
 module "findings_manager_trigger_lambda" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
   source  = "schubergphilis/mcaf-lambda/aws"
-  version = "~> 1.1.0"
+  version = "~> 1.4.1"
 
-  name                        = var.findings_manager_trigger_lambda.name
-  create_policy               = false
-  create_s3_dummy_object      = false
-  description                 = "Lambda to manage Security Hub findings in response to S3 rules file uploads"
-  filename                    = module.findings_manager_lambda_deployment_package.local_filename
+  name                   = var.findings_manager_trigger_lambda.name
+  create_policy          = false
+  create_s3_dummy_object = false
+  description            = "Lambda to manage Security Hub findings in response to S3 rules file uploads"
+  # filename                    = module.findings_manager_lambda_deployment_package.local_filename
   handler                     = "securityhub_trigger.lambda_handler"
   kms_key_arn                 = var.kms_key_arn
   log_retention               = 365
   memory_size                 = var.findings_manager_trigger_lambda.memory_size
   role_arn                    = module.findings_manager_lambda_iam_role.arn
   runtime                     = var.findings_manager_trigger_lambda.runtime
-  s3_bucket                   = var.s3_bucket_name
-  s3_key                      = module.findings_manager_lambda_deployment_package.s3_object.key
-  s3_object_version           = module.findings_manager_lambda_deployment_package.s3_object.version_id
+  s3_bucket                   = "${var.s3_bucket_name}-lambda-${data.aws_caller_identity.current.account_id}"
+  s3_key                      = aws_s3_object.lambda_package_finding_manager.key
+  s3_object_version           = aws_s3_object.lambda_package_finding_manager.version_id
+  source_code_hash            = aws_s3_object.lambda_package_finding_manager.checksum_sha256
   security_group_egress_rules = var.findings_manager_trigger_lambda.security_group_egress_rules
   subnet_ids                  = var.subnet_ids
   tags                        = var.tags
