@@ -203,11 +203,10 @@ module "findings_manager_trigger_lambda" {
   source  = "schubergphilis/mcaf-lambda/aws"
   version = "~> 1.4.1"
 
-  name                   = var.findings_manager_trigger_lambda.name
-  create_policy          = false
-  create_s3_dummy_object = false
-  description            = "Lambda to manage Security Hub findings in response to S3 rules file uploads"
-  # filename                    = module.findings_manager_lambda_deployment_package.local_filename
+  name                        = var.findings_manager_trigger_lambda.name
+  create_policy               = false
+  create_s3_dummy_object      = false
+  description                 = "Lambda to manage Security Hub findings in response to S3 rules file uploads"
   handler                     = "securityhub_trigger.lambda_handler"
   kms_key_arn                 = var.kms_key_arn
   log_retention               = 365
