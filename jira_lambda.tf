@@ -110,6 +110,7 @@ module "jira_lambda" {
   filename                    = module.jira_lambda_deployment_package[0].local_filename
   handler                     = "findings_manager_jira.lambda_handler"
   kms_key_arn                 = var.kms_key_arn
+  layers                      = ["arn:aws:lambda:${data.aws_region.current.name}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
   log_retention               = 365
   memory_size                 = var.jira_integration.lambda_settings.memory_size
   role_arn                    = module.jira_lambda_iam_role[0].arn

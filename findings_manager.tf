@@ -135,6 +135,7 @@ module "findings_manager_events_lambda" {
   filename                    = module.findings_manager_lambda_deployment_package.local_filename
   handler                     = "securityhub_events.lambda_handler"
   kms_key_arn                 = var.kms_key_arn
+  layers                      = ["arn:aws:lambda:${data.aws_region.current.name}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
   log_retention               = 365
   memory_size                 = var.findings_manager_events_lambda.memory_size
   role_arn                    = module.findings_manager_lambda_iam_role.arn
@@ -215,6 +216,7 @@ module "findings_manager_trigger_lambda" {
   filename                    = module.findings_manager_lambda_deployment_package.local_filename
   handler                     = "securityhub_trigger.lambda_handler"
   kms_key_arn                 = var.kms_key_arn
+  layers                      = ["arn:aws:lambda:${data.aws_region.current.name}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
   log_retention               = 365
   memory_size                 = var.findings_manager_trigger_lambda.memory_size
   role_arn                    = module.findings_manager_lambda_iam_role.arn
