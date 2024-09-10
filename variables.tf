@@ -3,7 +3,6 @@ variable "findings_manager_events_lambda" {
     name        = optional(string, "securityhub-findings-manager-events")
     log_level   = optional(string, "INFO")
     memory_size = optional(number, 256)
-    runtime     = optional(string, "python3.8")
     timeout     = optional(number, 120)
 
     security_group_egress_rules = optional(list(object({
@@ -37,7 +36,6 @@ variable "findings_manager_trigger_lambda" {
     name        = optional(string, "securityhub-findings-manager-trigger")
     log_level   = optional(string, "INFO")
     memory_size = optional(number, 256)
-    runtime     = optional(string, "python3.8")
     timeout     = optional(number, 120)
 
     security_group_egress_rules = optional(list(object({
@@ -91,14 +89,12 @@ variable "jira_integration" {
       iam_role_name = optional(string, "SecurityHubFindingsManagerJiraLambda")
       log_level     = optional(string, "INFO")
       memory_size   = optional(number, 256)
-      runtime       = optional(string, "python3.8")
       timeout       = optional(number, 60)
       }), {
       name                        = "securityhub-findings-manager-jira"
       iam_role_name               = "SecurityHubFindingsManagerJiraLambda"
       log_level                   = "INFO"
       memory_size                 = 256
-      runtime                     = "python3.8"
       timeout                     = 60
       security_group_egress_rules = []
     })
@@ -125,6 +121,17 @@ variable "jira_step_function_iam_role_name" {
 variable "kms_key_arn" {
   type        = string
   description = "The ARN of the KMS key used to encrypt the resources"
+}
+
+# Modify the build-lambda.yaml GitHub action if you modify the allowed versions to ensure a proper zip is created.
+variable "lambda_runtime" {
+  type        = string
+  default     = "python3.12"
+  description = "The version of Python to use for the Lambda functions"
+  validation {
+    condition     = contains(["python3.8", "python3.9", "python3.10", "python3.11", "python3.12"], var.lambda_runtime)
+    error_message = "The runtime must be one of the following: python3.8, python3.9, python3.10, python3.11, python3.12."
+  }
 }
 
 variable "rules_filepath" {
