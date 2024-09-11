@@ -72,11 +72,11 @@ resource "aws_iam_role_policy_attachment" "findings_manager_lambda_iam_role" {
 }
 
 # Push the Lambda code zip deployment package to s3
-resource "aws_s3_object" "findings_manager_lambda_deployment_package" {
+resource "aws_s3_object" "findings_manager_lambdas_deployment_package" {
   bucket     = module.findings_manager_bucket.id
-  key        = "${var.findings_manager_events_lambda.name}-lambda_function_${var.lambda_runtime}.zip"
+  key        = "lambda_securityhub-findings-manager_${var.lambda_runtime}.zip"
   kms_key_id = var.kms_key_arn
-  source     = "${path.module}/files/pkg/securityhub-findings-manager/lambda_function_${var.lambda_runtime}.zip"
+  source     = "${path.module}/files/pkg/lambda_securityhub-findings-manager_${var.lambda_runtime}.zip"
   tags       = var.tags
 }
 
@@ -102,9 +102,9 @@ module "findings_manager_events_lambda" {
   role_arn                    = module.findings_manager_lambda_iam_role.arn
   runtime                     = var.lambda_runtime
   s3_bucket                   = module.findings_manager_bucket.name
-  s3_key                      = aws_s3_object.findings_manager_lambda_deployment_package.key
-  s3_object_version           = aws_s3_object.findings_manager_lambda_deployment_package.version_id
-  source_code_hash            = aws_s3_object.findings_manager_lambda_deployment_package.checksum_sha256
+  s3_key                      = aws_s3_object.findings_manager_lambdas_deployment_package.key
+  s3_object_version           = aws_s3_object.findings_manager_lambdas_deployment_package.version_id
+  source_code_hash            = aws_s3_object.findings_manager_lambdas_deployment_package.checksum_sha256
   security_group_egress_rules = var.findings_manager_events_lambda.security_group_egress_rules
   subnet_ids                  = var.subnet_ids
   tags                        = var.tags
@@ -183,9 +183,9 @@ module "findings_manager_trigger_lambda" {
   role_arn                    = module.findings_manager_lambda_iam_role.arn
   runtime                     = var.lambda_runtime
   s3_bucket                   = module.findings_manager_bucket.name
-  s3_key                      = aws_s3_object.findings_manager_lambda_deployment_package.key
-  s3_object_version           = aws_s3_object.findings_manager_lambda_deployment_package.version_id
-  source_code_hash            = aws_s3_object.findings_manager_lambda_deployment_package.checksum_sha256
+  s3_key                      = aws_s3_object.findings_manager_lambdas_deployment_package.key
+  s3_object_version           = aws_s3_object.findings_manager_lambdas_deployment_package.version_id
+  source_code_hash            = aws_s3_object.findings_manager_lambdas_deployment_package.checksum_sha256
   security_group_egress_rules = var.findings_manager_trigger_lambda.security_group_egress_rules
   subnet_ids                  = var.subnet_ids
   tags                        = var.tags

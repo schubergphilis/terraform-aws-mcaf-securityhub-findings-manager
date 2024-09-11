@@ -103,6 +103,11 @@ Rules:
 > [!IMPORTANT]
 > `security_control_id` and `rule_or_control_id` are mutually exclusive, but one of them must be set!
 
+## Local development on the Python code
+
+Since a lambda layer is used to provide the aws-lambda-powertools if you want to have the same dependencies available locally then install them using `requirements-dev.txt` stored with the source code.
+
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 

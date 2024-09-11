@@ -129,8 +129,8 @@ variable "lambda_runtime" {
   default     = "python3.12"
   description = "The version of Python to use for the Lambda functions"
   validation {
-    condition     = contains(["python3.8", "python3.9", "python3.10", "python3.11", "python3.12"], var.lambda_runtime)
-    error_message = "The runtime must be one of the following: python3.8, python3.9, python3.10, python3.11, python3.12."
+    condition     = contains(["python3.11", "python3.12"], var.lambda_runtime)
+    error_message = "The runtime must be one of the following: python3.11, python3.12."
   }
 }
 

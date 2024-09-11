@@ -101,7 +101,7 @@ resource "archive_file" "jira_lambda_deployment_package" {
 
   type        = "zip"
   source_dir  = "${path.module}/files/lambda-artifacts/findings-manager-jira"
-  output_path = "${path.module}/files/pkg/${var.jira_integration.lambda_settings.name}/lambda_function_${var.lambda_runtime}.zip"
+  output_path = "${path.module}/files/pkg/lambda_${var.jira_integration.lambda_settings.name}_${var.lambda_runtime}.zip"
 }
 
 # Upload the zip archive to S3
@@ -109,7 +109,7 @@ resource "aws_s3_object" "jira_lambda_deployment_package" {
   count = var.jira_integration.enabled ? 1 : 0
 
   bucket     = module.findings_manager_bucket.id
-  key        = "${var.jira_integration.lambda_settings.name}-lambda_function_${var.lambda_runtime}.zip"
+  key        = "lambda_${var.jira_integration.lambda_settings.name}_${var.lambda_runtime}.zip"
   kms_key_id = var.kms_key_arn
   source     = archive_file.jira_lambda_deployment_package[0].output_path
   tags       = var.tags
