@@ -1,0 +1,92 @@
+name: Build and Package Lambda(s)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+      - master
+    paths:
+      - files/lambda-artifacts/**
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  LAMBDA_DIR: "files/lambda-artifacts"
+  PKG_DIR: "files/pkg"
+
+jobs:
+  pkg:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+        lambda-name: ["securityhub-findings-manager"]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          cd $LAMBDA_DIR/${{ matrix.lambda-name }}
+          python -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Create Lambda deployment package
+        run: |
+          mkdir -p $PKG_DIR
+
+          # Navigate to site-packages
+          cd $LAMBDA_DIR/${{ matrix.lambda-name }}/venv/lib/python${{ matrix.python-version }}/site-packages
+          
+          # Removing nonessential files 'https://github.com/aws-powertools/powertools-lambda-layer-cdk/blob/d24716744f7d1f37617b4998c992c4c067e19e64/layer/Python/Dockerfile'
+          rm -rf boto* s3transfer* *dateutil* urllib3* six* jmespath*
+          find . -name '*.so' -type f -exec strip "{}" \;
+          find . -wholename "*/tests/*" -type f -delete
+          find . -regex '^.*\(__pycache__\|\.py[co]\)$' -delete
+
+          # Package the lambda function. Package the dependencies and then add the source code to the created zip to ensure a flat archive structure. 
+          zip -r ../../../../../../../$PKG_DIR/lambda_${{ matrix.lambda-name }}_python${{ matrix.python-version }}.zip .
+          cd ../../../../
+          zip -g ../../../$PKG_DIR/lambda_${{ matrix.lambda-name }}_python${{ matrix.python-version }}.zip -r  * --exclude venv/\*
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lambda_${{ matrix.lambda-name }}_python${{ matrix.python-version }}.zip
+          path: files/pkg/lambda_${{ matrix.lambda-name }}_python${{ matrix.python-version }}.zip
+
+  # Download all artifacts and commit them to the repository. This seperate job prevents a push to the repository per zip file due to the matrix.
+  push:
+    runs-on: ubuntu-latest
+    needs: pkg
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Remove old pkg artifacts
+        run: rm -rf files/pkg/
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: files/pkg/
+          merge-multiple: true
+
+      - name: Commit deployment packages
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Add all Lambda deployment packages"
+          file_pattern: "files/pkg/*.zip"
