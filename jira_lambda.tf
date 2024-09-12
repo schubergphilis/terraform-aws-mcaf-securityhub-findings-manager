@@ -96,7 +96,7 @@ module "jira_lambda_deployment_package" {
 }
 
 # Create a zip archive from the source_path
-resource "archive_file" "jira_lambda_deployment_package" {
+data "archive_file" "jira_lambda_deployment_package" {
   count = var.jira_integration.enabled ? 1 : 0
 
   type        = "zip"
