@@ -5,23 +5,21 @@ import base64
 import urllib.request
 import urllib
 from aws_lambda_powertools import Logger
+from urllib.error import HTTPError
 
 logger = Logger()
 EXCLUDE_ACCOUNT_FILTER = os.environ['EXCLUDE_ACCOUNT_FILTER']
+JIRA_AUTOCLOSE_ENABLED = os.environ['JIRA_AUTOCLOSE_ENABLED']
+JIRA_AUTOCLOSE_TRANSITION = os.environ['JIRA_AUTOCLOSE_TRANSITION']
 JIRA_ISSUE_TYPE = os.environ['JIRA_ISSUE_TYPE']
 JIRA_SECRET_ARN = os.environ['JIRA_SECRET_ARN']
 JIRA_PROJECT_KEY = os.environ['JIRA_PROJECT_KEY']
 
 
 def jira_rest_call(data, url, apiuser, apikey):
-    # Encode the username and password
-    base64string = base64.encodebytes(('%s:%s' % (apiuser, apikey)).encode()).decode().strip()  # noqa: E501
     jiraurl = url + "/rest/api/latest/issue/"
 
-    # Build the request
-    restreq = urllib.request.Request(jiraurl)
-    restreq.add_header('Content-Type', 'application/json')
-    restreq.add_header("Authorization", "Basic %s" % base64string)
+    restreq = build_request(jiraurl, apiuser, apikey)
 
     # Send the request and grab JSON response
     response = urllib.request.urlopen(restreq, data.encode('utf-8'))
@@ -57,6 +55,48 @@ def jira_build_sechub_data(issueType, accountId, region, event, projectKey):
     }
     return json.dumps(issue)
 
+def jira_transition_issue(issueId, transitionName, url, apiuser, apikey):
+    jiraurl = url + f"/rest/api/latest/issue/{issueId}/transitions"
+
+    restreq = build_request(jiraurl, apiuser, apikey)
+
+    response = urllib.request.urlopen(restreq)
+    transitionList = json.loads(response.read()).get('transitions', [])
+    transition = next((x for x in transitionList if x['name'] == transitionName), None)
+    
+    if not transition:
+        raise ValueError(f"Transition {transitionName} not found in Jira issue {issueId}")
+    
+    transitionId = transition['id']
+    
+    input = {
+        'update': {
+            'comment': [{
+                'add': {
+                    'body': 'Security Hub finding has been resolved. Autoclosing the issue.'
+                }
+            }]
+        },
+        'fields': {
+            'assignee': {'name': apiuser},
+            'resolution': {'name': 'Fixed'}
+        },
+        'transition': {'id': transitionId}
+    } 
+
+    # Send the request
+    urllib.request.urlopen(restreq, json.dumps(input).encode('utf-8'))
+
+def build_request(url, apiuser, apikey):
+    # Encode the username and password
+    base64string = base64.encodebytes(('%s:%s' % (apiuser, apikey)).encode()).decode().strip()  # noqa: E501
+    
+    # Build the request
+    restreq = urllib.request.Request(url)
+    restreq.add_header('Content-Type', 'application/json')
+    restreq.add_header("Authorization", "Basic %s" % base64string)   
+
+    return restreq
 
 def get_jira_secret(boto3, secretarn):
     service_client = boto3.client('secretsmanager')
@@ -72,9 +112,15 @@ def get_jira_secret(boto3, secretarn):
     return secret_dict
 
 
-def update_workflowstatus(boto3, finding):
+def update_workflowstatus(boto3, finding, issueId=""):
     service_client = boto3.client('securityhub')
     try:
+        kwargs = {}
+        if JIRA_AUTOCLOSE_ENABLED == "true":
+            kwargs['Note'] = {
+                'Text': issueId,
+                'UpdatedBy': 'securityhub-findings-manager-jira'
+            }
         response = service_client.batch_update_findings(
             FindingIdentifiers=[
                 {
@@ -84,7 +130,8 @@ def update_workflowstatus(boto3, finding):
             ],
             Workflow={
                 'Status': 'NOTIFIED'
-            }
+            },
+            **kwargs
         )
         return response
     except Exception as e:
@@ -107,18 +154,39 @@ def lambda_handler(event, context):
     finding = eventDetails['findings'][0]
     findingAccountId = finding["AwsAccountId"]
     findingRegion = finding["Region"]
+    workflowStatus = finding["Workflow"]["Status"]
+
     if create_issue_for_account(findingAccountId, EXCLUDE_ACCOUNT_FILTER):  # noqa: E501
         jiraSecretData = get_jira_secret(boto3, JIRA_SECRET_ARN)
         jiraUrl = jiraSecretData['url']
         jiraApiUser = jiraSecretData['apiuser']
         jiraApiKey = jiraSecretData['apikey']
 
-        json_data = jira_build_sechub_data(JIRA_ISSUE_TYPE, findingAccountId,
-                                           findingRegion, eventDetails,
-                                           JIRA_PROJECT_KEY)
-        logger.info("Jira issue ", json_data)
-        json_response = jira_rest_call(json_data, jiraUrl, jiraApiUser,
-                                       jiraApiKey)
-        logger.info("Created Jira issue ", json_response['key'])
-        response = update_workflowstatus(boto3, finding)
-        logger.info("Updated sechub finding workflow: ", response)
+        if workflowStatus == "NEW":
+            json_data = jira_build_sechub_data(JIRA_ISSUE_TYPE, findingAccountId,
+                                            findingRegion, eventDetails,
+                                            JIRA_PROJECT_KEY)
+            logger.info("Jira issue ", json_data)
+
+            try:
+                json_response = jira_rest_call(json_data, jiraUrl, jiraApiUser,
+                                            jiraApiKey)
+                issueId = json_response['key']
+                logger.info(f"Created Jira issue: {issueId}")
+                
+                response = update_workflowstatus(boto3, finding, issueId)
+                logger.info("Updated sechub finding workflow: ", response)
+            except HTTPError as e:
+                logger.exception("Received HTTP Error %s - %s", e.code, e.read().decode())
+        elif workflowStatus == "RESOLVED" and JIRA_AUTOCLOSE_ENABLED == "true":
+            try:
+                issueId = finding['Note']['Text']
+                if not issueId:
+                    logger.error("Jira issue ID not found in Security Hub finding. Unable to autoclose")
+                    return
+                jira_transition_issue(issueId, JIRA_AUTOCLOSE_TRANSITION, jiraUrl, jiraApiUser, jiraApiKey)
+                logger.info(f"Transitioned Jira issue {issueId} using transition {JIRA_AUTOCLOSE_TRANSITION}")
+            except HTTPError as e:
+                logger.exception("Received HTTP Error %s - %s", e.code, e.read().decode())
+            except ValueError as e:
+                logger.warning(e)

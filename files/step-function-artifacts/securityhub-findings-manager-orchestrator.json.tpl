@@ -49,10 +49,25 @@
                 "Variable": "$.detail.findings[0].Severity.Normalized",
                 "NumericGreaterThanEquals": ${finding_severity_normalized}
               },
+              %{~ if jira_autoclose_enabled }
+              {
+                "Or": [
+                  {
+                    "Variable": "$.detail.findings[0].Workflow.Status",
+                    "StringEquals": "NEW"
+                  },
+                  {
+                    "Variable": "$.detail.findings[0].Workflow.Status",
+                    "StringEquals": "RESOLVED"
+                  }
+                ]
+              }
+              %{ else }
               {
                 "Variable": "$.detail.findings[0].Workflow.Status",
                 "StringEquals": "NEW"
               }
+              %{ endif ~}
             ],
             "Next": "invoke-securityhub-jira"
           },
@@ -70,10 +85,25 @@
                 "Variable": "$.detail.findings[0].Severity.Normalized",
                 "NumericGreaterThanEquals": ${finding_severity_normalized}
               },
+              %{~ if jira_autoclose_enabled }
+              {
+                "Or": [
+                  {
+                    "Variable": "$.detail.findings[0].Workflow.Status",
+                    "StringEquals": "NEW"
+                  },
+                  {
+                    "Variable": "$.detail.findings[0].Workflow.Status",
+                    "StringEquals": "RESOLVED"
+                  }
+                ]
+              }
+              %{ else }
               {
                 "Variable": "$.detail.findings[0].Workflow.Status",
                 "StringEquals": "NEW"
               }
+              %{ endif ~}
             ],
             "Next": "invoke-securityhub-jira"
           }
