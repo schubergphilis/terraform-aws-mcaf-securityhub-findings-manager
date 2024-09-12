@@ -111,7 +111,7 @@ resource "aws_s3_object" "jira_lambda_deployment_package" {
   bucket     = module.findings_manager_bucket.id
   key        = "lambda_${var.jira_integration.lambda_settings.name}_${var.lambda_runtime}.zip"
   kms_key_id = var.kms_key_arn
-  source     = archive_file.jira_lambda_deployment_package[0].output_path
+  source     = data.archive_file.jira_lambda_deployment_package[0].output_path
   tags       = var.tags
 }
 
