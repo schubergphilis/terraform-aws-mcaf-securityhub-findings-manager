@@ -104,10 +104,10 @@ def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, even
   """
 
   finding = event['findings'][0]
-  account_id = finding['AwsAccountId']
+  finding_account_id = finding['AwsAccountId']
   finding_title = finding['Title']
 
-  issue_title = f"Security Hub ({finding_title}) detected in {account_id}"
+  issue_title = f"Security Hub ({finding_title}) detected in {finding_account_id}"
   
   issue_description = f"""
     {finding['Description']}
@@ -118,7 +118,7 @@ def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, even
 
   issue_labels = [
     finding["Region"], 
-    account_id, 
+    finding_account_id, 
     finding['Severity']['Label'].lower(),
     *[finding['ProductFields'][key].replace(" ", "") for key in ["RuleId", "ControlId", "aws/securityhub/ProductName"] if key in finding['ProductFields']]
   ]
@@ -128,7 +128,8 @@ def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, even
     'issuetype': {'name': issue_type},
     'summary': issue_title,
     'description': issue_description,
-    'labels': issue_labels
+    'labels': issue_labels,
+    'customfield_11101': {'value': 'Vulnerability Management'}
   }
 
   try:
@@ -146,8 +147,6 @@ def close_jira_issue(jira_client: JIRA, issue: Issue, transition_name: str, comm
   Args:
       jira_client (JIRA): An authenticated JIRA client instance.
       issue (Issue): The JIRA issue to close.
-      transition_name (str): The name of the transition to apply.
-      comment (str): The comment to add to the issue.
 
   Raises:
       Exception: If there is an error closing the JIRA issue.
