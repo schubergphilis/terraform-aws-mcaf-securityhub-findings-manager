@@ -25,7 +25,7 @@ def validate_env_vars(env_vars: List[str]) -> None:
 
   for var in missing_vars:
     logger.error(f"Environment variable {var} is not set!")
-    
+
   if missing_vars:
     raise ValueError(f"Missing environment variables: {', '.join(missing_vars)}")
 
@@ -73,17 +73,17 @@ def get_secret(client: BaseClient, secret_arn: str) -> Dict[str, str]:
   # Validate that the client is an instance of botocore.client.SecretsManager
   if client.meta.service_model.service_name != 'secretsmanager':
     raise ValueError(f"Client must be an instance of botocore.client.SecretsManager. Got {type(client)} instead.")
-  
+
   try:
     response = client.get_secret_value(SecretId=secret_arn)
   except ClientError as e:
     logger.error(f"Error retrieving secret: {e}")
     raise e
-  
+
   secret = response.get('SecretString')
   if secret is None:
     secret = base64.b64decode(response['SecretBinary']).decode('utf-8')
-  
+
   return json.loads(secret)
 
 def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, event: dict) -> Issue:
@@ -108,7 +108,7 @@ def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, even
   finding_title = finding['Title']
 
   issue_title = f"Security Hub ({finding_title}) detected in {finding_account_id}"
-  
+
   issue_description = f"""
     {finding['Description']}
 
@@ -117,12 +117,12 @@ def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, even
   """
 
   issue_labels = [
-    finding["Region"], 
-    finding_account_id, 
+    finding["Region"],
+    finding_account_id,
     finding['Severity']['Label'].lower(),
     *[finding['ProductFields'][key].replace(" ", "") for key in ["RuleId", "ControlId", "aws/securityhub/ProductName"] if key in finding['ProductFields']]
   ]
-  
+
   issue_dict = {
     'project': {'key': project_key},
     'issuetype': {'name': issue_type},
@@ -139,7 +139,7 @@ def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, even
   except Exception as e:
     logger.error(f"Failed to create JIRA issue: {e}")
     raise e
-  
+
 def close_jira_issue(jira_client: JIRA, issue: Issue, transition_name: str, comment: str) -> None:
   """
   Close a JIRA issue.
@@ -179,7 +179,7 @@ def update_security_hub(client: BaseClient, finding_id: str, product_arn: str, s
   # Validate that the client is an instance of botocore.client.SecurityHub
   if client.meta.service_model.service_name != 'securityhub':
     raise ValueError(f"Client must be an instance of botocore.client.SecurityHub. Got {type(client)} instead.")
-  
+
   try:
       kwargs = {}
       if note:
@@ -203,7 +203,7 @@ def update_security_hub(client: BaseClient, finding_id: str, product_arn: str, s
           logger.error(f"Updating SecurityHub finding failed: FindingId {element['Id']}, ErrorCode {element['ErrorCode']}, ErrorMessage {element['ErrorMessage']}")
       else:
         logger.info(f"Updated SecurityHub finding {finding_id} to status {status}.")
-      
+
   except Exception as e:
       logger.exception(f"Updating SecurityHub finding failed: {e}")
       raise

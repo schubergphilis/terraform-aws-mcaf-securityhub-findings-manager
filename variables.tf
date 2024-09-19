@@ -69,7 +69,7 @@ variable "jira_integration" {
     enabled                               = optional(bool, false)
     autoclose_enabled                     = optional(bool, false)
     autoclose_comment                     = optional(string, "Security Hub finding has been resolved. Autoclosing the issue.")
-    autoclose_jira_transition_name        = optional(string, "Close Issue")
+    autoclose_transition_name             = optional(string, "Close Issue")
     credentials_secret_arn                = string
     exclude_account_ids                   = optional(list(string), [])
     finding_severity_normalized_threshold = optional(number, 70)

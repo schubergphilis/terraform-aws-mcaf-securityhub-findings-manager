@@ -56,7 +56,7 @@ jobs:
           find . -wholename "*/tests/*" -type f -delete
           find . -regex '^.*\(__pycache__\|\.py[co]\)$' -delete
 
-          # Package the lambda function. Package the dependencies and then add the source code to the created zip to ensure a flat archive structure. 
+          # Package the lambda function. Package the dependencies and then add the source code to the created zip to ensure a flat archive structure.
           zip -r ../../../../../../../$PKG_DIR/lambda_${{ matrix.lambda-name }}_python${{ matrix.python-version }}.zip .
           cd ../../../../
           zip -g ../../../$PKG_DIR/lambda_${{ matrix.lambda-name }}_python${{ matrix.python-version }}.zip -r  * --exclude venv/\*

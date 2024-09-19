@@ -53,6 +53,7 @@ The module deploys 2 Lambda functions:
 * This deployment method can be used by setting the value of the variable `jira_integration` to `true` (default = false).
 * The module deploys an additional `Jira` lambda function along with a Step function which orchestrates these Lambda functions and Step Function as a target to the EventBridge rule.
 * If the finding is not suppressed a ticket is created for findings with a normalized severity higher than a definable threshold. The workflow status in Security Hub is updated from `NEW` to `NOTIFIED`.
+* You can enable auto-closing functionality by setting the value of the variable `jira_integration.autoclose_enabled` to `true` (default = false). If you do so, the step function will also forward findings updated to status `RESOLVED` to the lambda function. The function will then use the ticket number saved in the finding note and transition the issue using the transition defined in `jira_integration.autoclose_transition_name` with comment defined in `jira_integration.autoclose_comment`
 
 Only events from Security Hub with a normalized severity level higher than a definable threshold (by default `70`) trigger the Jira integration.
 
