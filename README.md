@@ -6,7 +6,7 @@ This suppression is needed in case some controls or rules are not completely app
 For example, you might want to suppress all DynamoDB Autoscaling configuration findings related to the control `DynamoDB.1`, simply because this feature is not applicable for your workload.
 Besides the findings management this module is also able to integrate with Jira and ServiceNow. To ensure tickets are created for all `NEW` findings with a severity higher than a definable threshold.
 
-> [!TIP]  
+> [!TIP]
 > We recommend deploying this module in the Audit/Security Account of an AWS reference multi-account setup.
 > This account receives events from all child accounts in an organization.
 > This way, a comprehensive overview of the organization's security posture can be easily maintained.
@@ -37,7 +37,7 @@ For a more complete overview see [Resources](#resources) and [Modules](#modules)
 
 There are 3 different deployment modes for this module:
 
-> [!IMPORTANT] 
+> [!IMPORTANT]
 > In case of first time deploy, be mindful that there can be a delay between creating S3 triggers and those being fully functional.
 > Re-create the rules object later to have rules run on your findings history in that case.
 
@@ -77,8 +77,8 @@ Only events from Security Hub with a normalized severity level higher than a def
 * With the variable `severity_label_filter` it can be configured which findings will be forwarded based on the severity label.
 * ServiceNow will pull the events from the SQS queue with the `SCSyncUser` using `acccess_key` & `secret_access_key`.
 
-> [!WARNING] 
-> The user will be created by the module, but the `acccess_key` & `secret_access_key` need to be generated in the AWS Console, to prevent storing this data in the Terraform state. 
+> [!WARNING]
+> The user will be created by the module, but the `acccess_key` & `secret_access_key` need to be generated in the AWS Console, to prevent storing this data in the Terraform state.
 > If you want Terraform to create the `acccess_key` & `secret_access_key` (and output them), set variable `create_servicenow_access_keys` to `true` (default = false)
 
 ## How to format the `rules.yaml` file?
