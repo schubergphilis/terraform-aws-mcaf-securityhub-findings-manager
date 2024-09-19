@@ -24,7 +24,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.11", "3.12"]
-        lambda-name: ["securityhub-findings-manager"]
+        lambda-name: ["securityhub-findings-manager", "findings-manager-jira"]
 
     steps:
       - name: Checkout repository
@@ -49,7 +49,7 @@ jobs:
 
           # Navigate to site-packages
           cd $LAMBDA_DIR/${{ matrix.lambda-name }}/venv/lib/python${{ matrix.python-version }}/site-packages
-          
+
           # Removing nonessential files 'https://github.com/aws-powertools/powertools-lambda-layer-cdk/blob/d24716744f7d1f37617b4998c992c4c067e19e64/layer/Python/Dockerfile'
           rm -rf boto* s3transfer* *dateutil* urllib3* six* jmespath*
           find . -name '*.so' -type f -exec strip "{}" \;
