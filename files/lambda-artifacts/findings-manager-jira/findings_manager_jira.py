@@ -34,7 +34,7 @@ def lambda_handler(event: dict, context: LambdaContext):
   # Retrieve JIRA client
   jira_secret = helpers.get_secret(secretsmanager, JIRA_SECRET_ARN)
   jira_client = helpers.get_jira_client(jira_secret)
-  
+
   # Get Sechub event details
   event_detail = event['detail']
   finding = event_detail['findings'][0]
@@ -45,7 +45,7 @@ def lambda_handler(event: dict, context: LambdaContext):
   if finding_account_id in EXCLUDE_ACCOUNT_FILTER:
     logger.info(f"Account {finding_account_id} is excluded from JIRA ticket creation.")
     return
-  
+
   if workflow_status == "NEW":
     # Create JIRA issue and updates Security Hub status to NOTIFIED and adds JIRA issue key to note (in JSON format)
     issue = helpers.create_jira_issue(jira_client, JIRA_PROJECT_KEY, JIRA_ISSUE_TYPE, event_detail)
@@ -57,7 +57,7 @@ def lambda_handler(event: dict, context: LambdaContext):
       note_text = finding['Note']['Text']
       note_text_json = json.loads(note_text)
       jira_issue_id = note_text_json.get('jiraIssue')
-      
+
       if jira_issue_id:
         issue = jira_client.issue(jira_issue_id)
         helpers.close_jira_issue(jira_client, issue, JIRA_AUTOCLOSE_TRANSITION, JIRA_AUTOCLOSE_COMMENT)
