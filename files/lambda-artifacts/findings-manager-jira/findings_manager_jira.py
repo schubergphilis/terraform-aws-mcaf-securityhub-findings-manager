@@ -14,7 +14,6 @@ secretsmanager = boto3.client('secretsmanager')
 REQUIRED_ENV_VARS = [
     'EXCLUDE_ACCOUNT_FILTER', 'JIRA_ISSUE_TYPE', 'JIRA_PROJECT_KEY', 'JIRA_SECRET_ARN'
 ]
-DEFAULT_JIRA_AUTOCLOSE_ENABLED = 'false'
 DEFAULT_JIRA_AUTOCLOSE_COMMENT = 'Security Hub finding has been resolved. Autoclosing the issue.'
 DEFAULT_JIRA_AUTOCLOSE_TRANSITION = 'Done'
 
@@ -52,7 +51,7 @@ def lambda_handler(event: dict, context: LambdaContext):
     issue = helpers.create_jira_issue(jira_client, JIRA_PROJECT_KEY, JIRA_ISSUE_TYPE, event_detail)
     note = json.dumps({'jiraIssue': issue.key})
     helpers.update_security_hub(securityhub, finding["Id"], finding["ProductArn"], "NOTIFIED", note)
-  elif workflow_status == "RESOLVED" and JIRA_AUTOCLOSE_ENABLED.lower() == "true":
+  elif workflow_status == "RESOLVED":
     # Close JIRA issue if finding is resolved. Note text should contain JIRA issue key in JSON format
     try:
       note_text = finding['Note']['Text']

@@ -120,7 +120,7 @@ module "jira_lambda" {
 
   environment = {
     EXCLUDE_ACCOUNT_FILTER      = jsonencode(var.jira_integration.exclude_account_ids)
-    JIRA_AUTOCLOSE_ENABLED      = var.jira_integration.autoclose_enabled
+    JIRA_AUTOCLOSE_COMMENT      = var.jira_integration.autoclose_comment
     JIRA_AUTOCLOSE_TRANSITION   = var.jira_integration.autoclose_jira_transition_name
     JIRA_ISSUE_TYPE             = var.jira_integration.issue_type
     JIRA_PROJECT_KEY            = var.jira_integration.project_key
