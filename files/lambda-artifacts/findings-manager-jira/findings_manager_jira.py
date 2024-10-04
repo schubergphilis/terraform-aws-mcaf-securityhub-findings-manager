@@ -18,6 +18,9 @@ REQUIRED_ENV_VARS = [
 DEFAULT_JIRA_AUTOCLOSE_COMMENT = 'Security Hub finding has been resolved. Autoclosing the issue.'
 DEFAULT_JIRA_AUTOCLOSE_TRANSITION = 'Done'
 
+STATUS_NEW = 'NEW'
+STATUS_NOTIFIED = 'NOTIFIED'
+STATUS_RESOLVED = 'RESOLVED'
 
 @logger.inject_lambda_context
 def lambda_handler(event: dict, context: LambdaContext):
@@ -50,15 +53,15 @@ def lambda_handler(event: dict, context: LambdaContext):
             f"Account {finding_account_id} is excluded from JIRA ticket creation.")
         return
 
-    if workflow_status == "NEW":
+    if workflow_status == STATUS_NEW:
         # Create JIRA issue and updates Security Hub status to NOTIFIED
         # and adds JIRA issue key to note (in JSON format)
         issue = helpers.create_jira_issue(
             jira_client, jira_project_key, jira_issue_type, event_detail)
         note = json.dumps({'jiraIssue': issue.key})
         helpers.update_security_hub(
-            securityhub, finding["Id"], finding["ProductArn"], "NOTIFIED", note)
-    elif workflow_status == "RESOLVED":
+            securityhub, finding["Id"], finding["ProductArn"], STATUS_NOTIFIED, note)
+    elif workflow_status == STATUS_RESOLVED:
         # Close JIRA issue if finding is resolved.
         # Note text should contain JIRA issue key in JSON format
         try:
