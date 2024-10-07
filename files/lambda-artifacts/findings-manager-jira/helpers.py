@@ -217,8 +217,7 @@ def update_security_hub(client: BaseClient, finding_id: str,
                     element['Id']}, ErrorCode {element['ErrorCode']}, ErrorMessage {
                         element['ErrorMessage']}")
         else:
-            logger.info(f"Updated SecurityHub finding {
-                        finding_id} to status {status}.")
+            logger.info("SecurityHub finding updated successfully.")
 
     except Exception as e:
         logger.exception(f"Updating SecurityHub finding failed: {e}")
