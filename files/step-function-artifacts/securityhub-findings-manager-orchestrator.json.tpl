@@ -61,10 +61,8 @@
               {
                 "Or": [
                   {
-                    "Not": {
-                      "Variable": "$.TaskResult.Payload.finding_state",
-                      "IsPresent": true
-                    }
+                    "Variable": "$.TaskResult.Payload.finding_state",
+                    "IsPresent": false
                   },
                   {
                     "And": [
