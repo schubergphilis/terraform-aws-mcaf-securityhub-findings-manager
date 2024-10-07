@@ -92,8 +92,16 @@
                     "StringEquals": "NEW"
                   },
                   {
-                    "Variable": "$.detail.findings[0].Workflow.Status",
-                    "StringEquals": "RESOLVED"
+                    "And": [
+                      {
+                        "Variable": "$.detail.findings[0].Workflow.Status",
+                        "StringEquals": "RESOLVED"
+                      },
+                      {
+                        "Variable": "$.detail.findings[0].Note.Text",
+                        "StringMatches": "\\\\*jiraIssue\\\\*"
+                      }
+                    ]
                   }
                 ]
               }
