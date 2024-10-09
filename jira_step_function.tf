@@ -31,6 +31,7 @@ data "aws_iam_policy_document" "jira_step_function_iam_role" {
 resource "aws_cloudwatch_log_group" "log_group_jira_orchestrator_sfn" {
   name = "securityhub-findings-manager-orchestrator"
   retention_in_days = 90
+  kms_key_id        = var.kms_key_arn
 }
 
 # Step Function to orchestrate findings manager lambda functions
