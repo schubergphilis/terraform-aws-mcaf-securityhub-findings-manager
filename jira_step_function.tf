@@ -28,6 +28,11 @@ data "aws_iam_policy_document" "jira_step_function_iam_role" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "log_group_jira_orchestrator_sfn" {
+  name = "securityhub-findings-manager-orchestrator"
+  retention_in_days = 90
+}
+
 # Step Function to orchestrate findings manager lambda functions
 resource "aws_sfn_state_machine" "jira_orchestrator" {
   #checkov:skip=CKV_AWS_284:x-ray is not enabled due to the simplicity of this state machine and the costs involved with enabling this feature.
@@ -43,6 +48,12 @@ resource "aws_sfn_state_machine" "jira_orchestrator" {
     findings_manager_events_lambda = module.findings_manager_events_lambda.arn,
     jira_lambda                    = module.jira_lambda[0].arn
   })
+
+  logging_configuration {
+    log_destination        = "${aws_cloudwatch_log_group.log_group_jira_orchestrator_sfn.arn}:*"
+    include_execution_data = true
+    level                  = "ERROR"
+  }
 }
 
 # IAM role to be assumed by EventBridge
