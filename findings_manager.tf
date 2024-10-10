@@ -132,10 +132,10 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
   "detail": {
     "findings": {
       "Compliance": {
-        "Status": ["FAILED", "WARNING"]
+        "Status": ["FAILED", "WARNING"${var.jira_integration.autoclose_enabled ? ", \"PASSED\"" : ""}]
       },
       "Workflow": {
-        "Status": ["NEW", "NOTIFIED"]
+        "Status": ["NEW", "NOTIFIED"${var.jira_integration.autoclose_enabled ? ", \"RESOLVED\"" : ""}]
       }
     }
   }

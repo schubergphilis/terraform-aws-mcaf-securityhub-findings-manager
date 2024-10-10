@@ -23,7 +23,7 @@ def manage(func, args, logger: Logger):
         return {"finding_state": "skipped"}
 
     try:
-        success = getattr(findings_manager, func.__name__)(*args)
+        success, suppressed_payload = getattr(findings_manager, func.__name__)(*args)
     except Exception as e:
         logger.warning("Findings manager failed to apply findings management rules, please investigate.")
         logger.info(f"Original error: {e}", exc_info=True)
@@ -31,7 +31,14 @@ def manage(func, args, logger: Logger):
 
     if success:
         logger.info("Successfully applied all findings management rules.")
-        return {"finding_state": "suppressed"}
+        suppressed_payload_count = len(suppressed_payload)
+        if suppressed_payload_count > 0:
+            log_text = "finding was" if suppressed_payload_count == 1 else "findings were"
+            logger.info(f"{suppressed_payload_count} {log_text} suppressed.")
+            return {"finding_state": "suppressed"}
+        else:
+            logger.info("No findings were suppressed.")
+            return {"finding_state": "skipped"}
     else:
         logger.warning(
             "No explicit error was raised, but not all findings management rules were applied successfully, please investigate."

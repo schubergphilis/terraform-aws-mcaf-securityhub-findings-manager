@@ -79,31 +79,6 @@ resource "aws_iam_role_policy_attachment" "jira_lambda_iam_role_vpc_policy_attac
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
-# Create a Lambda zip deployment package with code and dependencies
-module "jira_lambda_deployment_package" {
-  count = var.jira_integration.enabled ? 1 : 0
-
-  source  = "terraform-aws-modules/lambda/aws"
-  version = "~> 3.3.0"
-
-  create_function          = false
-  recreate_missing_package = false
-  runtime                  = var.lambda_runtime
-  s3_bucket                = module.findings_manager_bucket.name
-  s3_object_storage_class  = "STANDARD"
-  source_path              = "${path.module}/files/lambda-artifacts/findings-manager-jira"
-  store_on_s3              = true
-}
-
-# Create a zip archive from the source_path
-data "archive_file" "jira_lambda_deployment_package" {
-  count = var.jira_integration.enabled ? 1 : 0
-
-  type        = "zip"
-  source_dir  = "${path.module}/files/lambda-artifacts/findings-manager-jira"
-  output_path = "${path.module}/files/pkg/lambda_${var.jira_integration.lambda_settings.name}_${var.lambda_runtime}.zip"
-}
-
 # Upload the zip archive to S3
 resource "aws_s3_object" "jira_lambda_deployment_package" {
   count = var.jira_integration.enabled ? 1 : 0
@@ -111,7 +86,7 @@ resource "aws_s3_object" "jira_lambda_deployment_package" {
   bucket     = module.findings_manager_bucket.id
   key        = "lambda_${var.jira_integration.lambda_settings.name}_${var.lambda_runtime}.zip"
   kms_key_id = var.kms_key_arn
-  source     = data.archive_file.jira_lambda_deployment_package[0].output_path
+  source     = "${path.module}/files/pkg/lambda_findings-manager-jira_${var.lambda_runtime}.zip"
   tags       = var.tags
 }
 
@@ -145,6 +120,8 @@ module "jira_lambda" {
 
   environment = {
     EXCLUDE_ACCOUNT_FILTER      = jsonencode(var.jira_integration.exclude_account_ids)
+    JIRA_AUTOCLOSE_COMMENT      = var.jira_integration.autoclose_comment
+    JIRA_AUTOCLOSE_TRANSITION   = var.jira_integration.autoclose_transition_name
     JIRA_ISSUE_TYPE             = var.jira_integration.issue_type
     JIRA_PROJECT_KEY            = var.jira_integration.project_key
     JIRA_SECRET_ARN             = var.jira_integration.credentials_secret_arn
