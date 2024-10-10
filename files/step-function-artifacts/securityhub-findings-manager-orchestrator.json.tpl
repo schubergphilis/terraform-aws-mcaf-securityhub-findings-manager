@@ -97,7 +97,7 @@
                       },
                       {
                         "Variable": "$.detail.findings[0].Note.Text",
-                        "StringMatches": "\\\\*jiraIssue\\\\*"
+                        "StringMatches": "*jiraIssue*"
                       }
                     ]
                   }
