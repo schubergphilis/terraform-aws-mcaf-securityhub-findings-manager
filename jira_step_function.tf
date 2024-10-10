@@ -26,6 +26,27 @@ data "aws_iam_policy_document" "jira_step_function_iam_role" {
       module.jira_lambda[0].arn
     ]
   }
+
+  statement {
+    sid = "TrustEventsToStoreLogEvent"
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:DescribeLogStreams",
+      "logs:PutLogEvents"
+    ]
+    resources = [
+      "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:*"
+    ]
+  }
+}
+
+resource "aws_cloudwatch_log_group" "log_group_jira_orchestrator_sfn" {
+  #checkov:skip=CKV_AWS_338:Ensure CloudWatch log groups retains logs for at least 1 year
+  count             = var.jira_integration.enabled ? 1 : 0
+  name              = "securityhub-findings-manager-orchestrator"
+  retention_in_days = var.jira_integration.step_function_settings.retention
+  kms_key_id        = var.kms_key_arn
 }
 
 # Step Function to orchestrate findings manager lambda functions
@@ -43,6 +64,12 @@ resource "aws_sfn_state_machine" "jira_orchestrator" {
     findings_manager_events_lambda = module.findings_manager_events_lambda.arn,
     jira_lambda                    = module.jira_lambda[0].arn
   })
+
+  logging_configuration {
+    include_execution_data = true
+    level                  = var.jira_integration.step_function_settings.log_level
+    log_destination        = "${aws_cloudwatch_log_group.log_group_jira_orchestrator_sfn.arn}:*"
+  }
 }
 
 # IAM role to be assumed by EventBridge
