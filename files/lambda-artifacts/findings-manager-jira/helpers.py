@@ -162,8 +162,12 @@ def close_jira_issue(jira_client: JIRA, issue: Issue, transition_name: str, comm
     """
 
     try:
+        transition_id = jira_client.find_transitionid_by_name(issue, transition_name)
+        if transition_id is None:
+            logger.warning(f"Failed to close JIRA issue: Invalid transition.")
+            return
         jira_client.add_comment(issue, comment)
-        jira_client.transition_issue(issue, transition_name, comment=comment)
+        jira_client.transition_issue(issue, transition_id, comment=comment)
         logger.info(f"Closed JIRA issue: {issue.key}")
     except Exception as e:
         logger.error(f"Failed to close JIRA issue: {e}")
