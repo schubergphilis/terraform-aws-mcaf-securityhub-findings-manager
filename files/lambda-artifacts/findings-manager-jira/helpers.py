@@ -29,8 +29,9 @@ def validate_env_vars(env_vars: List[str]) -> None:
         logger.error(f"Environment variable {var} is not set!")
 
     if missing_vars:
-        raise ValueError(f"Missing environment variables: {
-                         ', '.join(missing_vars)}")
+        missing_str = ', '.join(missing_vars)
+        logger.error(f"Missing environment variables: {missing_str}")
+        raise ValueError(f"Missing environment variables: {missing_str}")
 
 
 def get_jira_client(jira_secret: Dict[str, str]) -> JIRA:
@@ -80,15 +81,16 @@ def get_secret(client: BaseClient, secret_arn: str) -> Dict[str, str]:
 
     try:
         response = client.get_secret_value(SecretId=secret_arn)
-    except ClientError as e:
-        logger.error(f"Error retrieving secret: {e}")
+        secret = response.get('SecretString')
+
+        if secret is None:
+            secret = base64.b64decode(response['SecretBinary']).decode('utf-8')
+        
+        logger.info(f"Secret fetched from ARN {secret_arn}")
+        return json.loads(secret)
+    except Exception as e:
+        logger.error(f"Error retrieving secret from ARN {secret_arn}: {e}")
         raise e
-
-    secret = response.get('SecretString')
-    if secret is None:
-        secret = base64.b64decode(response['SecretBinary']).decode('utf-8')
-
-    return json.loads(secret)
 
 
 def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, event: dict) -> Issue:
@@ -145,7 +147,7 @@ def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, even
         logger.info(f"Created JIRA issue: {issue.key}")
         return issue
     except Exception as e:
-        logger.error(f"Failed to create JIRA issue: {e}")
+        logger.error(f"Failed to create JIRA issue for finding {finding['Id']}: {e}")
         raise e
 
 
@@ -170,7 +172,7 @@ def close_jira_issue(jira_client: JIRA, issue: Issue, transition_name: str, comm
         jira_client.transition_issue(issue, transition_id, comment=comment)
         logger.info(f"Closed JIRA issue: {issue.key}")
     except Exception as e:
-        logger.error(f"Failed to close JIRA issue: {e}")
+        logger.error(f"Failed to close JIRA issue {issue.key}: {e}")
         raise e
 
 

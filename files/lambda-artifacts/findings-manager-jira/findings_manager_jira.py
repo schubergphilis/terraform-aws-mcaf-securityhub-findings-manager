@@ -4,6 +4,7 @@ import os
 import boto3
 from aws_lambda_powertools import Logger
 from aws_lambda_powertools.utilities.typing import LambdaContext
+from jira.exceptions import JIRAError
 
 import helpers
 
@@ -53,14 +54,20 @@ def lambda_handler(event: dict, context: LambdaContext):
             f"Account {finding_account_id} is excluded from JIRA ticket creation.")
         return
 
+    # Handle new findings
     if workflow_status == STATUS_NEW:
         # Create JIRA issue and updates Security Hub status to NOTIFIED
         # and adds JIRA issue key to note (in JSON format)
-        issue = helpers.create_jira_issue(
-            jira_client, jira_project_key, jira_issue_type, event_detail)
-        note = json.dumps({'jiraIssue': issue.key})
-        helpers.update_security_hub(
-            securityhub, finding["Id"], finding["ProductArn"], STATUS_NOTIFIED, note)
+        try:
+            issue = helpers.create_jira_issue(
+                jira_client, jira_project_key, jira_issue_type, event_detail)
+            note = json.dumps({'jiraIssue': issue.key})
+            helpers.update_security_hub(
+                securityhub, finding["Id"], finding["ProductArn"], STATUS_NOTIFIED, note)
+        except Exception as e:
+            logger.error(f"Error processing new finding for findingID {finding["Id"]}: {e}")
+    
+    # Handle resolved findings
     elif workflow_status == STATUS_RESOLVED:
         # Close JIRA issue if finding is resolved.
         # Note text should contain JIRA issue key in JSON format
@@ -70,11 +77,14 @@ def lambda_handler(event: dict, context: LambdaContext):
             jira_issue_id = note_text_json.get('jiraIssue')
 
             if jira_issue_id:
-                issue = jira_client.issue(jira_issue_id)
+                try:
+                    issue = jira_client.issue(jira_issue_id)
+                except JIRAError as e:
+                    logger.error(f"Failed to retrieve JIRA issue {jira_issue_id}: {e}. Cannot autoclose.")
+                    return
                 helpers.close_jira_issue(
                     jira_client, issue, jira_autoclose_transition, jira_autoclose_comment)
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to decode JSON from note text: {
-                         e}. Cannot autoclose.")
+            logger.error(f"Failed to decode JSON from note text: {e}. Cannot autoclose.")
         except Exception as e:
-            logger.error(f"Failed to get JIRA issue: {e}. Cannot autoclose.")
+            logger.error(f"Error processing resolved finding for findingId {finding["Id"]}: {e}. Cannot autoclose.")
