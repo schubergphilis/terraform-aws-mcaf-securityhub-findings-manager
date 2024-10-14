@@ -96,6 +96,10 @@
                       },
                       {
                         "Variable": "$.detail.findings[0].Note.Text",
+                        "IsPresent": true
+                      },
+                      {
+                        "Variable": "$.detail.findings[0].Note.Text",
                         "StringMatches": "*jiraIssue*"
                       }
                     ]
