@@ -36,6 +36,7 @@ data "aws_iam_policy_document" "jira_step_function_iam_role" {
     actions = [
       "logs:CreateLogDelivery",
       "logs:DeleteLogDelivery",
+      "logs:DescribeLogGroups",
       "logs:DescribeResourcePolicies",
       "logs:GetLogDelivery",
       "logs:ListLogDeliveries",
@@ -50,12 +51,7 @@ data "aws_iam_policy_document" "jira_step_function_iam_role" {
   statement {
     sid = "TrustEventsToStoreLogEvent"
     actions = [
-      "logs:CreateLogGroup",
       "logs:CreateLogStream",
-      "logs:DescribeLogGroups",
-      "logs:DescribeLogStreams",
-      "logs:PutDestination",
-      "logs:PutDestinationPolicy",
       "logs:PutLogEvents"
     ]
     resources = [
