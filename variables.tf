@@ -105,7 +105,10 @@ variable "jira_integration" {
     step_function_settings = optional(object({
       log_level = optional(string, "ERROR")
       retention = optional(number, 90)
-    }))
+      }), {
+      log_level = "ERROR"
+      retention = 90
+    })
 
   })
   default = {
