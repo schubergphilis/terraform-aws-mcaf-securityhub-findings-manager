@@ -1,3 +1,7 @@
+locals {
+  sfn_jira_orchestrator_name = "securityhub-findings-manager-orchestrator"
+}
+
 # IAM role to be assumed by Step Function
 module "jira_step_function_iam_role" {
   count = var.jira_integration.enabled ? 1 : 0
@@ -26,6 +30,28 @@ data "aws_iam_policy_document" "jira_step_function_iam_role" {
       module.jira_lambda[0].arn
     ]
   }
+
+  statement {
+    sid = "TrustEventsToStoreLogEvent"
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:DescribeLogStreams",
+      "logs:PutLogEvents"
+    ]
+    resources = [
+      "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:*"
+    ]
+  }
+}
+
+resource "aws_cloudwatch_log_group" "log_group_jira_orchestrator_sfn" {
+  #checkov:skip=CKV_AWS_338:Ensure CloudWatch log groups retains logs for at least 1 year
+  count = var.jira_integration.enabled ? 1 : 0
+
+  name              = "/aws/sfn/${local.sfn_jira_orchestrator_name}"
+  retention_in_days = var.jira_integration.step_function_settings.retention
+  kms_key_id        = var.kms_key_arn
 }
 
 # Step Function to orchestrate findings manager lambda functions
@@ -34,15 +60,21 @@ resource "aws_sfn_state_machine" "jira_orchestrator" {
   #checkov:skip=CKV_AWS_285:logging configuration is only supported for SFN type 'EXPRESS'.
   count = var.jira_integration.enabled ? 1 : 0
 
-  name     = "securityhub-findings-manager-orchestrator"
+  name     = local.sfn_jira_orchestrator_name
   role_arn = module.jira_step_function_iam_role[0].arn
   tags     = var.tags
 
-  definition = templatefile("${path.module}/files/step-function-artifacts/securityhub-findings-manager-orchestrator.json.tpl", {
+  definition = templatefile("${path.module}/files/step-function-artifacts/${local.sfn_jira_orchestrator_name}.json.tpl", {
     finding_severity_normalized    = var.jira_integration.finding_severity_normalized_threshold
     findings_manager_events_lambda = module.findings_manager_events_lambda.arn,
     jira_lambda                    = module.jira_lambda[0].arn
   })
+
+  logging_configuration {
+    include_execution_data = true
+    level                  = var.jira_integration.step_function_settings.log_level
+    log_destination        = "${aws_cloudwatch_log_group.log_group_jira_orchestrator_sfn[0].arn}:*"
+  }
 }
 
 # IAM role to be assumed by EventBridge

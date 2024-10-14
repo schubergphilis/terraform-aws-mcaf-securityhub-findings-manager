@@ -98,6 +98,12 @@ variable "jira_integration" {
       timeout                     = 60
       security_group_egress_rules = []
     })
+
+    step_function_settings = optional(object({
+      log_level = optional(string, "ERROR")
+      retention = optional(number, 90)
+    }))
+
   })
   default = {
     enabled                = false
