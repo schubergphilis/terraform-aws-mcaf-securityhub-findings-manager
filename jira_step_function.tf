@@ -32,11 +32,26 @@ data "aws_iam_policy_document" "jira_step_function_iam_role" {
   }
 
   statement {
+    sid = "CloudWatchLogDeliveryResourcePolicyAccess"
+    actions = [
+      "logs:CreateLogDelivery",
+      "logs:DeleteLogDelivery",
+      "logs:DescribeLogGroups",
+      "logs:DescribeResourcePolicies",
+      "logs:GetLogDelivery",
+      "logs:ListLogDeliveries",
+      "logs:PutResourcePolicy",
+      "logs:UpdateLogDelivery"
+    ]
+    resources = [
+      "*"
+    ]
+  }
+
+  statement {
     sid = "TrustEventsToStoreLogEvent"
     actions = [
-      "logs:CreateLogGroup",
       "logs:CreateLogStream",
-      "logs:DescribeLogStreams",
       "logs:PutLogEvents"
     ]
     resources = [
