@@ -1,124 +1,90 @@
 import json
-import boto3
 import os
-import base64
-import urllib.request
-import urllib
+
+import boto3
 from aws_lambda_powertools import Logger
+from aws_lambda_powertools.utilities.typing import LambdaContext
+from jira.exceptions import JIRAError
+
+import helpers
 
 logger = Logger()
-EXCLUDE_ACCOUNT_FILTER = os.environ['EXCLUDE_ACCOUNT_FILTER']
-JIRA_ISSUE_TYPE = os.environ['JIRA_ISSUE_TYPE']
-JIRA_SECRET_ARN = os.environ['JIRA_SECRET_ARN']
-JIRA_PROJECT_KEY = os.environ['JIRA_PROJECT_KEY']
 
+securityhub = boto3.client('securityhub')
+secretsmanager = boto3.client('secretsmanager')
 
-def jira_rest_call(data, url, apiuser, apikey):
-    # Encode the username and password
-    base64string = base64.encodebytes(('%s:%s' % (apiuser, apikey)).encode()).decode().strip()  # noqa: E501
-    jiraurl = url + "/rest/api/latest/issue/"
+REQUIRED_ENV_VARS = [
+    'EXCLUDE_ACCOUNT_FILTER', 'JIRA_ISSUE_TYPE', 'JIRA_PROJECT_KEY', 'JIRA_SECRET_ARN'
+]
+DEFAULT_JIRA_AUTOCLOSE_COMMENT = 'Security Hub finding has been resolved. Autoclosing the issue.'
+DEFAULT_JIRA_AUTOCLOSE_TRANSITION = 'Done'
 
-    # Build the request
-    restreq = urllib.request.Request(jiraurl)
-    restreq.add_header('Content-Type', 'application/json')
-    restreq.add_header("Authorization", "Basic %s" % base64string)
+STATUS_NEW = 'NEW'
+STATUS_NOTIFIED = 'NOTIFIED'
+STATUS_RESOLVED = 'RESOLVED'
 
-    # Send the request and grab JSON response
-    response = urllib.request.urlopen(restreq, data.encode('utf-8'))
+@logger.inject_lambda_context
+def lambda_handler(event: dict, context: LambdaContext):
+    # Validate required environment variables
+    helpers.validate_env_vars(REQUIRED_ENV_VARS)
 
-    # Load into a JSON object and return that to the calling function
-    return json.loads(response.read())
+    # Retrieve environment variables
+    exclude_account_filter = os.environ['EXCLUDE_ACCOUNT_FILTER']
+    jira_autoclose_comment = os.getenv(
+        'JIRA_AUTOCLOSE_COMMENT', DEFAULT_JIRA_AUTOCLOSE_COMMENT)
+    jira_autoclose_transition = os.getenv(
+        'JIRA_AUTOCLOSE_TRANSITION', DEFAULT_JIRA_AUTOCLOSE_TRANSITION)
+    jira_issue_type = os.environ['JIRA_ISSUE_TYPE']
+    jira_project_key = os.environ['JIRA_PROJECT_KEY']
+    jira_secret_arn = os.environ['JIRA_SECRET_ARN']
 
+    # Retrieve JIRA client
+    jira_secret = helpers.get_secret(secretsmanager, jira_secret_arn)
+    jira_client = helpers.get_jira_client(jira_secret)
 
-def jira_build_sechub_data(issueType, accountId, region, event, projectKey):
-    finding = event['findings'][0]
-    description = finding['Description'] + "\n\n A Security Hub finding has \
-        been detected: \n{code}\n" \
-        + json.dumps(event, indent=4, sort_keys=True) + "\n{code}\n"
-
-    title = "Security Hub (" + finding['Title'] + ") detected in " + accountId
-    labels = [region, accountId, finding['Severity']['Label'].lower()]
-    if finding['ProductFields'].get("RuleId"):
-        labels.append(finding['ProductFields']['RuleId'])
-    if finding['ProductFields'].get("ControlId"):
-        labels.append(finding['ProductFields']['ControlId'])
-    if finding['ProductFields'].get("ControlId"):
-        labels.append(finding['ProductFields']['aws/securityhub/ProductName'].replace(" ", ""))  # noqa: E501
-
-    issue = {
-        'fields': {
-            'project': {'key': projectKey},
-            'summary': title,
-            'description': description,
-            'issuetype': {'name': issueType},
-            'labels': labels,
-            'customfield_11101': {'value': 'Vulnerability Management'}
-        }
-    }
-    return json.dumps(issue)
-
-
-def get_jira_secret(boto3, secretarn):
-    service_client = boto3.client('secretsmanager')
-    secret = service_client.get_secret_value(SecretId=secretarn)
-    plaintext = secret['SecretString']
-    secret_dict = json.loads(plaintext)
-
-    # Run validations against the secret
-    required_fields = ['apiuser', 'apikey', 'url']
-    for field in required_fields:
-        if field not in secret_dict:
-            raise KeyError("%s key is missing from secret JSON" % field)
-    return secret_dict
-
-
-def update_workflowstatus(boto3, finding):
-    service_client = boto3.client('securityhub')
-    try:
-        response = service_client.batch_update_findings(
-            FindingIdentifiers=[
-                {
-                    'Id': finding['Id'],
-                    'ProductArn': finding['ProductArn']
-                }
-            ],
-            Workflow={
-                'Status': 'NOTIFIED'
-            }
-        )
-        return response
-    except Exception as e:
-        logger.exception(
-            "Updating finding workflow failed, please troubleshoot further", e)
-        raise
-
-
-def create_issue_for_account(accountId, excludeAccountFilter):
-    if accountId in excludeAccountFilter:
-        return False
-    else:
-        return True
-
-
-@logger.inject_lambda_context(log_event=True)
-def lambda_handler(event, context):
     # Get Sechub event details
-    eventDetails = event['detail']
-    finding = eventDetails['findings'][0]
-    findingAccountId = finding["AwsAccountId"]
-    findingRegion = finding["Region"]
-    if create_issue_for_account(findingAccountId, EXCLUDE_ACCOUNT_FILTER):  # noqa: E501
-        jiraSecretData = get_jira_secret(boto3, JIRA_SECRET_ARN)
-        jiraUrl = jiraSecretData['url']
-        jiraApiUser = jiraSecretData['apiuser']
-        jiraApiKey = jiraSecretData['apikey']
+    event_detail = event['detail']
+    finding = event_detail['findings'][0]
+    finding_account_id = finding['AwsAccountId']
+    workflow_status = finding['Workflow']['Status']
 
-        json_data = jira_build_sechub_data(JIRA_ISSUE_TYPE, findingAccountId,
-                                           findingRegion, eventDetails,
-                                           JIRA_PROJECT_KEY)
-        logger.info("Jira issue ", json_data)
-        json_response = jira_rest_call(json_data, jiraUrl, jiraApiUser,
-                                       jiraApiKey)
-        logger.info("Created Jira issue ", json_response['key'])
-        response = update_workflowstatus(boto3, finding)
-        logger.info("Updated sechub finding workflow: ", response)
+    # Only process finding if account is not excluded
+    if finding_account_id in exclude_account_filter:
+        logger.info(
+            f"Account {finding_account_id} is excluded from JIRA ticket creation.")
+        return
+
+    # Handle new findings
+    if workflow_status == STATUS_NEW:
+        # Create JIRA issue and updates Security Hub status to NOTIFIED
+        # and adds JIRA issue key to note (in JSON format)
+        try:
+            issue = helpers.create_jira_issue(
+                jira_client, jira_project_key, jira_issue_type, event_detail)
+            note = json.dumps({'jiraIssue': issue.key})
+            helpers.update_security_hub(
+                securityhub, finding["Id"], finding["ProductArn"], STATUS_NOTIFIED, note)
+        except Exception as e:
+            logger.error(f"Error processing new finding for findingID {finding["Id"]}: {e}")
+    
+    # Handle resolved findings
+    elif workflow_status == STATUS_RESOLVED:
+        # Close JIRA issue if finding is resolved.
+        # Note text should contain JIRA issue key in JSON format
+        try:
+            note_text = finding['Note']['Text']
+            note_text_json = json.loads(note_text)
+            jira_issue_id = note_text_json.get('jiraIssue')
+
+            if jira_issue_id:
+                try:
+                    issue = jira_client.issue(jira_issue_id)
+                except JIRAError as e:
+                    logger.error(f"Failed to retrieve JIRA issue {jira_issue_id}: {e}. Cannot autoclose.")
+                    return
+                helpers.close_jira_issue(
+                    jira_client, issue, jira_autoclose_transition, jira_autoclose_comment)
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to decode JSON from note text: {e}. Cannot autoclose.")
+        except Exception as e:
+            logger.error(f"Error processing resolved finding for findingId {finding["Id"]}: {e}. Cannot autoclose.")

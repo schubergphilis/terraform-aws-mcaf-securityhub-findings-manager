@@ -6,7 +6,7 @@ This suppression is needed in case some controls or rules are not completely app
 For example, you might want to suppress all DynamoDB Autoscaling configuration findings related to the control `DynamoDB.1`, simply because this feature is not applicable for your workload.
 Besides the findings management this module is also able to integrate with Jira and ServiceNow. To ensure tickets are created for all `NEW` findings with a severity higher than a definable threshold.
 
-> [!TIP]  
+> [!TIP]
 > We recommend deploying this module in the Audit/Security Account of an AWS reference multi-account setup.
 > This account receives events from all child accounts in an organization.
 > This way, a comprehensive overview of the organization's security posture can be easily maintained.
@@ -37,7 +37,7 @@ For a more complete overview see [Resources](#resources) and [Modules](#modules)
 
 There are 3 different deployment modes for this module:
 
-> [!IMPORTANT] 
+> [!IMPORTANT]
 > In case of first time deploy, be mindful that there can be a delay between creating S3 triggers and those being fully functional.
 > Re-create the rules object later to have rules run on your findings history in that case.
 
@@ -53,6 +53,7 @@ The module deploys 2 Lambda functions:
 * This deployment method can be used by setting the value of the variable `jira_integration` to `true` (default = false).
 * The module deploys an additional `Jira` lambda function along with a Step function which orchestrates these Lambda functions and Step Function as a target to the EventBridge rule.
 * If the finding is not suppressed a ticket is created for findings with a normalized severity higher than a definable threshold. The workflow status in Security Hub is updated from `NEW` to `NOTIFIED`.
+* You can enable auto-closing functionality by setting the value of the variable `jira_integration.autoclose_enabled` to `true` (default = false). If you do so, the step function will also forward findings updated to status `RESOLVED` to the lambda function. The function will then use the ticket number saved in the finding note and transition the issue using the transition defined in `jira_integration.autoclose_transition_name` with comment defined in `jira_integration.autoclose_comment`
 
 Only events from Security Hub with a normalized severity level higher than a definable threshold (by default `70`) trigger the Jira integration.
 
@@ -76,8 +77,8 @@ Only events from Security Hub with a normalized severity level higher than a def
 * With the variable `severity_label_filter` it can be configured which findings will be forwarded based on the severity label.
 * ServiceNow will pull the events from the SQS queue with the `SCSyncUser` using `acccess_key` & `secret_access_key`.
 
-> [!WARNING] 
-> The user will be created by the module, but the `acccess_key` & `secret_access_key` need to be generated in the AWS Console, to prevent storing this data in the Terraform state. 
+> [!WARNING]
+> The user will be created by the module, but the `acccess_key` & `secret_access_key` need to be generated in the AWS Console, to prevent storing this data in the Terraform state.
 > If you want Terraform to create the `acccess_key` & `secret_access_key` (and output them), set variable `create_servicenow_access_keys` to `true` (default = false)
 
 ## How to format the `rules.yaml` file?
@@ -124,7 +125,6 @@ Since a lambda layer is used to provide the aws-lambda-powertools if you want to
 
 | Name | Version |
 |------|---------|
-| <a name="provider_archive"></a> [archive](#provider\_archive) | >= 2.0 |
 | <a name="provider_aws"></a> [aws](#provider\_aws) | >= 4.9 |
 
 ## Modules
@@ -137,7 +137,6 @@ Since a lambda layer is used to provide the aws-lambda-powertools if you want to
 | <a name="module_findings_manager_trigger_lambda"></a> [findings\_manager\_trigger\_lambda](#module\_findings\_manager\_trigger\_lambda) | schubergphilis/mcaf-lambda/aws | ~> 1.4.1 |
 | <a name="module_jira_eventbridge_iam_role"></a> [jira\_eventbridge\_iam\_role](#module\_jira\_eventbridge\_iam\_role) | schubergphilis/mcaf-role/aws | ~> 0.3.2 |
 | <a name="module_jira_lambda"></a> [jira\_lambda](#module\_jira\_lambda) | schubergphilis/mcaf-lambda/aws | ~> 1.4.1 |
-| <a name="module_jira_lambda_deployment_package"></a> [jira\_lambda\_deployment\_package](#module\_jira\_lambda\_deployment\_package) | terraform-aws-modules/lambda/aws | ~> 3.3.0 |
 | <a name="module_jira_lambda_iam_role"></a> [jira\_lambda\_iam\_role](#module\_jira\_lambda\_iam\_role) | schubergphilis/mcaf-role/aws | ~> 0.4.0 |
 | <a name="module_jira_step_function_iam_role"></a> [jira\_step\_function\_iam\_role](#module\_jira\_step\_function\_iam\_role) | schubergphilis/mcaf-role/aws | ~> 0.3.2 |
 | <a name="module_servicenow_integration"></a> [servicenow\_integration](#module\_servicenow\_integration) | ./modules/servicenow/ | n/a |
@@ -159,7 +158,6 @@ Since a lambda layer is used to provide the aws-lambda-powertools if you want to
 | [aws_s3_object.jira_lambda_deployment_package](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object) | resource |
 | [aws_s3_object.rules](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_object) | resource |
 | [aws_sfn_state_machine.jira_orchestrator](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/sfn_state_machine) | resource |
-| [archive_file.jira_lambda_deployment_package](https://registry.terraform.io/providers/hashicorp/archive/latest/docs/data-sources/file) | data source |
 | [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
 | [aws_iam_policy_document.findings_manager_lambda_iam_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
 | [aws_iam_policy_document.jira_eventbridge_iam_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
@@ -177,7 +175,7 @@ Since a lambda layer is used to provide the aws-lambda-powertools if you want to
 | <a name="input_findings_manager_lambda_iam_role_name"></a> [findings\_manager\_lambda\_iam\_role\_name](#input\_findings\_manager\_lambda\_iam\_role\_name) | The name of the role which will be assumed by both Findings Manager Lambda functions | `string` | `"SecurityHubFindingsManagerLambda"` | no |
 | <a name="input_findings_manager_trigger_lambda"></a> [findings\_manager\_trigger\_lambda](#input\_findings\_manager\_trigger\_lambda) | Findings Manager Lambda settings - Manage Security Hub findings in response to S3 file upload triggers | <pre>object({<br>    name        = optional(string, "securityhub-findings-manager-trigger")<br>    log_level   = optional(string, "INFO")<br>    memory_size = optional(number, 256)<br>    timeout     = optional(number, 120)<br><br>    security_group_egress_rules = optional(list(object({<br>      cidr_ipv4                    = optional(string)<br>      cidr_ipv6                    = optional(string)<br>      description                  = string<br>      from_port                    = optional(number, 0)<br>      ip_protocol                  = optional(string, "-1")<br>      prefix_list_id               = optional(string)<br>      referenced_security_group_id = optional(string)<br>      to_port                      = optional(number, 0)<br>    })), [])<br>  })</pre> | `{}` | no |
 | <a name="input_jira_eventbridge_iam_role_name"></a> [jira\_eventbridge\_iam\_role\_name](#input\_jira\_eventbridge\_iam\_role\_name) | The name of the role which will be assumed by EventBridge rules for Jira integration | `string` | `"SecurityHubFindingsManagerJiraEventBridge"` | no |
-| <a name="input_jira_integration"></a> [jira\_integration](#input\_jira\_integration) | Findings Manager - Jira integration settings | <pre>object({<br>    enabled                               = optional(bool, false)<br>    credentials_secret_arn                = string<br>    exclude_account_ids                   = optional(list(string), [])<br>    finding_severity_normalized_threshold = optional(number, 70)<br>    issue_type                            = optional(string, "Security Advisory")<br>    project_key                           = string<br><br>    security_group_egress_rules = optional(list(object({<br>      cidr_ipv4                    = optional(string)<br>      cidr_ipv6                    = optional(string)<br>      description                  = string<br>      from_port                    = optional(number, 0)<br>      ip_protocol                  = optional(string, "-1")<br>      prefix_list_id               = optional(string)<br>      referenced_security_group_id = optional(string)<br>      to_port                      = optional(number, 0)<br>    })), [])<br><br>    lambda_settings = optional(object({<br>      name          = optional(string, "securityhub-findings-manager-jira")<br>      iam_role_name = optional(string, "SecurityHubFindingsManagerJiraLambda")<br>      log_level     = optional(string, "INFO")<br>      memory_size   = optional(number, 256)<br>      timeout       = optional(number, 60)<br>      }), {<br>      name                        = "securityhub-findings-manager-jira"<br>      iam_role_name               = "SecurityHubFindingsManagerJiraLambda"<br>      log_level                   = "INFO"<br>      memory_size                 = 256<br>      timeout                     = 60<br>      security_group_egress_rules = []<br>    })<br><br>    step_function_settings = optional(object({<br>      log_level = optional(string, "ERROR")<br>      retention = optional(number, 90)<br>    }))<br><br>  })</pre> | <pre>{<br>  "credentials_secret_arn": null,<br>  "enabled": false,<br>  "project_key": null<br>}</pre> | no |
+| <a name="input_jira_integration"></a> [jira\_integration](#input\_jira\_integration) | Findings Manager - Jira integration settings | <pre>object({<br>    enabled                               = optional(bool, false)<br>    autoclose_enabled                     = optional(bool, false)<br>    autoclose_comment                     = optional(string, "Security Hub finding has been resolved. Autoclosing the issue.")<br>    autoclose_transition_name             = optional(string, "Close Issue")<br>    credentials_secret_arn                = string<br>    exclude_account_ids                   = optional(list(string), [])<br>    finding_severity_normalized_threshold = optional(number, 70)<br>    issue_type                            = optional(string, "Security Advisory")<br>    project_key                           = string<br><br>    security_group_egress_rules = optional(list(object({<br>      cidr_ipv4                    = optional(string)<br>      cidr_ipv6                    = optional(string)<br>      description                  = string<br>      from_port                    = optional(number, 0)<br>      ip_protocol                  = optional(string, "-1")<br>      prefix_list_id               = optional(string)<br>      referenced_security_group_id = optional(string)<br>      to_port                      = optional(number, 0)<br>    })), [])<br><br>    lambda_settings = optional(object({<br>      name          = optional(string, "securityhub-findings-manager-jira")<br>      iam_role_name = optional(string, "SecurityHubFindingsManagerJiraLambda")<br>      log_level     = optional(string, "INFO")<br>      memory_size   = optional(number, 256)<br>      timeout       = optional(number, 60)<br>      }), {<br>      name                        = "securityhub-findings-manager-jira"<br>      iam_role_name               = "SecurityHubFindingsManagerJiraLambda"<br>      log_level                   = "INFO"<br>      memory_size                 = 256<br>      timeout                     = 60<br>      security_group_egress_rules = []<br>    })<br><br>    step_function_settings = optional(object({<br>      log_level = optional(string, "ERROR")<br>      retention = optional(number, 90)<br>    }))<br><br>  })</pre> | <pre>{<br>  "credentials_secret_arn": null,<br>  "enabled": false,<br>  "project_key": null<br>}</pre> | no |
 | <a name="input_jira_step_function_iam_role_name"></a> [jira\_step\_function\_iam\_role\_name](#input\_jira\_step\_function\_iam\_role\_name) | The name of the role which will be assumed by AWS Step Function for Jira integration | `string` | `"SecurityHubFindingsManagerJiraStepFunction"` | no |
 | <a name="input_lambda_runtime"></a> [lambda\_runtime](#input\_lambda\_runtime) | The version of Python to use for the Lambda functions | `string` | `"python3.12"` | no |
 | <a name="input_rules_filepath"></a> [rules\_filepath](#input\_rules\_filepath) | Pathname to the file that stores the manager rules | `string` | `""` | no |

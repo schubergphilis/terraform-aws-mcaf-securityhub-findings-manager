@@ -1,7 +1,26 @@
 {
     "Comment": "Step Function to orchestrate Security Hub findings manager Lambda functions",
-    "StartAt": "invoke-securityhub-findings-manager-events",
+    "StartAt": "ChoiceSuppressor",
     "States": {
+      "ChoiceSuppressor": {
+        "Type": "Choice",
+        "Choices": [
+          {
+            "Or": [
+              {
+                "Variable": "$.detail.findings[0].Workflow.Status",
+                "StringEquals": "NEW"
+              },
+              {
+                "Variable": "$.detail.findings[0].Workflow.Status",
+                "StringEquals": "NOTIFIED"
+              }
+            ],
+            "Next": "invoke-securityhub-findings-manager-events"
+          }
+        ],
+        "Default": "ChoiceJiraIntegration"
+      },
       "invoke-securityhub-findings-manager-events": {
         "Type": "Task",
         "Resource": "arn:aws:states:::lambda:invoke",
@@ -27,52 +46,65 @@
               "States.TaskFailed"
             ],
             "Comment": "Catch all task failures",
-            "Next": "Choice",
+            "Next": "ChoiceJiraIntegration",
             "ResultPath": "$.error"
           }
         ],
-        "Next": "Choice",
+        "Next": "ChoiceJiraIntegration",
         "ResultPath": "$.TaskResult"
       },
-      "Choice": {
+      "ChoiceJiraIntegration": {
         "Type": "Choice",
         "Choices": [
           {
             "And": [
               {
-                "Not": {
-                  "Variable": "$.TaskResult.Payload.finding_state",
-                  "IsPresent": true
-                }
+                "Or": [
+                  {
+                    "Variable": "$.TaskResult.Payload.finding_state",
+                    "IsPresent": false
+                  },
+                  {
+                    "And": [
+                      {
+                        "Variable": "$.TaskResult.Payload.finding_state",
+                        "IsPresent": true
+                      },
+                      {
+                        "Variable": "$.TaskResult.Payload.finding_state",
+                        "StringEquals": "skipped"
+                      }
+                    ]
+                  }
+                ]
               },
               {
                 "Variable": "$.detail.findings[0].Severity.Normalized",
                 "NumericGreaterThanEquals": ${finding_severity_normalized}
               },
               {
-                "Variable": "$.detail.findings[0].Workflow.Status",
-                "StringEquals": "NEW"
-              }
-            ],
-            "Next": "invoke-securityhub-jira"
-          },
-          {
-            "And": [
-              {
-                "Variable": "$.TaskResult.Payload.finding_state",
-                "IsPresent": true
-              },
-              {
-                "Variable": "$.TaskResult.Payload.finding_state",
-                "StringEquals": "skipped"
-              },
-              {
-                "Variable": "$.detail.findings[0].Severity.Normalized",
-                "NumericGreaterThanEquals": ${finding_severity_normalized}
-              },
-              {
-                "Variable": "$.detail.findings[0].Workflow.Status",
-                "StringEquals": "NEW"
+                "Or": [
+                  {
+                    "Variable": "$.detail.findings[0].Workflow.Status",
+                    "StringEquals": "NEW"
+                  },
+                  {
+                    "And": [
+                      {
+                        "Variable": "$.detail.findings[0].Workflow.Status",
+                        "StringEquals": "RESOLVED"
+                      },
+                      {
+                        "Variable": "$.detail.findings[0].Note.Text",
+                        "IsPresent": true
+                      },
+                      {
+                        "Variable": "$.detail.findings[0].Note.Text",
+                        "StringMatches": "*jiraIssue*"
+                      }
+                    ]
+                  }
+                ]
               }
             ],
             "Next": "invoke-securityhub-jira"

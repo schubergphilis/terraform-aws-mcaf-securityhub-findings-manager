@@ -1,3 +1,8 @@
+locals {
+  compliance_status_filter = var.jira_integration.autoclose_enabled ? ["FAILED", "WARNING", "PASSED"] : ["FAILED", "WARNING"]
+  workflow_status_filter   = var.jira_integration.autoclose_enabled ? ["NEW", "NOTIFIED", "RESOLVED"] : ["NEW", "NOTIFIED"]
+}
+
 # IAM role to be assumed by Lambda function
 module "findings_manager_lambda_iam_role" {
   source  = "schubergphilis/mcaf-role/aws"
@@ -132,10 +137,10 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
   "detail": {
     "findings": {
       "Compliance": {
-        "Status": ["FAILED", "WARNING"]
+        "Status": ${jsonencode(local.compliance_status_filter)}
       },
       "Workflow": {
-        "Status": ["NEW", "NOTIFIED"]
+        "Status": ${jsonencode(local.workflow_status_filter)}
       }
     }
   }
