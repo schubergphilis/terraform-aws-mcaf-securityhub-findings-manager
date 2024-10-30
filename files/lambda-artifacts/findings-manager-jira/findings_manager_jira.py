@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 
 import boto3
 from aws_lambda_powertools import Logger
@@ -43,6 +44,14 @@ def lambda_handler(event: dict, context: LambdaContext):
     jira_issue_type = os.environ['JIRA_ISSUE_TYPE']
     jira_project_key = os.environ['JIRA_PROJECT_KEY']
     jira_secret_arn = os.environ['JIRA_SECRET_ARN']
+
+    # Parse custom fields
+    try:
+        jira_issue_custom_fields = json.loads(jira_issue_custom_fields)
+        jira_issue_custom_fields = { k: {"value": v} for k, v in jira_issue_custom_fields.items() }
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse JSON for custom fields: {e}.")
+        sys.exit(1)
 
     # Retrieve JIRA client
     jira_secret = helpers.get_secret(secretsmanager, jira_secret_arn)
