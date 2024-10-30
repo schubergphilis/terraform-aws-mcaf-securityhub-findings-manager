@@ -111,7 +111,7 @@
                                   {
                                     "Variable": "$.detail.findings[0].Compliance.Status",
                                     "StringEquals": "NOT_AVAILABLE"
-                                  },
+                                  }
                                 ]
                               }
                             ]
