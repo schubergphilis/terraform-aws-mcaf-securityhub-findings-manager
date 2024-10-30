@@ -83,11 +83,12 @@ resource "aws_iam_role_policy_attachment" "jira_lambda_iam_role_vpc_policy_attac
 resource "aws_s3_object" "jira_lambda_deployment_package" {
   count = var.jira_integration.enabled ? 1 : 0
 
-  bucket     = module.findings_manager_bucket.id
-  key        = "lambda_${var.jira_integration.lambda_settings.name}_${var.lambda_runtime}.zip"
-  kms_key_id = var.kms_key_arn
-  source     = "${path.module}/files/pkg/lambda_findings-manager-jira_${var.lambda_runtime}.zip"
-  tags       = var.tags
+  bucket      = module.findings_manager_bucket.id
+  key         = "lambda_${var.jira_integration.lambda_settings.name}_${var.lambda_runtime}.zip"
+  kms_key_id  = var.kms_key_arn
+  source      = "${path.module}/files/pkg/lambda_findings-manager-jira_${var.lambda_runtime}.zip"
+  source_hash = filemd5("${path.module}/files/pkg/lambda_findings-manager-jira_${var.lambda_runtime}.zip")
+  tags        = var.tags
 }
 
 # Lambda function to create Jira ticket for Security Hub findings and set the workflow state to NOTIFIED

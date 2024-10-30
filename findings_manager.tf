@@ -78,11 +78,12 @@ resource "aws_iam_role_policy_attachment" "findings_manager_lambda_iam_role" {
 
 # Push the Lambda code zip deployment package to s3
 resource "aws_s3_object" "findings_manager_lambdas_deployment_package" {
-  bucket     = module.findings_manager_bucket.id
-  key        = "lambda_securityhub-findings-manager_${var.lambda_runtime}.zip"
-  kms_key_id = var.kms_key_arn
-  source     = "${path.module}/files/pkg/lambda_securityhub-findings-manager_${var.lambda_runtime}.zip"
-  tags       = var.tags
+  bucket      = module.findings_manager_bucket.id
+  key         = "lambda_securityhub-findings-manager_${var.lambda_runtime}.zip"
+  kms_key_id  = var.kms_key_arn
+  source      = "${path.module}/files/pkg/lambda_securityhub-findings-manager_${var.lambda_runtime}.zip"
+  source_hash = filemd5("${path.module}/files/pkg/lambda_securityhub-findings-manager_${var.lambda_runtime}.zip")
+  tags        = var.tags
 }
 
 ################################################################################
