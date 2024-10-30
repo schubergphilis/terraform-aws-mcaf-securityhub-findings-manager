@@ -14,7 +14,7 @@ securityhub = boto3.client('securityhub')
 secretsmanager = boto3.client('secretsmanager')
 
 REQUIRED_ENV_VARS = [
-    'EXCLUDE_ACCOUNT_FILTER', 'JIRA_ISSUE_TYPE', 'JIRA_PROJECT_KEY', 'JIRA_SECRET_ARN'
+    'EXCLUDE_ACCOUNT_FILTER', 'JIRA_ISSUE_CUSTOM_FIELDS', 'JIRA_ISSUE_TYPE', 'JIRA_PROJECT_KEY', 'JIRA_SECRET_ARN'
 ]
 DEFAULT_JIRA_AUTOCLOSE_COMMENT = 'Security Hub finding has been resolved. Autoclosing the issue.'
 DEFAULT_JIRA_AUTOCLOSE_TRANSITION = 'Done'
@@ -39,6 +39,7 @@ def lambda_handler(event: dict, context: LambdaContext):
         'JIRA_AUTOCLOSE_COMMENT', DEFAULT_JIRA_AUTOCLOSE_COMMENT)
     jira_autoclose_transition = os.getenv(
         'JIRA_AUTOCLOSE_TRANSITION', DEFAULT_JIRA_AUTOCLOSE_TRANSITION)
+    jira_issue_custom_fields = os.environ['JIRA_ISSUE_CUSTOM_FIELDS']
     jira_issue_type = os.environ['JIRA_ISSUE_TYPE']
     jira_project_key = os.environ['JIRA_PROJECT_KEY']
     jira_secret_arn = os.environ['JIRA_SECRET_ARN']
@@ -66,7 +67,7 @@ def lambda_handler(event: dict, context: LambdaContext):
         # and adds JIRA issue key to note (in JSON format)
         try:
             issue = helpers.create_jira_issue(
-                jira_client, jira_project_key, jira_issue_type, event_detail)
+                jira_client, jira_project_key, jira_issue_type, event_detail, jira_issue_custom_fields)
             note = json.dumps({'jiraIssue': issue.key})
             helpers.update_security_hub(
                 securityhub, finding["Id"], finding["ProductArn"], STATUS_NOTIFIED, note)

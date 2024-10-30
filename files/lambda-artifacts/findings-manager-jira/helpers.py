@@ -93,7 +93,7 @@ def get_secret(client: BaseClient, secret_arn: str) -> Dict[str, str]:
         raise e
 
 
-def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, event: dict) -> Issue:
+def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, event: dict, custom_fields: dict) -> Issue:
     """
     Create a JIRA issue based on a Security Hub event.
 
@@ -102,6 +102,7 @@ def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, even
         project_key (str): The key of the JIRA project.
         issue_type (str): The type of the JIRA issue.
         event (Dict): The Security Hub event data.
+        custom_fields (Dict): The custom fields to include in the JIRA issue.
 
     Returns:
         Issue: The created JIRA issue.
@@ -134,12 +135,12 @@ def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, even
     ]
 
     issue_dict = {
+        **custom_fields,
         'project': {'key': project_key},
         'issuetype': {'name': issue_type},
         'summary': issue_title,
         'description': issue_description,
         'labels': issue_labels,
-        'customfield_11101': {'value': 'Vulnerability Management'}
     }
 
     try:

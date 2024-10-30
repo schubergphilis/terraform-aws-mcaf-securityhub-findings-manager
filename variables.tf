@@ -73,6 +73,7 @@ variable "jira_integration" {
     credentials_secret_arn                = string
     exclude_account_ids                   = optional(list(string), [])
     finding_severity_normalized_threshold = optional(number, 70)
+    issue_custom_fields                   = optional(map(string), {})
     issue_type                            = optional(string, "Security Advisory")
     project_key                           = string
 
