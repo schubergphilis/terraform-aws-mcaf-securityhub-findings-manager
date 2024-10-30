@@ -51,7 +51,8 @@ data "aws_iam_policy_document" "jira_lambda_iam_role" {
       test     = "ForAnyValue:StringEquals"
       variable = "securityhub:ASFFSyntaxPath/Workflow.Status"
       values = [
-        "NOTIFIED"
+        "NOTIFIED",
+        "RESOLVED"
       ]
     }
   }
