@@ -91,8 +91,32 @@
                   {
                     "And": [
                       {
-                        "Variable": "$.detail.findings[0].Workflow.Status",
-                        "StringEquals": "RESOLVED"
+                        "Or": [
+                          {
+                            "Variable": "$.detail.findings[0].Workflow.Status",
+                            "StringEquals": "RESOLVED"
+                          },
+                          {
+                            "And": [
+                              {
+                                "Variable": "$.detail.findings[0].Workflow.Status",
+                                "StringEquals": "NOTIFIED"
+                              },
+                              {
+                                "Or": [
+                                  {
+                                    "Variable": "$.detail.findings[0].Compliance.Status",
+                                    "StringEquals": "PASSED"
+                                  },
+                                  {
+                                    "Variable": "$.detail.findings[0].Compliance.Status",
+                                    "StringEquals": "NOT_AVAILABLE"
+                                  },
+                                ]
+                              }
+                            ]
+                          }
+                        ]
                       },
                       {
                         "Variable": "$.detail.findings[0].Note.Text",

@@ -23,6 +23,9 @@ STATUS_NEW = 'NEW'
 STATUS_NOTIFIED = 'NOTIFIED'
 STATUS_RESOLVED = 'RESOLVED'
 
+COMPLIANCE_STATUS_PASSED = 'PASSED'
+COMPLIANCE_STATUS_NOT_AVAILABLE = 'NOT_AVAILABLE'
+
 @logger.inject_lambda_context
 def lambda_handler(event: dict, context: LambdaContext):
     # Validate required environment variables
@@ -47,6 +50,7 @@ def lambda_handler(event: dict, context: LambdaContext):
     finding = event_detail['findings'][0]
     finding_account_id = finding['AwsAccountId']
     workflow_status = finding['Workflow']['Status']
+    compliance_status = finding['Compliance']['Status']
 
     # Only process finding if account is not excluded
     if finding_account_id in exclude_account_filter:
@@ -68,7 +72,7 @@ def lambda_handler(event: dict, context: LambdaContext):
             logger.error(f"Error processing new finding for findingID {finding["Id"]}: {e}")
     
     # Handle resolved findings
-    elif workflow_status == STATUS_RESOLVED:
+    elif workflow_status == STATUS_RESOLVED or (workflow_status == STATUS_NOTIFIED and compliance_status in [COMPLIANCE_STATUS_PASSED, COMPLIANCE_STATUS_NOT_AVAILABLE]):
         # Close JIRA issue if finding is resolved.
         # Note text should contain JIRA issue key in JSON format
         try:
@@ -84,6 +88,12 @@ def lambda_handler(event: dict, context: LambdaContext):
                     return
                 helpers.close_jira_issue(
                     jira_client, issue, jira_autoclose_transition, jira_autoclose_comment)
+                
+            if workflow_status == STATUS_NOTIFIED:
+                # Resolve SecHub finding as it will be reopened anyway in case the compliance fails
+                # Also remove the JIRA issue key from the note. That prevents a second run.
+                helpers.update_security_hub(
+                    securityhub, finding["Id"], finding["ProductArn"], STATUS_RESOLVED, "")
         except json.JSONDecodeError as e:
             logger.error(f"Failed to decode JSON from note text: {e}. Cannot autoclose.")
         except Exception as e:
