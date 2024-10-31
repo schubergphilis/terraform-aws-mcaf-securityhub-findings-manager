@@ -100,3 +100,5 @@ def lambda_handler(event: dict, context: LambdaContext):
             logger.error(f"Failed to decode JSON from note text: {e}. Cannot autoclose.")
         except Exception as e:
             logger.error(f"Error processing resolved finding for findingId {finding["Id"]}: {e}. Cannot autoclose.")
+    else:
+        logger.info(f"Finding {finding["Id"]} is not in a state to be processed. Workflow status: {workflow_status}, Compliance status: {compliance_status}")
