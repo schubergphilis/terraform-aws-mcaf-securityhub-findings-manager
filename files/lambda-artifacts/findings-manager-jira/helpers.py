@@ -199,6 +199,12 @@ def update_security_hub(client: BaseClient, finding_id: str,
                          type(client)} instead.")
 
     try:
+        kwargs = {}
+        if note:
+            kwargs['Note'] = {
+                'Text': note,
+                'UpdatedBy': 'securityhub-findings-manager-jira'
+            }
         logger.info(f"Updating SecurityHub finding {finding_id} to status {status} with note '{note}'.")
         response = client.batch_update_findings(
             FindingIdentifiers=[
@@ -208,10 +214,7 @@ def update_security_hub(client: BaseClient, finding_id: str,
                 }
             ],
             Workflow={'Status': status},
-            Note={
-                'Text': note,
-                'UpdatedBy': 'securityhub-findings-manager-jira'
-            }
+            **kwargs
         )
 
         if response.get('FailedFindings'):

@@ -89,11 +89,11 @@ def lambda_handler(event: dict, context: LambdaContext):
                 helpers.close_jira_issue(
                     jira_client, issue, jira_autoclose_transition, jira_autoclose_comment)
                 
-            if workflow_status == STATUS_NOTIFIED:
-                # Resolve SecHub finding as it will be reopened anyway in case the compliance fails
-                # Also remove the JIRA issue key from the note. That prevents a second run.
-                helpers.update_security_hub(
-                    securityhub, finding["Id"], finding["ProductArn"], STATUS_RESOLVED, "")
+                if workflow_status == STATUS_NOTIFIED:
+                    # Resolve SecHub finding as it will be reopened anyway in case the compliance fails
+                    # Also change the note to prevent a second run with RESOLVED status.
+                    helpers.update_security_hub(
+                        securityhub, finding["Id"], finding["ProductArn"], STATUS_RESOLVED, f"Closed JIRA issue {jira_issue_id}")
         except json.JSONDecodeError as e:
             logger.error(f"Failed to decode JSON from note text: {e}. Cannot autoclose.")
         except Exception as e:
