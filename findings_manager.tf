@@ -1,5 +1,5 @@
 locals {
-  compliance_status_filter = var.jira_integration.autoclose_enabled ? ["FAILED", "WARNING", "PASSED"] : ["FAILED", "WARNING"]
+  compliance_status_filter = var.jira_integration.autoclose_enabled ? ["FAILED", "WARNING", "PASSED", "NOT_AVAILABLE"] : ["FAILED", "WARNING"]
   workflow_status_filter   = var.jira_integration.autoclose_enabled ? ["NEW", "NOTIFIED", "RESOLVED"] : ["NEW", "NOTIFIED"]
 }
 

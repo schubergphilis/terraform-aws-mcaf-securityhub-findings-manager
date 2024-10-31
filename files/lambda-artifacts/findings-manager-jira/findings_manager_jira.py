@@ -23,8 +23,9 @@ STATUS_NEW = 'NEW'
 STATUS_NOTIFIED = 'NOTIFIED'
 STATUS_RESOLVED = 'RESOLVED'
 
-COMPLIANCE_STATUS_PASSED = 'PASSED'
+COMPLIANCE_STATUS_FAILED = 'FAILED'
 COMPLIANCE_STATUS_NOT_AVAILABLE = 'NOT_AVAILABLE'
+COMPLIANCE_STATUS_PASSED = 'PASSED'
 
 @logger.inject_lambda_context
 def lambda_handler(event: dict, context: LambdaContext):
@@ -59,7 +60,7 @@ def lambda_handler(event: dict, context: LambdaContext):
         return
 
     # Handle new findings
-    if workflow_status == STATUS_NEW:
+    if workflow_status == STATUS_NEW and compliance_status == COMPLIANCE_STATUS_FAILED:
         # Create JIRA issue and updates Security Hub status to NOTIFIED
         # and adds JIRA issue key to note (in JSON format)
         try:
