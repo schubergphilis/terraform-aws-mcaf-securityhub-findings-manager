@@ -82,6 +82,7 @@
                 "Variable": "$.detail.findings[0].Severity.Normalized",
                 "NumericGreaterThanEquals": ${finding_severity_normalized}
               },
+              %{~ if jira_autoclose_enabled }
               {
                 "Or": [
                   {
@@ -91,8 +92,32 @@
                   {
                     "And": [
                       {
-                        "Variable": "$.detail.findings[0].Workflow.Status",
-                        "StringEquals": "RESOLVED"
+                        "Or": [
+                          {
+                            "Variable": "$.detail.findings[0].Workflow.Status",
+                            "StringEquals": "RESOLVED"
+                          },
+                          {
+                            "And": [
+                              {
+                                "Variable": "$.detail.findings[0].Workflow.Status",
+                                "StringEquals": "NOTIFIED"
+                              },
+                              {
+                                "Or": [
+                                  {
+                                    "Variable": "$.detail.findings[0].Compliance.Status",
+                                    "StringEquals": "PASSED"
+                                  },
+                                  {
+                                    "Variable": "$.detail.findings[0].Compliance.Status",
+                                    "StringEquals": "NOT_AVAILABLE"
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
                       },
                       {
                         "Variable": "$.detail.findings[0].Note.Text",
@@ -106,6 +131,12 @@
                   }
                 ]
               }
+              %{ else }
+              {
+                "Variable": "$.detail.findings[0].Workflow.Status",
+                "StringEquals": "NEW"
+              }
+              %{ endif ~}
             ],
             "Next": "invoke-securityhub-jira"
           }
