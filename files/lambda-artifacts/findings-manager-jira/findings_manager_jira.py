@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 
 import boto3
 from aws_lambda_powertools import Logger
@@ -14,7 +15,7 @@ securityhub = boto3.client('securityhub')
 secretsmanager = boto3.client('secretsmanager')
 
 REQUIRED_ENV_VARS = [
-    'EXCLUDE_ACCOUNT_FILTER', 'JIRA_ISSUE_TYPE', 'JIRA_PROJECT_KEY', 'JIRA_SECRET_ARN'
+    'EXCLUDE_ACCOUNT_FILTER', 'JIRA_ISSUE_CUSTOM_FIELDS', 'JIRA_ISSUE_TYPE', 'JIRA_PROJECT_KEY', 'JIRA_SECRET_ARN'
 ]
 DEFAULT_JIRA_AUTOCLOSE_COMMENT = 'Security Hub finding has been resolved. Autoclosing the issue.'
 DEFAULT_JIRA_AUTOCLOSE_TRANSITION = 'Done'
@@ -39,9 +40,18 @@ def lambda_handler(event: dict, context: LambdaContext):
         'JIRA_AUTOCLOSE_COMMENT', DEFAULT_JIRA_AUTOCLOSE_COMMENT)
     jira_autoclose_transition = os.getenv(
         'JIRA_AUTOCLOSE_TRANSITION', DEFAULT_JIRA_AUTOCLOSE_TRANSITION)
+    jira_issue_custom_fields = os.environ['JIRA_ISSUE_CUSTOM_FIELDS']
     jira_issue_type = os.environ['JIRA_ISSUE_TYPE']
     jira_project_key = os.environ['JIRA_PROJECT_KEY']
     jira_secret_arn = os.environ['JIRA_SECRET_ARN']
+
+    # Parse custom fields
+    try:
+        jira_issue_custom_fields = json.loads(jira_issue_custom_fields)
+        jira_issue_custom_fields = { k: {"value": v} for k, v in jira_issue_custom_fields.items() }
+    except json.JSONDecodeError as e:
+        logger.error(f"Failed to parse JSON for custom fields: {e}.")
+        sys.exit(1)
 
     # Retrieve JIRA client
     jira_secret = helpers.get_secret(secretsmanager, jira_secret_arn)
@@ -66,7 +76,7 @@ def lambda_handler(event: dict, context: LambdaContext):
         # and adds JIRA issue key to note (in JSON format)
         try:
             issue = helpers.create_jira_issue(
-                jira_client, jira_project_key, jira_issue_type, event_detail)
+                jira_client, jira_project_key, jira_issue_type, event_detail, jira_issue_custom_fields)
             note = json.dumps({'jiraIssue': issue.key})
             helpers.update_security_hub(
                 securityhub, finding["Id"], finding["ProductArn"], STATUS_NOTIFIED, note)
