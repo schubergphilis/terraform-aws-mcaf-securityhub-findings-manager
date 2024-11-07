@@ -1,18 +1,3 @@
-# IAM role to be assumed by Lambda Function
-module "jira_lambda_iam_role" {
-  count = var.jira_integration.enabled ? 1 : 0
-
-  source  = "schubergphilis/mcaf-role/aws"
-  version = "~> 0.4.0"
-
-  name                  = var.jira_integration.lambda_settings.iam_role_name
-  create_policy         = true
-  principal_identifiers = ["lambda.amazonaws.com"]
-  principal_type        = "Service"
-  role_policy           = data.aws_iam_policy_document.jira_lambda_iam_role[0].json
-  tags                  = var.tags
-}
-
 data "aws_iam_policy_document" "jira_lambda_iam_role" {
   count = var.jira_integration.enabled ? 1 : 0
 
@@ -69,14 +54,6 @@ data "aws_iam_policy_document" "jira_lambda_iam_role" {
   }
 }
 
-# Lambda VPC Execution role policy attachment
-resource "aws_iam_role_policy_attachment" "jira_lambda_iam_role_vpc_policy_attachment" {
-  count = var.jira_integration.enabled && var.subnet_ids != null ? 1 : 0
-
-  role       = module.jira_lambda_iam_role[0].id
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-}
-
 # Upload the zip archive to S3
 resource "aws_s3_object" "jira_lambda_deployment_package" {
   count = var.jira_integration.enabled ? 1 : 0
@@ -98,7 +75,7 @@ module "jira_lambda" {
   version = "~> 1.4.1"
 
   name                        = var.jira_integration.lambda_settings.name
-  create_policy               = false
+  create_policy               = true
   create_s3_dummy_object      = false
   description                 = "Lambda to create jira ticket and set the Security Hub workflow status to notified"
   handler                     = "findings_manager_jira.lambda_handler"
@@ -106,13 +83,13 @@ module "jira_lambda" {
   layers                      = ["arn:aws:lambda:${data.aws_region.current.name}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
   log_retention               = 365
   memory_size                 = var.jira_integration.lambda_settings.memory_size
-  role_arn                    = module.jira_lambda_iam_role[0].arn
+  policy                      = data.aws_iam_policy_document.jira_lambda_iam_role[0].json
   runtime                     = var.lambda_runtime
-  s3_bucket                   = module.findings_manager_bucket.name
+  s3_bucket                   = var.s3_bucket_name
   s3_key                      = aws_s3_object.jira_lambda_deployment_package[0].key
   s3_object_version           = aws_s3_object.jira_lambda_deployment_package[0].version_id
-  source_code_hash            = aws_s3_object.jira_lambda_deployment_package[0].checksum_sha256
   security_group_egress_rules = var.jira_integration.security_group_egress_rules
+  source_code_hash            = aws_s3_object.jira_lambda_deployment_package[0].checksum_sha256
   subnet_ids                  = var.subnet_ids
   tags                        = var.tags
   timeout                     = var.jira_integration.lambda_settings.timeout
