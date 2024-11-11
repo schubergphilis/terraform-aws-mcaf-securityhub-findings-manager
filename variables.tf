@@ -25,12 +25,6 @@ variable "findings_manager_events_lambda" {
   }
 }
 
-variable "findings_manager_lambda_iam_role_name" {
-  type        = string
-  default     = "SecurityHubFindingsManagerLambda"
-  description = "The name of the role which will be assumed by both Findings Manager Lambda functions"
-}
-
 variable "findings_manager_trigger_lambda" {
   type = object({
     name        = optional(string, "securityhub-findings-manager-trigger")
@@ -89,11 +83,10 @@ variable "jira_integration" {
     })), [])
 
     lambda_settings = optional(object({
-      name          = optional(string, "securityhub-findings-manager-jira")
-      iam_role_name = optional(string, "SecurityHubFindingsManagerJiraLambda")
-      log_level     = optional(string, "INFO")
-      memory_size   = optional(number, 256)
-      timeout       = optional(number, 60)
+      name        = optional(string, "securityhub-findings-manager-jira")
+      log_level   = optional(string, "INFO")
+      memory_size = optional(number, 256)
+      timeout     = optional(number, 60)
       }), {
       name                        = "securityhub-findings-manager-jira"
       iam_role_name               = "SecurityHubFindingsManagerJiraLambda"

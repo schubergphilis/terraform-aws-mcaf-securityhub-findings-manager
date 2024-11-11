@@ -3,19 +3,6 @@ locals {
   workflow_status_filter   = var.jira_integration.autoclose_enabled ? ["NEW", "NOTIFIED", "RESOLVED"] : ["NEW", "NOTIFIED"]
 }
 
-# IAM role to be assumed by Lambda function
-module "findings_manager_lambda_iam_role" {
-  source  = "schubergphilis/mcaf-role/aws"
-  version = "~> 0.4.0"
-
-  name                  = var.findings_manager_lambda_iam_role_name
-  create_policy         = true
-  principal_identifiers = ["lambda.amazonaws.com"]
-  principal_type        = "Service"
-  role_policy           = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
-  tags                  = var.tags
-}
-
 data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
   statement {
     sid = "TrustEventsToStoreLogEvent"
@@ -68,14 +55,6 @@ data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
   }
 }
 
-# Lambda VPC Execution role policy attachment
-resource "aws_iam_role_policy_attachment" "findings_manager_lambda_iam_role" {
-  count = var.subnet_ids != null ? 1 : 0
-
-  role       = module.findings_manager_lambda_iam_role.id
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
-}
-
 # Push the Lambda code zip deployment package to s3
 resource "aws_s3_object" "findings_manager_lambdas_deployment_package" {
   bucket      = module.findings_manager_bucket.id
@@ -97,7 +76,7 @@ module "findings_manager_events_lambda" {
   version = "~> 1.4.1"
 
   name                        = var.findings_manager_events_lambda.name
-  create_policy               = false
+  create_policy               = true
   create_s3_dummy_object      = false
   description                 = "Lambda to manage Security Hub findings in response to an EventBridge event"
   handler                     = "securityhub_events.lambda_handler"
@@ -105,13 +84,13 @@ module "findings_manager_events_lambda" {
   layers                      = ["arn:aws:lambda:${data.aws_region.current.name}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
   log_retention               = 365
   memory_size                 = var.findings_manager_events_lambda.memory_size
-  role_arn                    = module.findings_manager_lambda_iam_role.arn
+  policy                      = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
   runtime                     = var.lambda_runtime
-  s3_bucket                   = module.findings_manager_bucket.name
+  s3_bucket                   = var.s3_bucket_name
   s3_key                      = aws_s3_object.findings_manager_lambdas_deployment_package.key
   s3_object_version           = aws_s3_object.findings_manager_lambdas_deployment_package.version_id
-  source_code_hash            = aws_s3_object.findings_manager_lambdas_deployment_package.checksum_sha256
   security_group_egress_rules = var.findings_manager_events_lambda.security_group_egress_rules
+  source_code_hash            = aws_s3_object.findings_manager_lambdas_deployment_package.checksum_sha256
   subnet_ids                  = var.subnet_ids
   tags                        = var.tags
   timeout                     = var.findings_manager_events_lambda.timeout
@@ -178,7 +157,7 @@ module "findings_manager_trigger_lambda" {
   version = "~> 1.4.1"
 
   name                        = var.findings_manager_trigger_lambda.name
-  create_policy               = false
+  create_policy               = true
   create_s3_dummy_object      = false
   description                 = "Lambda to manage Security Hub findings in response to S3 rules file uploads"
   handler                     = "securityhub_trigger.lambda_handler"
@@ -186,13 +165,13 @@ module "findings_manager_trigger_lambda" {
   layers                      = ["arn:aws:lambda:${data.aws_region.current.name}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
   log_retention               = 365
   memory_size                 = var.findings_manager_trigger_lambda.memory_size
-  role_arn                    = module.findings_manager_lambda_iam_role.arn
+  policy                      = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
   runtime                     = var.lambda_runtime
-  s3_bucket                   = module.findings_manager_bucket.name
+  s3_bucket                   = var.s3_bucket_name
   s3_key                      = aws_s3_object.findings_manager_lambdas_deployment_package.key
   s3_object_version           = aws_s3_object.findings_manager_lambdas_deployment_package.version_id
-  source_code_hash            = aws_s3_object.findings_manager_lambdas_deployment_package.checksum_sha256
   security_group_egress_rules = var.findings_manager_trigger_lambda.security_group_egress_rules
+  source_code_hash            = aws_s3_object.findings_manager_lambdas_deployment_package.checksum_sha256
   subnet_ids                  = var.subnet_ids
   tags                        = var.tags
   timeout                     = var.findings_manager_trigger_lambda.timeout
