@@ -86,8 +86,24 @@
               {
                 "Or": [
                   {
-                    "Variable": "$.detail.findings[0].Workflow.Status",
-                    "StringEquals": "NEW"
+                    "And": [
+                      {
+                        "Variable": "$.detail.findings[0].Workflow.Status",
+                        "StringEquals": "NEW"
+                      },
+                      {
+                        "Or": [
+                          {
+                            "Variable": "$.detail.findings[0].Compliance.Status",
+                            "StringEquals": "FAILED"
+                          },
+                          {
+                            "Variable": "$.detail.findings[0].Compliance.Status",
+                            "StringEquals": "WARNING"
+                          }
+                        ]
+                      }
+                    ]
                   },
                   {
                     "And": [
