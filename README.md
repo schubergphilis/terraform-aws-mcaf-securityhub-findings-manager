@@ -1,24 +1,24 @@
 # Security Hub Findings Manager
+Automated scanning and finding consolidation is a cornerstone in evaluating your security posture. 
+AWS Security Hub is the native solution to perform this job in AWS. 
+As with any scanning and reporting tool, the amount of findings it generates can be overwhelming at first. 
+Also, you may find that some findings are not relevant or have less urgency to fix in your specific situation.
 
-The Security Hub Findings Manager is a framework designed to automatically manage findings recorded by the AWS Security Hub service based on a pre-defined and configurable rules list.
-At the moment only finding suppression is supported.
-This suppression is needed in case some controls or rules are not completely applicable to the resources of a given account.
-For example, you might want to suppress all DynamoDB Autoscaling configuration findings related to the control `DynamoDB.1`, simply because this feature is not applicable for your workload.
-Besides the findings management this module is also able to integrate with Jira and ServiceNow. To ensure tickets are created for all `NEW` findings with a severity higher than a definable threshold.
+The Security Hub Findings Manager is a framework designed to automatically manage findings recorded by the AWS Security Hub service including it's [AWS service integrations](https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-internal-providers.html#internal-integrations-summary) based on a pre-defined and configurable rules list. 
+At its core, the Security Hub Findings Manager aims to reduce noise and help you prioritize real security issues.
+
+Currently, it supports:
+* Suppressing findings, ensuring you can manage irrelevant or less urgent findings effectively.
+* Automated ticket creation in Jira and ServiceNow for non-suppressed findings with a severity higher than a definable threshold.
 
 > [!TIP]
 > We recommend deploying this module in the Audit/Security Account of an AWS reference multi-account setup.
 > This account receives events from all child accounts in an organization.
 > This way, a comprehensive overview of the organization's security posture can be easily maintained.
 
-> [!NOTE]
-> This module relies heavily on [awsfindingsmanagerlib](https://pypi.org/project/awsfindingsmanagerlib/).
-> See the [documentation](https://github.com/schubergphilis/awsfindingsmanagerlib/blob/main/docs/index.rst) of this library on more detailed specifications of the suppression logic.
-
-## Terraform Runtime Requirements
-
-* The lambda's are built and zipped during runtime, this means that the terraform runners/agents needs to have python 3.8 installed.
-* Remark about Terraform Cloud: The `remote` runners from Terraform Cloud have python installed. If you run your own agents make sure that you use a custom TFC agent image with python installed.
+> [!IMPORTANT] 
+> This module relies extensively on the [awsfindingsmanagerlib](https://github.com/schubergphilis/awsfindingsmanagerlib/tree/main).  
+> For detailed information about the suppression logic, refer to the library's [documentation](https://awsfindingsmanagerlib.readthedocs.io/en/latest/).
 
 ## Components
 
@@ -83,26 +83,7 @@ Only events from Security Hub with a normalized severity level higher than a def
 
 ## How to format the `rules.yaml` file?
 
-> An example file is stored in this module under `examples/rules.yaml`. For more detailed information check out the [awsfindingsmanagerlib](https://pypi.org/project/awsfindingsmanagerlib/).
-
-The general syntax and allowed parameters are:
-
-```yaml
-Rules:
-  - note: 'str'
-    action: 'SUPPRESSED'
-    match_on:
-      security_control_id: 'str' # When `Consolidated control findings` is On
-      rule_or_control_id: 'str' # When `Consolidated control findings` is Off
-      tags:
-        - key: 'str'
-          value: 'str'
-      resource_id_regexps:
-        - 'regex'
-```
-
-> [!IMPORTANT]
-> `security_control_id` and `rule_or_control_id` are mutually exclusive, but one of them must be set!
+An example file is stored in this module under `examples/rules.yaml`. For more detailed information check out the Rule Syntax section in the [awsfindingsmanagerlib](https://awsfindingsmanagerlib.readthedocs.io/en/latest/#rule-syntax) documentation.
 
 ## Local development on the Python code
 
