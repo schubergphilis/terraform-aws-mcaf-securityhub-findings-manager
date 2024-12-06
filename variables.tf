@@ -3,7 +3,7 @@ variable "findings_manager_events_lambda" {
     name        = optional(string, "securityhub-findings-manager-events")
     log_level   = optional(string, "INFO")
     memory_size = optional(number, 256)
-    timeout     = optional(number, 120)
+    timeout     = optional(number, 300)
 
     security_group_egress_rules = optional(list(object({
       cidr_ipv4                    = optional(string)
@@ -29,8 +29,8 @@ variable "findings_manager_trigger_lambda" {
   type = object({
     name        = optional(string, "securityhub-findings-manager-trigger")
     log_level   = optional(string, "INFO")
-    memory_size = optional(number, 256)
-    timeout     = optional(number, 120)
+    memory_size = optional(number, 1024)
+    timeout     = optional(number, 900)
 
     security_group_egress_rules = optional(list(object({
       cidr_ipv4                    = optional(string)
