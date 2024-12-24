@@ -1,6 +1,5 @@
 locals {
-  compliance_status_filter = var.jira_integration.autoclose_enabled ? ["FAILED", "WARNING", "PASSED", "NOT_AVAILABLE"] : ["FAILED", "WARNING"]
-  workflow_status_filter   = var.jira_integration.autoclose_enabled ? ["NEW", "NOTIFIED", "RESOLVED"] : ["NEW", "NOTIFIED"]
+  workflow_status_filter = var.jira_integration.autoclose_enabled ? ["NEW", "NOTIFIED", "RESOLVED"] : ["NEW", "NOTIFIED"]
 }
 
 data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
@@ -104,10 +103,10 @@ module "findings_manager_events_lambda" {
   }
 }
 
-# EventBridge Rule that detect Security Hub events with compliance status as failed
+# EventBridge Rule that detect Security Hub events
 resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
   name        = "rule-${var.findings_manager_events_lambda.name}"
-  description = "EventBridge Rule that detects Security Hub events with compliance status as failed and workflow status as new or notified"
+  description = "EventBridge rule for detecting Security Hub findings events, triggering the findings manager events lambda."
   tags        = var.tags
 
   event_pattern = <<EOF
@@ -116,9 +115,6 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
   "detail-type": ["Security Hub Findings - Imported"],
   "detail": {
     "findings": {
-      "Compliance": {
-        "Status": ${jsonencode(local.compliance_status_filter)}
-      },
       "Workflow": {
         "Status": ${jsonencode(local.workflow_status_filter)}
       }
