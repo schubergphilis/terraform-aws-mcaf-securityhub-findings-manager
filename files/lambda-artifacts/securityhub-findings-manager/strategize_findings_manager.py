@@ -33,8 +33,11 @@ def manage(func, args, logger: Logger):
         logger.info("Successfully applied all findings management rules.")
         suppressed_payload_count = len(suppressed_payload)
         if suppressed_payload_count > 0:
-            log_text = "finding was" if suppressed_payload_count == 1 else "findings were"
-            logger.info(f"{suppressed_payload_count} {log_text} suppressed.")
+            for chunk in suppressed_payload:
+                note_text = chunk['Note']['Text']
+                workflow_status = chunk['Workflow']['Status']
+                count = len(chunk['FindingIdentifiers'])
+                logger.info(f"{count} findings are {workflow_status} ({note_text}).")
             return {"finding_state": "suppressed"}
         else:
             logger.info("No findings were suppressed.")
