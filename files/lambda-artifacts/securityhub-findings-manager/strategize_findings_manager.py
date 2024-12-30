@@ -37,7 +37,7 @@ def manage(func, args, logger: Logger):
                 note_text = chunk['Note']['Text']
                 workflow_status = chunk['Workflow']['Status']
                 count = len(chunk['FindingIdentifiers'])
-                logger.info(f"{count} findings are {workflow_status} ({note_text}).")
+                logger.info(f"{count} finding(s) {workflow_status} with note {note_text}.")
             return {"finding_state": "suppressed"}
         else:
             logger.info("No findings were suppressed.")
