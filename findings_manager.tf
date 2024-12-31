@@ -52,6 +52,19 @@ data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
       var.kms_key_arn
     ]
   }
+
+  statement {
+    sid = "LambdaSQSAllow"
+    actions = [
+      "sqs:SendMessage",
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes"
+    ]
+    effect    = "Allow"
+    resources = [aws_sqs_queue.suppressor_rule_q.arn]
+  }
+
 }
 
 # Push the Lambda code zip deployment package to s3
@@ -176,6 +189,7 @@ module "findings_manager_trigger_lambda" {
     S3_BUCKET_NAME              = var.s3_bucket_name
     S3_OBJECT_NAME              = var.rules_s3_object_name
     LOG_LEVEL                   = var.findings_manager_trigger_lambda.log_level
+    SQS_QUEUE_NAME              = aws_sqs_queue.suppressor_rule_q.name
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
     POWERTOOLS_SERVICE_NAME     = "securityhub-findings-manager-trigger"
   }
@@ -204,6 +218,43 @@ resource "aws_s3_bucket_notification" "findings_manager_trigger" {
   depends_on = [aws_lambda_permission.s3_invoke_findings_manager_trigger_lambda]
 }
 
+################################################################################
+# Worker Lambda
+################################################################################
+
+# Lambda to manage Security Hub findings in response to S3 rules file uploads
+module "findings_manager_worker_lambda" {
+  #checkov:skip=CKV_AWS_272:Code signing not used for now
+  source  = "schubergphilis/mcaf-lambda/aws"
+  version = "~> 1.4.1"
+
+  name                        = var.findings_manager_worker_lambda.name
+  create_policy               = true
+  create_s3_dummy_object      = false
+  description                 = "Lambda to manage Security Hub findings in response to rules on SQS"
+  handler                     = "securityhub_trigger_worker.lambda_handler"
+  kms_key_arn                 = var.kms_key_arn
+  layers                      = ["arn:aws:lambda:${data.aws_region.current.name}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
+  log_retention               = 365
+  memory_size                 = var.findings_manager_worker_lambda.memory_size
+  policy                      = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
+  runtime                     = var.lambda_runtime
+  s3_bucket                   = var.s3_bucket_name
+  s3_key                      = aws_s3_object.findings_manager_lambdas_deployment_package.key
+  s3_object_version           = aws_s3_object.findings_manager_lambdas_deployment_package.version_id
+  security_group_egress_rules = var.findings_manager_worker_lambda.security_group_egress_rules
+  source_code_hash            = aws_s3_object.findings_manager_lambdas_deployment_package.checksum_sha256
+  subnet_ids                  = var.subnet_ids
+  tags                        = var.tags
+  timeout                     = var.findings_manager_worker_lambda.timeout
+
+  environment = {
+    LOG_LEVEL                   = var.findings_manager_worker_lambda.log_level
+    POWERTOOLS_LOGGER_LOG_EVENT = "false"
+    POWERTOOLS_SERVICE_NAME     = "securityhub-findings-manager-worker"
+  }
+}
+
 # Upload rules list to S3
 resource "aws_s3_object" "rules" {
   count = var.rules_filepath == "" ? 0 : 1
@@ -217,4 +268,70 @@ resource "aws_s3_object" "rules" {
 
   # Even with this in place, the creation sometimes doesn't get picked up on a first deploy
   depends_on = [aws_s3_bucket_notification.findings_manager_trigger]
+}
+
+# SQS queue to distribute the rules to the lambda worker
+resource "aws_sqs_queue" "suppressor_rule_q" {
+  name                       = "SecurityHubSuppressorRuleQueue"
+  kms_master_key_id          = var.kms_key_arn
+  visibility_timeout_seconds = var.findings_manager_worker_lambda.timeout
+  # Queue visibility timeout needs to >= Function timeout
+}
+
+resource "aws_sqs_queue_policy" "suppressor_rule_sqs_policy" {
+  policy    = data.aws_iam_policy_document.suppressor_rule_sqs_policy_doc.json
+  queue_url = aws_sqs_queue.suppressor_rule_q.id
+}
+
+resource "aws_sqs_queue" "dlq_for_suppressor_for_suppressor_rule_q" {
+  name              = "DlqForSuppressorRuleQueue"
+  kms_master_key_id = var.kms_key_arn
+}
+
+resource "aws_sqs_queue_redrive_policy" "redrive_policy" {
+  queue_url = aws_sqs_queue.suppressor_rule_q.id
+  redrive_policy = jsonencode({
+    deadLetterTargetArn = aws_sqs_queue.dlq_for_suppressor_for_suppressor_rule_q.arn
+    maxReceiveCount     = 10
+  })
+}
+
+resource "aws_sqs_queue_redrive_allow_policy" "dead_letter_allow_policy" {
+  queue_url = aws_sqs_queue.dlq_for_suppressor_for_suppressor_rule_q.id
+
+  redrive_allow_policy = jsonencode({
+    redrivePermission = "byQueue",
+    sourceQueueArns   = [aws_sqs_queue.suppressor_rule_q.arn]
+  })
+}
+
+data "aws_iam_policy_document" "suppressor_rule_sqs_policy_doc" {
+  statement {
+    actions = [
+      "SQS:SendMessage"
+    ]
+    resources = [aws_sqs_queue.suppressor_rule_q.arn]
+    principals {
+      identifiers = ["lambda.amazonaws.com"]
+      type        = "Service"
+    }
+    condition {
+      test     = "ArnEquals"
+      values   = [module.findings_manager_trigger_lambda.name]
+      variable = "aws:SourceArn"
+    }
+  }
+}
+
+# The SQS queue with rules triggers the worker lambda
+resource "aws_lambda_event_source_mapping" "sqs_to_worker" {
+  event_source_arn = aws_sqs_queue.suppressor_rule_q.arn
+  function_name    = module.findings_manager_worker_lambda.name
+  # assumes a rule processing time of 30 sec average (which is high)
+  batch_size                         = var.findings_manager_worker_lambda.timeout / 30
+  maximum_batching_window_in_seconds = 60
+  scaling_config {
+    maximum_concurrency = 4 #  to prevent Security Hub API rate limits
+  }
+  enabled = true
 }

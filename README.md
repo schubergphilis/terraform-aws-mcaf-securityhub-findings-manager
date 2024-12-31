@@ -26,10 +26,11 @@ This is a high-level overview of the constituent components.
 For a more complete overview see [Resources](#resources) and [Modules](#modules).
 
 * A rules backend (currently only S3 is supported).
-* 2 Lambda Functions:
+* 3 Lambda Functions:
   * Security Hub Findings Manager Events: triggered by EventBridge events for new Security Hub findings.
-  * Security Hub Findings Manager Triggers: triggered by changes in the S3 backend rules list.
-* Infrastructure to facilitate the Lambda functions (IAM role, EventBridge integration, S3 Trigger Notifications).
+  * Security Hub Findings Manager Triggers: triggered by changes in the S3 backend rules list, puts suppression rules on SQS.
+  * Security Hub Findings Manager Trigger Worker: triggered by suppression rules on SQS.
+* Infrastructure to facilitate the Lambda functions (IAM role, EventBridge integration, S3 Trigger Notifications, SQS queue).
 * (optional) Jira integration components.
 * (optional) ServiceNow integration components.
 

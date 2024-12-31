@@ -29,8 +29,8 @@ variable "findings_manager_trigger_lambda" {
   type = object({
     name        = optional(string, "securityhub-findings-manager-trigger")
     log_level   = optional(string, "INFO")
-    memory_size = optional(number, 1024)
-    timeout     = optional(number, 900)
+    memory_size = optional(number, 256)
+    timeout     = optional(number, 300)
 
     security_group_egress_rules = optional(list(object({
       cidr_ipv4                    = optional(string)
@@ -48,6 +48,33 @@ variable "findings_manager_trigger_lambda" {
 
   validation {
     condition     = alltrue([for o in var.findings_manager_trigger_lambda.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
+    error_message = "Although \"cidr_ipv4\", \"cidr_ipv6\", \"prefix_list_id\", and \"referenced_security_group_id\" are all marked as optional, you must provide one of them in order to configure the destination of the traffic."
+  }
+}
+
+variable "findings_manager_worker_lambda" {
+  type = object({
+    name        = optional(string, "securityhub-findings-manager-worker")
+    log_level   = optional(string, "INFO")
+    memory_size = optional(number, 256)
+    timeout     = optional(number, 900)
+
+    security_group_egress_rules = optional(list(object({
+      cidr_ipv4                    = optional(string)
+      cidr_ipv6                    = optional(string)
+      description                  = string
+      from_port                    = optional(number, 0)
+      ip_protocol                  = optional(string, "-1")
+      prefix_list_id               = optional(string)
+      referenced_security_group_id = optional(string)
+      to_port                      = optional(number, 0)
+    })), [])
+  })
+  default     = {}
+  description = "Findings Manager Lambda settings - Manage Security Hub findings in response to SQS trigger"
+
+  validation {
+    condition     = alltrue([for o in var.findings_manager_worker_lambda.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
     error_message = "Although \"cidr_ipv4\", \"cidr_ipv6\", \"prefix_list_id\", and \"referenced_security_group_id\" are all marked as optional, you must provide one of them in order to configure the destination of the traffic."
   }
 }
