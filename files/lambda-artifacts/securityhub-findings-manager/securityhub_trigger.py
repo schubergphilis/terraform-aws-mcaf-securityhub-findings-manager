@@ -1,20 +1,24 @@
-from aws_lambda_powertools import Logger
 from boto3 import client
 from json import dumps
-#from awsfindingsmanagerlib import FindingsManager
+from os import environ
+
+from aws_lambda_powertools import Logger
 from strategize_findings_manager import get_rules
+
+SQS_QUEUE_NAME = environ.get("SQS_QUEUE_NAME")
 
 LOGGER = Logger()
 
-sqs = client('sqs')
-queue_url =  "SecurityHubSuppressorRuleQueue" #os.environ['SQS_QUEUE_URL']
+# Todo
+#   Error handling
 
 @LOGGER.inject_lambda_context(log_event=True)
 def lambda_handler(event, context):
+    sqs = client('sqs')
     for rule in get_rules(LOGGER):
         message_body = dumps(rule.data)
         LOGGER.info(f'putting rule {message_body} on SQS')
         sqs.send_message(
-            QueueUrl=queue_url,
+            QueueUrl=SQS_QUEUE_NAME,
             MessageBody=message_body
         )
