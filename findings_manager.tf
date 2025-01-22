@@ -32,7 +32,8 @@ data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
     sid = "SecurityHubAccess"
     actions = [
       "securityhub:BatchUpdateFindings",
-      "securityhub:GetFindings"
+      "securityhub:GetFindings",
+      "securityhub:ListFindingAggregators"
     ]
     resources = [
       "arn:aws:securityhub:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:hub/default"
