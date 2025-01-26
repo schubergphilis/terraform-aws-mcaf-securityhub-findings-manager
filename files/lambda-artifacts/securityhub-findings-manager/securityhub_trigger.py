@@ -10,15 +10,16 @@ LOGGER = Logger()
 
 @LOGGER.inject_lambda_context(log_event=True)
 def lambda_handler(event, context):
-    sqs = client("sqs")
-    for rule in get_rules(LOGGER):
-        try:
-            message_body = dumps(rule.data)
-            LOGGER.info(f"Putting rule on SQS. Rule details: {message_body}")
-            sqs.send_message(
-                QueueUrl=SQS_QUEUE_NAME,
-                MessageBody=message_body
-            )
-        except Exception as e:
-            LOGGER.error(f"Failed to put rule on SQS.")
-            LOGGER.info(f"Original error: {e}", exc_info=True)
+    try:
+        sqs = client("sqs")
+        for rule in get_rules(LOGGER):
+                message_body = dumps(rule.data)
+                LOGGER.info(f"Putting rule on SQS. Rule details: {message_body}")
+                sqs.send_message(
+                    QueueUrl=SQS_QUEUE_NAME,
+                    MessageBody=message_body
+                )
+    except Exception as e:
+        LOGGER.error(f"Failed putting rule(s) on SQS.")
+        LOGGER.info(f"Original error: {e}", exc_info=True)
+        raise Exception

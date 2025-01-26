@@ -65,7 +65,7 @@ def get_rules(logger: Logger):
     try:
         findings_manager = _initialize_findings_manager(logger)
     except Exception as e:
-        logger.warning("Findings manager failed to initialize, please investigate.")
+        logger.error("Findings manager failed to initialize, please investigate.")
         logger.info(f"Original error: {e}", exc_info=True)
         return {"finding_state": "skipped"}
     return findings_manager.rules
@@ -82,4 +82,3 @@ def suppression_logging(logger: Logger, suppressed_payload: list):
     else:
         logger.info("No findings were suppressed.")
         return {"finding_state": "skipped"}
-    

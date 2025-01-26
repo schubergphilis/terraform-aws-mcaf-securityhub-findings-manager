@@ -12,3 +12,8 @@ output "findings_manager_trigger_lambda_sg_id" {
   value       = module.findings_manager_trigger_lambda.security_group_id
   description = "This will output the security group id attached to the lambda_findings_manager_trigger Lambda. This can be used to tune ingress and egress rules."
 }
+
+output "findings_manager_worker_lambda_sg_id" {
+  value       = module.findings_manager_worker_lambda.security_group_id
+  description = "This will output the security group id attached to the lambda_findings_manager_worker Lambda. This can be used to tune ingress and egress rules."
+}
