@@ -176,5 +176,6 @@ Since a lambda layer is used to provide the aws-lambda-powertools if you want to
 |------|-------------|
 | <a name="output_findings_manager_events_lambda_sg_id"></a> [findings\_manager\_events\_lambda\_sg\_id](#output\_findings\_manager\_events\_lambda\_sg\_id) | This will output the security group id attached to the lambda\_findings\_manager\_events Lambda. This can be used to tune ingress and egress rules. |
 | <a name="output_findings_manager_trigger_lambda_sg_id"></a> [findings\_manager\_trigger\_lambda\_sg\_id](#output\_findings\_manager\_trigger\_lambda\_sg\_id) | This will output the security group id attached to the lambda\_findings\_manager\_trigger Lambda. This can be used to tune ingress and egress rules. |
+| <a name="output_findings_manager_worker_lambda_sg_id"></a> [findings\_manager\_worker\_lambda\_sg\_id](#output\_findings\_manager\_worker\_lambda\_sg\_id) | This will output the security group id attached to the lambda\_findings\_manager\_worker Lambda. This can be used to tune ingress and egress rules. |
 | <a name="output_jira_lambda_sg_id"></a> [jira\_lambda\_sg\_id](#output\_jira\_lambda\_sg\_id) | This will output the security group id attached to the jira\_lambda Lambda. This can be used to tune ingress and egress rules. |
 <!-- END_TF_DOCS -->
