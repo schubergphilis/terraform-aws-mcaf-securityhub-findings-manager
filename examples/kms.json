@@ -1,29 +1,29 @@
 {
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Sid": "Enable IAM User Permissions",
-            "Effect": "Allow",
-            "Principal": {
-                "AWS": "arn:aws:iam::${account_id}:root"
-            },
-            "Action": "kms:*",
-            "Resource": "*"
-        },
-        {
-            "Sid": "Allow Encrypt and Decrypt permissions for Cloudwatch Logs",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "logs.eu-west-1.amazonaws.com"
-            },
-            "Action": [
-                "kms:ReEncrypt*",
-                "kms:GenerateDataKey*",
-                "kms:Encrypt",
-                "kms:DescribeKey",
-                "kms:Decrypt"
-            ],
-            "Resource": "arn:aws:kms:eu-west-1:${account_id}:key/*"
-        }
-    ]
+  "Statement": [
+    {
+      "Action": "kms:*",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::${account_id}:root"
+      },
+      "Resource": "*",
+      "Sid": "Enable IAM User Permissions"
+    },
+    {
+      "Action": [
+        "kms:ReEncrypt*",
+        "kms:GenerateDataKey*",
+        "kms:Encrypt",
+        "kms:DescribeKey",
+        "kms:Decrypt"
+      ],
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "logs.eu-west-1.amazonaws.com"
+      },
+      "Resource": "arn:aws:kms:eu-west-1:${account_id}:key/*",
+      "Sid": "Allow Encrypt and Decrypt permissions for Cloudwatch Logs"
+    }
+  ],
+  "Version": "2012-10-17"
 }

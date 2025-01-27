@@ -78,7 +78,7 @@ rules = {
 print(yaml.dump(rules, indent=2))
 ```
 
-If you do not want to rename your file from `suppressions.yml` to `rules.yaml` you can override the name using the `rules_s3_object_name` variable. 
+If you do not want to rename your file from `suppressions.yml` to `rules.yaml` you can override the name using the `rules_s3_object_name` variable.
 
 ## Upgrading to v2.0.0
 

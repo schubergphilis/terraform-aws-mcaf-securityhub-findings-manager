@@ -85,7 +85,7 @@ def get_secret(client: BaseClient, secret_arn: str) -> Dict[str, str]:
 
         if secret is None:
             secret = base64.b64decode(response['SecretBinary']).decode('utf-8')
-        
+
         logger.info(f"Secret fetched from ARN {secret_arn}")
         return json.loads(secret)
     except Exception as e:

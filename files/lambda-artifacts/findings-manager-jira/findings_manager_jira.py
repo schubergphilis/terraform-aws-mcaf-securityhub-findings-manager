@@ -82,7 +82,7 @@ def lambda_handler(event: dict, context: LambdaContext):
                 securityhub, finding["Id"], finding["ProductArn"], STATUS_NOTIFIED, note)
         except Exception as e:
             logger.error(f"Error processing new finding for findingID {finding["Id"]}: {e}")
-    
+
     # Handle resolved findings
     elif workflow_status == STATUS_RESOLVED or (workflow_status == STATUS_NOTIFIED and compliance_status in [COMPLIANCE_STATUS_PASSED, COMPLIANCE_STATUS_NOT_AVAILABLE]):
         # Close JIRA issue if finding is resolved.
@@ -100,7 +100,7 @@ def lambda_handler(event: dict, context: LambdaContext):
                     return
                 helpers.close_jira_issue(
                     jira_client, issue, jira_autoclose_transition, jira_autoclose_comment)
-                
+
                 if workflow_status == STATUS_NOTIFIED:
                     # Resolve SecHub finding as it will be reopened anyway in case the compliance fails
                     # Also change the note to prevent a second run with RESOLVED status.
