@@ -106,7 +106,7 @@ Since a lambda layer is used to provide the aws-lambda-powertools if you want to
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | 5.66.0 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 4.9 |
 
 ## Modules
 
