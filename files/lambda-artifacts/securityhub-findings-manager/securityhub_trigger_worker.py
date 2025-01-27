@@ -13,4 +13,4 @@ def lambda_handler(event, context):
             manager_per_rule(rule, LOGGER)
         except Exception as e:
             LOGGER.error(f"Failed to process rule. Rule details; {rule}")
-            LOGGER.info(f"Original error: {e}", exc_info=True)
+            LOGGER.error(f"Original error: {e}", exc_info=True)

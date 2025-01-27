@@ -20,14 +20,14 @@ def manage(func, args, logger: Logger):
         findings_manager = _initialize_findings_manager(logger)
     except Exception as e:
         logger.error("Findings manager failed to initialize, please investigate.")
-        logger.info(f"Original error: {e}", exc_info=True)
+        logger.error(f"Original error: {e}", exc_info=True)
         return {"finding_state": "skipped"}
 
     try:
         success, suppressed_payload = getattr(findings_manager, func.__name__)(*args)
     except Exception as e:
         logger.error("Findings manager failed to apply findings management rules, please investigate.")
-        logger.info(f"Original error: {e}", exc_info=True)
+        logger.error(f"Original error: {e}", exc_info=True)
         return {"finding_state": "skipped"}
 
     if success:
@@ -48,7 +48,7 @@ def manager_per_rule(rule: list, logger: Logger):
         success, suppressed_payload = findings_manager_per_rule.suppress_matching_findings()
     except Exception as e:
         logger.error("Findings manager failed to apply findings management rules, please investigate.")
-        logger.info(f"Original error: {e}", exc_info=True)
+        logger.error(f"Original error: {e}", exc_info=True)
         return {"finding_state": "skipped"}
 
     if success:
@@ -66,7 +66,7 @@ def get_rules(logger: Logger):
         findings_manager = _initialize_findings_manager(logger)
     except Exception as e:
         logger.error("Findings manager failed to initialize, please investigate.")
-        logger.info(f"Original error: {e}", exc_info=True)
+        logger.error(f"Original error: {e}", exc_info=True)
         return {"finding_state": "skipped"}
     return findings_manager.rules
 

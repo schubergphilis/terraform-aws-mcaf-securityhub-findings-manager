@@ -21,5 +21,5 @@ def lambda_handler(event, context):
                 )
     except Exception as e:
         LOGGER.error(f"Failed putting rule(s) on SQS.")
-        LOGGER.info(f"Original error: {e}", exc_info=True)
+        LOGGER.error(f"Original error: {e}", exc_info=True)
         raise Exception
