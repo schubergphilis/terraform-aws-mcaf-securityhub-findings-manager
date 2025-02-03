@@ -70,7 +70,7 @@ data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
       "sqs:GetQueueAttributes"
     ]
     effect    = "Allow"
-    resources = [aws_sqs_queue.suppressor_rule_q.arn]
+    resources = [aws_sqs_queue.findings_manager_rule_q.arn]
   }
 
 }
@@ -197,7 +197,7 @@ module "findings_manager_trigger_lambda" {
     S3_BUCKET_NAME              = var.s3_bucket_name
     S3_OBJECT_NAME              = var.rules_s3_object_name
     LOG_LEVEL                   = var.findings_manager_trigger_lambda.log_level
-    SQS_QUEUE_NAME              = aws_sqs_queue.suppressor_rule_q.name
+    SQS_QUEUE_NAME              = aws_sqs_queue.findings_manager_rule_q.name
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
     POWERTOOLS_SERVICE_NAME     = "securityhub-findings-manager-trigger"
   }
@@ -279,46 +279,46 @@ resource "aws_s3_object" "rules" {
 }
 
 # SQS queue to distribute the rules to the lambda worker
-resource "aws_sqs_queue" "suppressor_rule_q" {
-  name                       = "SecurityHubSuppressorRuleQueue"
+resource "aws_sqs_queue" "findings_manager_rule_q" {
+  name                       = "SecurityHubFindingsManagerRuleQueue"
   kms_master_key_id          = var.kms_key_arn
   visibility_timeout_seconds = var.findings_manager_worker_lambda.timeout
   # Queue visibility timeout needs to >= Function timeout
 }
 
-resource "aws_sqs_queue_policy" "suppressor_rule_sqs_policy" {
-  policy    = data.aws_iam_policy_document.suppressor_rule_sqs_policy_doc.json
-  queue_url = aws_sqs_queue.suppressor_rule_q.id
+resource "aws_sqs_queue_policy" "findings_manager_rule_sqs_policy" {
+  policy    = data.aws_iam_policy_document.findings_manager_rule_sqs_policy_doc.json
+  queue_url = aws_sqs_queue.findings_manager_rule_q.id
 }
 
-resource "aws_sqs_queue" "dlq_for_suppressor_for_suppressor_rule_q" {
-  name              = "DlqForSuppressorRuleQueue"
+resource "aws_sqs_queue" "dlq_for_findings_manager_rule_q" {
+  name              = "DlqForFindingsManagerRuleQueue"
   kms_master_key_id = var.kms_key_arn
 }
 
 resource "aws_sqs_queue_redrive_policy" "redrive_policy" {
-  queue_url = aws_sqs_queue.suppressor_rule_q.id
+  queue_url = aws_sqs_queue.findings_manager_rule_q.id
   redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.dlq_for_suppressor_for_suppressor_rule_q.arn
+    deadLetterTargetArn = aws_sqs_queue.dlq_for_findings_manager_rule_q.arn
     maxReceiveCount     = 10
   })
 }
 
 resource "aws_sqs_queue_redrive_allow_policy" "dead_letter_allow_policy" {
-  queue_url = aws_sqs_queue.dlq_for_suppressor_for_suppressor_rule_q.id
+  queue_url = aws_sqs_queue.dlq_for_findings_manager_rule_q.id
 
   redrive_allow_policy = jsonencode({
     redrivePermission = "byQueue",
-    sourceQueueArns   = [aws_sqs_queue.suppressor_rule_q.arn]
+    sourceQueueArns   = [aws_sqs_queue.findings_manager_rule_q.arn]
   })
 }
 
-data "aws_iam_policy_document" "suppressor_rule_sqs_policy_doc" {
+data "aws_iam_policy_document" "findings_manager_rule_sqs_policy_doc" {
   statement {
     actions = [
       "SQS:SendMessage"
     ]
-    resources = [aws_sqs_queue.suppressor_rule_q.arn]
+    resources = [aws_sqs_queue.findings_manager_rule_q.arn]
     principals {
       identifiers = ["lambda.amazonaws.com"]
       type        = "Service"
@@ -333,7 +333,7 @@ data "aws_iam_policy_document" "suppressor_rule_sqs_policy_doc" {
 
 # The SQS queue with rules triggers the worker lambda
 resource "aws_lambda_event_source_mapping" "sqs_to_worker" {
-  event_source_arn = aws_sqs_queue.suppressor_rule_q.arn
+  event_source_arn = aws_sqs_queue.findings_manager_rule_q.arn
   function_name    = module.findings_manager_worker_lambda.name
   # assumes a rule processing time of 30 sec average (which is high)
   batch_size                         = var.findings_manager_worker_lambda.timeout / 30
