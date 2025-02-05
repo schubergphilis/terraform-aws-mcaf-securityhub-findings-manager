@@ -1,7 +1,7 @@
 variable "findings_manager_events_lambda" {
   type = object({
     name        = optional(string, "securityhub-findings-manager-events")
-    log_level   = optional(string, "INFO")
+    log_level   = optional(string, "ERROR")
     memory_size = optional(number, 256)
     timeout     = optional(number, 300)
 
@@ -28,7 +28,7 @@ variable "findings_manager_events_lambda" {
 variable "findings_manager_trigger_lambda" {
   type = object({
     name        = optional(string, "securityhub-findings-manager-trigger")
-    log_level   = optional(string, "INFO")
+    log_level   = optional(string, "ERROR")
     memory_size = optional(number, 256)
     timeout     = optional(number, 300)
 
@@ -55,7 +55,7 @@ variable "findings_manager_trigger_lambda" {
 variable "findings_manager_worker_lambda" {
   type = object({
     name        = optional(string, "securityhub-findings-manager-worker")
-    log_level   = optional(string, "INFO")
+    log_level   = optional(string, "ERROR")
     memory_size = optional(number, 256)
     timeout     = optional(number, 900)
 
