@@ -2,6 +2,25 @@
 
 This document captures required refactoring on your part when upgrading to a module version that contains breaking changes.
 
+## Upgrading to v4.0.0
+
+We are introducing a new worker Lambda function and an SQS queue, enabling the Lambda to run within the 15-minute timeout, which is especially relevant for larger environments.
+
+The following variable defaults have been modified:
+- `findings_manager_events_lambda.log_level` -> default: `ERROR` (previous default: `INFO`). The logging configuration has been updated, and `ERROR` is now more logical as the default level.
+- `findings_manager_trigger_lambda.log_level` -> default: `ERROR` (previous default: `INFO`). The logging configuration has been updated, and `ERROR` is now more logical as the default level.
+- `findings_manager_trigger_lambda.memory_size` -> default: `256` (previous default: `1024`). With the new setup, the trigger Lambda requires less memory.
+- `findings_manager_trigger_lambda.timeout` -> default: `300` (previous default: `900`).  With the new setup, the trigger Lambda completes tasks in less time.
+
+The following variables have been introduced:
+- `findings_manager_worker_lambda`
+
+The following output has been introduced:
+- `findings_manager_worker_lambda_sg_id`
+
+Note:
+- Ensure your KMS key is available for SQS access.
+
 ## Upgrading to v3.0.0
 
 ### Variables (v3.0.0)

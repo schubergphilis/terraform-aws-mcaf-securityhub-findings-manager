@@ -292,7 +292,7 @@ resource "aws_sqs_queue_policy" "findings_manager_rule_sqs_policy" {
 }
 
 resource "aws_sqs_queue" "dlq_for_findings_manager_rule_q" {
-  name              = "DlqForFindingsManagerRuleQueue"
+  name              = "DlqForSecurityHubFindingsManagerRuleQueue"
   kms_master_key_id = var.kms_key_arn
 }
 
