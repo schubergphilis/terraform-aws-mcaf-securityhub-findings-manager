@@ -146,28 +146,20 @@
                                     "StringEquals": "ARCHIVED"
                                   },
                                   {
-                                    "Or": [
+                                    "And": [
                                       {
                                         "Variable": "$.detail.findings[0].Compliance.Status",
-                                        "IsPresent": false
+                                        "IsPresent": true
                                       },
                                       {
-                                        "And": [
+                                        "Or": [
                                           {
                                             "Variable": "$.detail.findings[0].Compliance.Status",
-                                            "IsPresent": true
+                                            "StringEquals": "PASSED"
                                           },
                                           {
-                                            "Or": [
-                                              {
-                                                "Variable": "$.detail.findings[0].Compliance.Status",
-                                                "StringEquals": "PASSED"
-                                              },
-                                              {
-                                                "Variable": "$.detail.findings[0].Compliance.Status",
-                                                "StringEquals": "NOT_AVAILABLE"
-                                              }
-                                            ]
+                                            "Variable": "$.detail.findings[0].Compliance.Status",
+                                            "StringEquals": "NOT_AVAILABLE"
                                           }
                                         ]
                                       }
