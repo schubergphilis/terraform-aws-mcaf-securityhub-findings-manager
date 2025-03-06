@@ -18,13 +18,13 @@ data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
 
   statement {
     sid       = "S3GetObjectAccess"
-    actions   = "s3:GetObject"
+    actions   = ["s3:GetObject"]
     resources = ["${module.findings_manager_bucket.arn}/*"]
   }
 
   statement {
     sid       = "S3GetObjectAccess"
-    actions   = "s3:ListBucket"
+    actions   = ["s3:ListBucket"]
     resources = ["${module.findings_manager_bucket.arn}/*"]
   }
 
