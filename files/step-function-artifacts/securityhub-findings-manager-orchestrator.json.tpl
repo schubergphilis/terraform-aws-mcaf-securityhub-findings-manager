@@ -92,14 +92,34 @@
                         "StringEquals": "NEW"
                       },
                       {
+                        "Variable": "$.detail.findings[0].RecordState",
+                        "StringEquals": "ACTIVE"
+                      },
+                      {
                         "Or": [
                           {
                             "Variable": "$.detail.findings[0].Compliance.Status",
-                            "StringEquals": "FAILED"
+                            "IsPresent": false
                           },
                           {
-                            "Variable": "$.detail.findings[0].Compliance.Status",
-                            "StringEquals": "WARNING"
+                            "And": [
+                              {
+                                "Variable": "$.detail.findings[0].Compliance.Status",
+                                "IsPresent": true
+                              },
+                              {
+                                "Or": [
+                                  {
+                                    "Variable": "$.detail.findings[0].Compliance.Status",
+                                    "StringEquals": "FAILED"
+                                  },
+                                  {
+                                    "Variable": "$.detail.findings[0].Compliance.Status",
+                                    "StringEquals": "WARNING"
+                                  }
+                                ]
+                              }
+                            ]
                           }
                         ]
                       }
@@ -122,12 +142,28 @@
                               {
                                 "Or": [
                                   {
-                                    "Variable": "$.detail.findings[0].Compliance.Status",
-                                    "StringEquals": "PASSED"
+                                    "Variable": "$.detail.findings[0].RecordState",
+                                    "StringEquals": "ARCHIVED"
                                   },
                                   {
-                                    "Variable": "$.detail.findings[0].Compliance.Status",
-                                    "StringEquals": "NOT_AVAILABLE"
+                                    "And": [
+                                      {
+                                        "Variable": "$.detail.findings[0].Compliance.Status",
+                                        "IsPresent": true
+                                      },
+                                      {
+                                        "Or": [
+                                          {
+                                            "Variable": "$.detail.findings[0].Compliance.Status",
+                                            "StringEquals": "PASSED"
+                                          },
+                                          {
+                                            "Variable": "$.detail.findings[0].Compliance.Status",
+                                            "StringEquals": "NOT_AVAILABLE"
+                                          }
+                                        ]
+                                      }
+                                    ]
                                   }
                                 ]
                               }
