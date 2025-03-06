@@ -23,7 +23,7 @@ data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
   }
 
   statement {
-    sid       = "S3GetObjectAccess"
+    sid       = "S3ListBucketObjects"
     actions   = ["s3:ListBucket"]
     resources = ["${module.findings_manager_bucket.arn}/*"]
   }
