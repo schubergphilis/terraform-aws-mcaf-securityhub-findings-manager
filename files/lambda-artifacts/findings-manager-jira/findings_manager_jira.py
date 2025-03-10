@@ -78,6 +78,9 @@ def lambda_handler(event: dict, context: LambdaContext):
         return
 
     # Handle new findings
+    # Ticket is created when Workflow Status is NEW and Compliance Status is FAILED, WARNING or is missing from the finding (case with e.g. Inspector findings)
+    # Compliance status check is necessary because some findings from AWS Config can have Workflow Status NEW but Compliance Status NOT_AVAILABLE
+    # In such case, we don't want to create a JIRA ticket, because the finding is not actionable
     if (workflow_status == STATUS_NEW
             and compliance_status in [COMPLIANCE_STATUS_FAILED,
                                       COMPLIANCE_STATUS_WARNING,
@@ -96,6 +99,9 @@ def lambda_handler(event: dict, context: LambdaContext):
                 f"Error processing new finding for findingID {finding["Id"]}: {e}")
 
     # Handle resolved findings
+    # Close JIRA issue if finding in SecurityHub has Workflow Status RESOLVED
+    # or if the finding is in NOTIFIED status and compliance is PASSED (finding resoloved) or NOT_AVAILABLE (when the resource is deleted, for example) or the finding's Record State is ARCHIVED
+    # If closed from NOTIFIED status, also resolve the finding in SecurityHub. If the finding becomes relevant again, Security Hub will reopen it and new ticket will be created.
     elif (workflow_status == STATUS_RESOLVED
             or (workflow_status == STATUS_NOTIFIED
                 and (compliance_status in [COMPLIANCE_STATUS_PASSED,
