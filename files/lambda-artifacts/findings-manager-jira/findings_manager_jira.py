@@ -28,6 +28,11 @@ COMPLIANCE_STATUS_FAILED = 'FAILED'
 COMPLIANCE_STATUS_NOT_AVAILABLE = 'NOT_AVAILABLE'
 COMPLIANCE_STATUS_PASSED = 'PASSED'
 COMPLIANCE_STATUS_WARNING = 'WARNING'
+COMPLIANCE_STATUS_MISSING = 'MISSING'
+
+RECORD_STATE_ACTIVE = 'ACTIVE'
+RECORD_STATE_ARCHIVED = 'ARCHIVED'
+
 
 @logger.inject_lambda_context
 def lambda_handler(event: dict, context: LambdaContext):
@@ -48,7 +53,8 @@ def lambda_handler(event: dict, context: LambdaContext):
     # Parse custom fields
     try:
         jira_issue_custom_fields = json.loads(jira_issue_custom_fields)
-        jira_issue_custom_fields = { k: {"value": v} for k, v in jira_issue_custom_fields.items() }
+        jira_issue_custom_fields = {k: {"value": v}
+                                    for k, v in jira_issue_custom_fields.items()}
     except json.JSONDecodeError as e:
         logger.error(f"Failed to parse JSON for custom fields: {e}.")
         sys.exit(1)
@@ -62,7 +68,8 @@ def lambda_handler(event: dict, context: LambdaContext):
     finding = event_detail['findings'][0]
     finding_account_id = finding['AwsAccountId']
     workflow_status = finding['Workflow']['Status']
-    compliance_status = finding['Compliance']['Status']
+    compliance_status = finding['Compliance']['Status'] if 'Compliance' in finding else COMPLIANCE_STATUS_MISSING
+    record_state = finding['RecordState']
 
     # Only process finding if account is not excluded
     if finding_account_id in exclude_account_filter:
@@ -71,7 +78,14 @@ def lambda_handler(event: dict, context: LambdaContext):
         return
 
     # Handle new findings
-    if workflow_status == STATUS_NEW and compliance_status in [COMPLIANCE_STATUS_FAILED, COMPLIANCE_STATUS_WARNING]:
+    # Ticket is created when Workflow Status is NEW and Compliance Status is FAILED, WARNING or is missing from the finding (case with e.g. Inspector findings)
+    # Compliance status check is necessary because some findings from AWS Config can have Workflow Status NEW but Compliance Status NOT_AVAILABLE
+    # In such case, we don't want to create a JIRA ticket, because the finding is not actionable
+    if (workflow_status == STATUS_NEW
+            and compliance_status in [COMPLIANCE_STATUS_FAILED,
+                                      COMPLIANCE_STATUS_WARNING,
+                                      COMPLIANCE_STATUS_MISSING]
+            and record_state == RECORD_STATE_ACTIVE):
         # Create JIRA issue and updates Security Hub status to NOTIFIED
         # and adds JIRA issue key to note (in JSON format)
         try:
@@ -81,10 +95,18 @@ def lambda_handler(event: dict, context: LambdaContext):
             helpers.update_security_hub(
                 securityhub, finding["Id"], finding["ProductArn"], STATUS_NOTIFIED, note)
         except Exception as e:
-            logger.error(f"Error processing new finding for findingID {finding["Id"]}: {e}")
-    
+            logger.error(
+                f"Error processing new finding for findingID {finding["Id"]}: {e}")
+
     # Handle resolved findings
-    elif workflow_status == STATUS_RESOLVED or (workflow_status == STATUS_NOTIFIED and compliance_status in [COMPLIANCE_STATUS_PASSED, COMPLIANCE_STATUS_NOT_AVAILABLE]):
+    # Close JIRA issue if finding in SecurityHub has Workflow Status RESOLVED
+    # or if the finding is in NOTIFIED status and compliance is PASSED (finding resoloved) or NOT_AVAILABLE (when the resource is deleted, for example) or the finding's Record State is ARCHIVED
+    # If closed from NOTIFIED status, also resolve the finding in SecurityHub. If the finding becomes relevant again, Security Hub will reopen it and new ticket will be created.
+    elif (workflow_status == STATUS_RESOLVED
+            or (workflow_status == STATUS_NOTIFIED
+                and (compliance_status in [COMPLIANCE_STATUS_PASSED,
+                                           COMPLIANCE_STATUS_NOT_AVAILABLE]
+                     or record_state == RECORD_STATE_ARCHIVED))):
         # Close JIRA issue if finding is resolved.
         # Note text should contain JIRA issue key in JSON format
         try:
@@ -96,19 +118,23 @@ def lambda_handler(event: dict, context: LambdaContext):
                 try:
                     issue = jira_client.issue(jira_issue_id)
                 except JIRAError as e:
-                    logger.error(f"Failed to retrieve JIRA issue {jira_issue_id}: {e}. Cannot autoclose.")
+                    logger.error(
+                        f"Failed to retrieve JIRA issue {jira_issue_id}: {e}. Cannot autoclose.")
                     return
                 helpers.close_jira_issue(
                     jira_client, issue, jira_autoclose_transition, jira_autoclose_comment)
-                
+
                 if workflow_status == STATUS_NOTIFIED:
                     # Resolve SecHub finding as it will be reopened anyway in case the compliance fails
                     # Also change the note to prevent a second run with RESOLVED status.
                     helpers.update_security_hub(
                         securityhub, finding["Id"], finding["ProductArn"], STATUS_RESOLVED, f"Closed JIRA issue {jira_issue_id}")
         except json.JSONDecodeError as e:
-            logger.error(f"Failed to decode JSON from note text: {e}. Cannot autoclose.")
+            logger.error(
+                f"Failed to decode JSON from note text: {e}. Cannot autoclose.")
         except Exception as e:
-            logger.error(f"Error processing resolved finding for findingId {finding["Id"]}: {e}. Cannot autoclose.")
+            logger.error(
+                f"Error processing resolved finding for findingId {finding["Id"]}: {e}. Cannot autoclose.")
     else:
-        logger.info(f"Finding {finding["Id"]} is not in a state to be processed. Workflow status: {workflow_status}, Compliance status: {compliance_status}")
+        logger.info(
+            f"Finding {finding["Id"]} is not in a state to be processed. Workflow status: {workflow_status}, Compliance status: {compliance_status}, Record state: {record_state}")
