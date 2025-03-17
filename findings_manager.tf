@@ -23,6 +23,12 @@ data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
   }
 
   statement {
+    sid       = "S3ListBucketObjects"
+    actions   = ["s3:ListBucket"]
+    resources = ["${module.findings_manager_bucket.arn}/*"]
+  }
+
+  statement {
     sid       = "EC2DescribeRegionsAccess"
     actions   = ["ec2:DescribeRegions"]
     resources = ["*"]
