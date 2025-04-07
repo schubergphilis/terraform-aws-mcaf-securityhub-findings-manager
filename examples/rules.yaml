@@ -20,3 +20,10 @@ Rules:
       resource_id_regexps:
         - '^arn:aws:s3:::.*-dev$'
         - '^arn:aws:s3:::.*-acc$'
+  - note: 'Suppress EC2.172 on us-east-1 and eu-central-1'
+    action: 'SUPPRESSED'
+    match_on:
+      security_control_id: 'EC2.172'
+      regions:
+        - 'us-east-1'
+        - 'eu-central-1'
