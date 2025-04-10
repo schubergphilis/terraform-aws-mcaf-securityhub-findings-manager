@@ -97,6 +97,7 @@ def lambda_handler(event: dict, context: LambdaContext):
         except Exception as e:
             logger.error(
                 f"Error processing new finding for findingID {finding["Id"]}: {e}")
+            sys.exit(1)
 
     # Handle resolved findings
     # Close Jira issue if finding in SecurityHub has Workflow Status RESOLVED
@@ -132,9 +133,11 @@ def lambda_handler(event: dict, context: LambdaContext):
         except json.JSONDecodeError as e:
             logger.error(
                 f"Failed to decode JSON from note text: {e}. Cannot autoclose.")
+                sys.exit(1)
         except Exception as e:
             logger.error(
                 f"Error processing resolved finding for findingId {finding["Id"]}: {e}. Cannot autoclose.")
+                sys.exit(1)
     else:
         logger.info(
             f"Finding {finding["Id"]} is not in a state to be processed. Workflow status: {workflow_status}, Compliance status: {compliance_status}, Record state: {record_state}")
