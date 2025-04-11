@@ -1,70 +1,54 @@
 # Security Hub Findings Manager
-Automated scanning and finding consolidation is a cornerstone in evaluating your security posture. 
-AWS Security Hub is the native solution to perform this job in AWS. 
-As with any scanning and reporting tool, the amount of findings it generates can be overwhelming at first. 
-Also, you may find that some findings are not relevant or have less urgency to fix in your specific situation.
+Automated scanning and finding consolidation are essential for evaluating your security posture. AWS Security Hub is the native solution for this task within AWS. The number of findings it generates can initially be overwhelming. Additionally, some findings may be irrelevant or have less urgency for your specific situation.
 
-The Security Hub Findings Manager is a framework designed to automatically manage findings recorded by the AWS Security Hub service including it's [AWS service integrations](https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-internal-providers.html#internal-integrations-summary) based on a pre-defined and configurable rules list. 
-At its core, the Security Hub Findings Manager aims to reduce noise and help you prioritize real security issues.
+The Security Hub Findings Manager is a framework designed to automatically manage findings recorded by AWS Security Hub, including its [AWS service integrations](https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-internal-providers.html#internal-integrations-summary), based on a configurable rules list. Its primary aim is to reduce noise and help you prioritize genuine security issues.
 
-Currently, it supports:
-* Suppressing findings, ensuring you can manage irrelevant or less urgent findings effectively.
-* Automated ticket creation in Jira and ServiceNow for non-suppressed findings with a severity higher than a definable threshold.
+### Supported Functionality:
+* Suppressing findings to manage irrelevant or less urgent issues effectively.
+* Automated ticket creation in Jira and ServiceNow for non-suppressed findings exceeding a customizable severity threshold.
 
 > [!TIP]
-> We recommend deploying this module in the Audit/Security Account of an AWS reference multi-account setup.
-> This account receives events from all child accounts in an organization.
-> This way, a comprehensive overview of the organization's security posture can be easily maintained.
-
-> [!IMPORTANT] 
-> This module relies extensively on the [awsfindingsmanagerlib](https://github.com/schubergphilis/awsfindingsmanagerlib/tree/main).  
-> For detailed information about the suppression logic, refer to the library's [documentation](https://awsfindingsmanagerlib.readthedocs.io/en/latest/).
-
-## Components
-
-This is a high-level overview of the constituent components.
-For a more complete overview see [Resources](#resources) and [Modules](#modules).
-
-* A rules backend (currently only S3 is supported).
-* 3 Lambda Functions:
-  * Security Hub Findings Manager Events: triggered by EventBridge events for new Security Hub findings.
-  * Security Hub Findings Manager Triggers: triggered by changes in the S3 backend rules list, puts suppression rules on SQS.
-  * Security Hub Findings Manager Trigger Worker: triggered by suppression rules on SQS.
-* Infrastructure to facilitate the Lambda functions (IAM role, EventBridge integration, S3 Trigger Notifications, SQS queue).
-* (optional) Jira integration components.
-* (optional) ServiceNow integration components.
-
-## Deployment Modes
-
-There are 3 different deployment modes for this module:
+> Deploy this module in the Audit/Security Account of an AWS reference multi-account setup. This setup receives events from all child accounts, providing a comprehensive overview of the organization's security posture.
 
 > [!IMPORTANT]
-> In case of first time deploy, be mindful that there can be a delay between creating S3 triggers and those being fully functional.
-> Re-create the rules object later to have rules run on your findings history in that case.
+> This module relies heavily on [awsfindingsmanagerlib](https://github.com/schubergphilis/awsfindingsmanagerlib/tree/main). For detailed suppression logic information, refer to the library's [documentation](https://awsfindingsmanagerlib.readthedocs.io/en/latest/).
 
-### (Default) Without Jira & ServiceNow Integration
+## Components
+Here's a high-level overview of the components. For more details, see [Resources](#resources) and [Modules](#modules).
 
-The module deploys 2 Lambda functions:
+* Rules backend (currently only S3 supported).
+* Three Lambda Functions:
+  * Security Hub Findings Manager Events: triggered by EventBridge for new Security Hub findings.
+  * Security Hub Findings Manager Triggers: responds to changes in the S3 backend rules list, putting suppression rules on SQS.
+  * Security Hub Findings Manager Trigger Worker: activated by suppression rules on SQS.
+* Infrastructure supporting Lambda functions (IAM role, EventBridge integration, S3 Trigger Notifications, SQS queue).
+* Optional Jira integration components.
+* Optional ServiceNow integration components.
 
-* `securityhub-findings-manager-events`, this function is the target for the EventBridge rule `Security Hub Findings - Imported` events.
-* `securityhub-findings-manager-trigger`, this function is the target to the S3 PutObject trigger.
+## Deployment Modes
+Three deployment modes are available:
+
+> [!IMPORTANT]
+> During the first deployment, be aware that S3 triggers might take time to become fully functional. Re-create the rules object later to apply rules to your findings history.
+
+### Default (Without Jira & ServiceNow Integration)
+Deploys two Lambda functions:
+* `securityhub-findings-manager-events`: target for the EventBridge rule `Security Hub Findings - Imported` events.
+* `securityhub-findings-manager-trigger`: target for the S3 PutObject trigger.
 
 ### With Jira Integration
+* Enable by setting the variable `jira_integration` to `true` (default = false).
+* Deploys an additional Jira lambda function and a Step function for orchestration, triggered by an EventBridge rule.
+* Non-suppressed findings with severity above a threshold result in ticket creation and workflow status update from `NEW` to `NOTIFIED`.
+* Auto-closing can be activated with `jira_integration.autoclose_enabled` (default = false). Using the issue number in the finding note, the function transitions issues using `jira_integration.autoclose_transition_name` and `jira_integration.autoclose_comment`. Criteria for being forwarded for automatic ticket closure are:
+  * Workflow Status "RESOLVED"
+  * Workflow Status "NOTIFIED" and one of:
+    * Record State "ARCHIVED"
+    * Compliance State "PASSED" or "NOT_AVAILABLE"
 
-* This deployment method can be used by setting the value of the variable `jira_integration` to `true` (default = false).
-* The module deploys an additional `Jira` lambda function along with a Step function which orchestrates these Lambda functions and Step Function as a target to the EventBridge rule.
-* If the finding is not suppressed a ticket is created for findings with a normalized severity higher than a definable threshold. The workflow status in Security Hub is updated from `NEW` to `NOTIFIED`.
-* You can enable auto-closing functionality by setting the value of the variable `jira_integration.autoclose_enabled` to `true` (default = false). If you do so, the function will use the ticket number saved in the finding note and transition the issue using the transition defined in `jira_integration.autoclose_transition_name` with comment defined in `jira_integration.autoclose_comment`. Following findings will be forwarded to the lambda function for automatic ticket closure: 
-  * Findings with Workflow Status "RESOLVED"
-  * Findings with Workflow Status "NOTIFIED" and one of the following conditions:
-    * Record State is "ARCHIVED"
-    * Compliance State is "PASSED" or "NOT_AVAILABLE"
-
-
-Only events from Security Hub with a normalized severity level higher than a definable threshold (by default `70`) trigger the Jira integration.
+Only findings with a normalized severity level above the threshold (default `70`) initiate Jira integration.
 
 [Normalized severity levels](https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Severity.html):
-
 * 0 - INFORMATIONAL
 * 1–39 - LOW
 * 40–69 - MEDIUM
@@ -74,27 +58,21 @@ Only events from Security Hub with a normalized severity level higher than a def
 ![Step Function Graph](files/step-function-artifacts/securityhub-findings-manager-orchestrator-graph.png)
 
 ### With ServiceNow Integration
-
 [Reference design](https://aws.amazon.com/blogs/security/how-to-set-up-two-way-integration-between-aws-security-hub-and-servicenow)
-
-* This deployment method can be used by setting the value of the variable `servicenow_integration` to `true` (default = false).
-* The module will deploy all the needed resources to support integration with ServiceNow, including (but not limited to): An SQS Queue, EventBridge Rule and the needed IAM user.
-* When an event in Security Hub fires, an event will be created by EventBridge and dropped onto an SQS Queue.
-* With the variable `severity_label_filter` it can be configured which findings will be forwarded based on the severity label.
-* ServiceNow will pull the events from the SQS queue with the `SCSyncUser` using `acccess_key` & `secret_access_key`.
+* Enable by setting the variable `servicenow_integration` to `true` (default = false).
+* Deploys resources supporting ServiceNow integration, including an SQS Queue, EventBridge Rule, and required IAM user.
+* EventBridge triggers events for Security Hub, placing them on an SQS Queue.
+* Configure which findings are forwarded via `severity_label_filter`.
+* ServiceNow retrieves events from the SQS queue using `SCSyncUser` credentials.
 
 > [!WARNING]
-> The user will be created by the module, but the `acccess_key` & `secret_access_key` need to be generated in the AWS Console, to prevent storing this data in the Terraform state.
-> If you want Terraform to create the `acccess_key` & `secret_access_key` (and output them), set variable `create_servicenow_access_keys` to `true` (default = false)
+> Generate the `access_key` & `secret_access_key` in the AWS Console. If you prefer Terraform to handle this (and output them), set the variable `create_servicenow_access_keys` to `true` (default = false).
 
-## How to format the `rules.yaml` file?
+## Formatting the `rules.yaml` File
+An example file is available under `examples/rules.yaml`. For detailed information, see the Rule Syntax section in the [awsfindingsmanagerlib documentation](https://awsfindingsmanagerlib.readthedocs.io/en/latest/#rule-syntax).
 
-An example file is stored in this module under `examples/rules.yaml`. For more detailed information check out the Rule Syntax section in the [awsfindingsmanagerlib](https://awsfindingsmanagerlib.readthedocs.io/en/latest/#rule-syntax) documentation.
-
-## Local development on the Python code
-
-Since a lambda layer is used to provide the aws-lambda-powertools if you want to have the same dependencies available locally then install them using `requirements-dev.txt` stored with the source code.
-
+## Local Development on Python Code
+A lambda layer provides aws-lambda-powertools. To have these dependencies locally, use `requirements-dev.txt` from the source code.
 
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
