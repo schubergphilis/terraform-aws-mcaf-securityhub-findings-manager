@@ -36,16 +36,16 @@ def validate_env_vars(env_vars: List[str]) -> None:
 
 def get_jira_client(jira_secret: Dict[str, str]) -> JIRA:
     """
-    Create a JIRA client instance using the specified secret.
+    Create a Jira client instance using the specified secret.
 
     Args:
-        jira_secret (Dict[str, str]): A dictionary containing the JIRA connection details.
+        jira_secret (Dict[str, str]): A dictionary containing the Jira connection details.
 
     Returns:
-        JIRA: A JIRA client instance.
+        JIRA: A Jira client instance.
 
     Raises:
-        ValueError: If the JIRA connection details are not valid.
+        ValueError: If the Jira connection details are not valid.
     """
 
     jira_url = jira_secret.get('url')
@@ -53,7 +53,7 @@ def get_jira_client(jira_secret: Dict[str, str]) -> JIRA:
     jira_password = jira_secret.get('apikey')
 
     if not jira_url or not jira_user or not jira_password:
-        raise ValueError("JIRA connection details are not valid!")
+        raise ValueError("Jira connection details are not valid!")
 
     return JIRA(server=jira_url, basic_auth=(jira_user, jira_password))
 
@@ -95,20 +95,20 @@ def get_secret(client: BaseClient, secret_arn: str) -> Dict[str, str]:
 
 def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, event: dict, custom_fields: dict) -> Issue:
     """
-    Create a JIRA issue based on a Security Hub event.
+    Create a Jira issue based on a Security Hub event.
 
     Args:
-        jira_client (JIRA): An authenticated JIRA client instance.
-        project_key (str): The key of the JIRA project.
-        issue_type (str): The type of the JIRA issue.
+        jira_client (JIRA): An authenticated Jira client instance.
+        project_key (str): The key of the Jira project.
+        issue_type (str): The type of the Jira issue.
         event (Dict): The Security Hub event data.
-        custom_fields (Dict): The custom fields to include in the JIRA issue.
+        custom_fields (Dict): The custom fields to include in the Jira issue.
 
     Returns:
-        Issue: The created JIRA issue.
+        Issue: The created Jira issue.
 
     Raises:
-        Exception: If there is an error creating the JIRA issue.
+        Exception: If there is an error creating the Jira issue.
     """
 
     finding = event['findings'][0]
@@ -145,35 +145,35 @@ def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, even
 
     try:
         issue = jira_client.create_issue(fields=issue_dict)
-        logger.info(f"Created JIRA issue: {issue.key}")
+        logger.info(f"Created Jira issue: {issue.key}")
         return issue
     except Exception as e:
-        logger.error(f"Failed to create JIRA issue for finding {finding['Id']}: {e}")
+        logger.error(f"Failed to create Jira issue for finding {finding['Id']}: {e}")
         raise e
 
 
 def close_jira_issue(jira_client: JIRA, issue: Issue, transition_name: str, comment: str) -> None:
     """
-    Close a JIRA issue.
+    Close a Jira issue.
 
     Args:
-        jira_client (JIRA): An authenticated JIRA client instance.
-        issue (Issue): The JIRA issue to close.
+        jira_client (JIRA): An authenticated Jira client instance.
+        issue (Issue): The Jira issue to close.
 
     Raises:
-        Exception: If there is an error closing the JIRA issue.
+        Exception: If there is an error closing the Jira issue.
     """
 
     try:
         transition_id = jira_client.find_transitionid_by_name(issue, transition_name)
         if transition_id is None:
-            logger.warning(f"Failed to close JIRA issue: Invalid transition.")
+            logger.warning(f"Failed to close Jira issue: Invalid transition.")
             return
         jira_client.add_comment(issue, comment)
         jira_client.transition_issue(issue, transition_id, comment=comment)
-        logger.info(f"Closed JIRA issue: {issue.key}")
+        logger.info(f"Closed Jira issue: {issue.key}")
     except Exception as e:
-        logger.error(f"Failed to close JIRA issue {issue.key}: {e}")
+        logger.error(f"Failed to close Jira issue {issue.key}: {e}")
         raise e
 
 
