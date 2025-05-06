@@ -91,7 +91,8 @@ variable "jira_integration" {
     autoclose_enabled                     = optional(bool, false)
     autoclose_comment                     = optional(string, "Security Hub finding has been resolved. Autoclosing the issue.")
     autoclose_transition_name             = optional(string, "Close Issue")
-    credentials_secret_arn                = string
+    credentials_secretsmanager_arn        = optional(string)
+    credentials_ssm_secret_arn            = optional(string)
     exclude_account_ids                   = optional(list(string), [])
     finding_severity_normalized_threshold = optional(number, 70)
     issue_custom_fields                   = optional(map(string), {})
@@ -133,15 +134,21 @@ variable "jira_integration" {
 
   })
   default = {
-    enabled                = false
-    credentials_secret_arn = null
-    project_key            = null
+    enabled                        = false
+    credentials_secretsmanager_arn = "REDACTED"
+    credentials_ssm_secret_arn     = "REDACTED"
+    project_key                    = null
   }
   description = "Findings Manager - Jira integration settings"
 
   validation {
     condition     = alltrue([for o in var.jira_integration.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
     error_message = "Although \"cidr_ipv4\", \"cidr_ipv6\", \"prefix_list_id\", and \"referenced_security_group_id\" are all marked as optional, you must provide one of them in order to configure the destination of the traffic."
+  }
+
+  validation {
+    condition     = (var.jira_integration.credentials_secretsmanager_arn != null && var.jira_integration.credentials_ssm_secret_arn == null) || (var.jira_integration.credentials_secretsmanager_arn == null && var.jira_integration.credentials_ssm_secret_arn != null)
+    error_message = "You must provide either 'credentials_secretsmanager_arn' or 'credentials_ssm_secret_arn' for jira credentials, but not both."
   }
 }
 
