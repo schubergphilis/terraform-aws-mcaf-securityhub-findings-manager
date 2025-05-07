@@ -136,7 +136,6 @@ variable "jira_integration" {
   default = {
     enabled                        = false
     credentials_secretsmanager_arn = "REDACTED"
-    credentials_ssm_secret_arn     = "REDACTED"
     project_key                    = null
   }
   description = "Findings Manager - Jira integration settings"
@@ -147,7 +146,7 @@ variable "jira_integration" {
   }
 
   validation {
-    condition     = (var.jira_integration.credentials_secretsmanager_arn != null && var.jira_integration.credentials_ssm_secret_arn == null) || (var.jira_integration.credentials_secretsmanager_arn == null && var.jira_integration.credentials_ssm_secret_arn != null)
+    condition     = var.jira_integration.enabled == false || (var.jira_integration.credentials_secretsmanager_arn != null && var.jira_integration.credentials_ssm_secret_arn == null) || (var.jira_integration.credentials_secretsmanager_arn == null && var.jira_integration.credentials_ssm_secret_arn != null)
     error_message = "You must provide either 'credentials_secretsmanager_arn' or 'credentials_ssm_secret_arn' for jira credentials, but not both."
   }
 }
