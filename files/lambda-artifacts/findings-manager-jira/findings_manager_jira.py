@@ -9,9 +9,10 @@ import helpers
 logger = Logger()
 securityhub = boto3.client('securityhub')
 secretsmanager = boto3.client('secretsmanager')
+ssm = boto3.client('ssm')
 
 REQUIRED_ENV_VARS = [
-    'EXCLUDE_ACCOUNT_FILTER', 'JIRA_ISSUE_CUSTOM_FIELDS', 'JIRA_ISSUE_TYPE', 'JIRA_PROJECT_KEY', 'JIRA_SECRET_ARN'
+    'EXCLUDE_ACCOUNT_FILTER', 'JIRA_ISSUE_CUSTOM_FIELDS', 'JIRA_ISSUE_TYPE', 'JIRA_PROJECT_KEY', 'JIRA_SECRET_ARN', 'JIRA_SSM_SECRET_ARN'
 ]
 
 DEFAULT_JIRA_AUTOCLOSE_COMMENT = 'Security Hub finding has been resolved. Autoclosing the issue.'
@@ -48,6 +49,7 @@ def lambda_handler(event: dict, context: LambdaContext):
     jira_issue_type = os.environ['JIRA_ISSUE_TYPE']
     jira_project_key = os.environ['JIRA_PROJECT_KEY']
     jira_secret_arn = os.environ['JIRA_SECRET_ARN']
+    jira_ssm_secret_arn = os.environ['JIRA_SSM_SECRET_ARN']
 
     # Parse custom fields
     try:
@@ -60,7 +62,12 @@ def lambda_handler(event: dict, context: LambdaContext):
 
     # Retrieve Jira client
     try:
-        jira_secret = helpers.get_secret(secretsmanager, jira_secret_arn)
+        if jira_secret_arn != "REDACTED" and jira_secret_arn:
+            jira_secret = helpers.get_secret(secretsmanager, jira_secret_arn)
+        elif jira_ssm_secret_arn != "REDACTED" and jira_ssm_secret_arn:
+            jira_secret = helpers.get_ssm_secret(ssm, jira_ssm_secret_arn)
+        else:
+            raise ValueError("Both JIRA_SECRET_ARN and JIRA_SSM_SECRET_ARN are REDACTED or empty. Cannot proceed without JIRA Credentials.")
         jira_client = helpers.get_jira_client(jira_secret)
     except Exception as e:
         logger.error(f"Failed to retrieve Jira client: {e}")

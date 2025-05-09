@@ -45,9 +45,9 @@ module "aws_securityhub_findings_manager" {
   s3_bucket_name = local.s3_bucket_name
 
   jira_integration = {
-    enabled                = true
-    credentials_secret_arn = aws_secretsmanager_secret.jira_credentials.arn
-    project_key            = "PROJECT"
+    enabled                        = true
+    credentials_secretsmanager_arn = aws_secretsmanager_secret.jira_credentials.arn
+    project_key                    = "PROJECT"
 
     security_group_egress_rules = [{
       cidr_ipv4   = "1.1.1.1/32"
