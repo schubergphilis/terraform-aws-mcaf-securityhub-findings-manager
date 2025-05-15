@@ -45,9 +45,9 @@ module "aws_securityhub_findings_manager" {
   s3_bucket_name = local.s3_bucket_name
 
   jira_integration = {
-    enabled                = true
-    credentials_secret_arn = aws_secretsmanager_secret.jira_credentials.arn
-    project_key            = "PROJECT"
+    enabled                        = true
+    credentials_secretsmanager_arn = aws_secretsmanager_secret.jira_credentials.arn
+    project_key                    = "PROJECT"
 
     security_group_egress_rules = [{
       cidr_ipv4   = "1.1.1.1/32"
@@ -71,4 +71,46 @@ resource "aws_s3_object" "rules" {
   source_hash  = filemd5("${path.module}/../rules.yaml")
 
   depends_on = [module.aws_securityhub_findings_manager]
+}
+
+
+
+resource "aws_ssm_parameter" "jira_creds" {
+  name = "/jira/securityhub_findings_manager/secrets"
+  type = "SecureString"
+  value = jsonencode({
+    "url"     = "https://jira.mycompany.com"
+    "apiuser" = "username"
+    "apikey"  = "apikey"
+  })
+  lifecycle {
+    ignore_changes = [
+      value
+    ]
+  }
+}
+
+
+
+module "aws_securityhub_findings_manager_with_jira_ssm_credentials" {
+  source = "../../"
+
+  kms_key_arn    = module.kms.arn
+  s3_bucket_name = local.s3_bucket_name
+
+  jira_integration = {
+    enabled                        = true
+    credentials_secretsmanager_arn = aws_ssm_parameter.jira_creds.arn
+    project_key                    = "PROJECT"
+
+    security_group_egress_rules = [{
+      cidr_ipv4   = "1.1.1.1/32"
+      description = "Allow access from lambda_jira_securityhub to Jira"
+      from_port   = 443
+      ip_protocol = "tcp"
+      to_port     = 443
+    }]
+  }
+
+  tags = { Terraform = true }
 }

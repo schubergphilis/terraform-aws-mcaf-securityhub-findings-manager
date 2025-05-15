@@ -14,14 +14,24 @@ data "aws_iam_policy_document" "jira_lambda_iam_role" {
     ]
   }
 
-  statement {
-    sid = "SecretManagerAccess"
-    actions = [
-      "secretsmanager:GetSecretValue"
-    ]
-    resources = [
-      var.jira_integration.credentials_secret_arn
-    ]
+  dynamic "statement" {
+    for_each = var.jira_integration.credentials_secretsmanager_arn != null && var.jira_integration.credentials_secretsmanager_arn != "REDACTED" ? {
+      "SecretManagerAccess" = {
+        actions   = ["secretsmanager:GetSecretValue"]
+        resources = [var.jira_integration.credentials_secretsmanager_arn]
+      }
+      } : var.jira_integration.credentials_ssm_secret_arn != null && var.jira_integration.credentials_ssm_secret_arn != "REDACTED" ? {
+      "SSMParameterAccess" = {
+        actions   = ["ssm:GetParameter", "ssm:GetParameterHistory"]
+        resources = [var.jira_integration.credentials_ssm_secret_arn]
+      }
+    } : {}
+
+    content {
+      sid       = statement.key
+      actions   = statement.value.actions
+      resources = statement.value.resources
+    }
   }
 
   statement {
@@ -101,7 +111,8 @@ module "jira_lambda" {
     JIRA_ISSUE_CUSTOM_FIELDS    = jsonencode(var.jira_integration.issue_custom_fields)
     JIRA_ISSUE_TYPE             = var.jira_integration.issue_type
     JIRA_PROJECT_KEY            = var.jira_integration.project_key
-    JIRA_SECRET_ARN             = var.jira_integration.credentials_secret_arn
+    JIRA_SECRET_ARN             = var.jira_integration.credentials_secretsmanager_arn != null ? var.jira_integration.credentials_secretsmanager_arn : var.jira_integration.credentials_ssm_secret_arn
+    JIRA_SECRET_TYPE            = var.jira_integration.credentials_secretsmanager_arn != null ? "SECRETSMANAGER" : "SSM"
     LOG_LEVEL                   = var.jira_integration.lambda_settings.log_level
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
     POWERTOOLS_SERVICE_NAME     = "securityhub-findings-manager-jira"
