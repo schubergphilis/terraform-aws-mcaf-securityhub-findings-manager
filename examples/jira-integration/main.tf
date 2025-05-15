@@ -76,9 +76,13 @@ resource "aws_s3_object" "rules" {
 
 
 resource "aws_ssm_parameter" "jira_creds" {
-  name  = "/jira/securityhub_findings_manager/secrets"
-  type  = "SecureString"
-  value = { "url" : "https://jira.mycompany.com", "apiuser" : "username", "apikey" : "apikey" }
+  name = "/jira/securityhub_findings_manager/secrets"
+  type = "SecureString"
+  value = jsonencode({
+    "url"     = "https://jira.mycompany.com"
+    "apiuser" = "username"
+    "apikey"  = "apikey"
+  })
   lifecycle {
     ignore_changes = [
       value
