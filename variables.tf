@@ -134,9 +134,8 @@ variable "jira_integration" {
 
   })
   default = {
-    enabled                        = false
-    credentials_secretsmanager_arn = "REDACTED"
-    project_key                    = null
+    enabled     = false
+    project_key = null
   }
   description = "Findings Manager - Jira integration settings"
 

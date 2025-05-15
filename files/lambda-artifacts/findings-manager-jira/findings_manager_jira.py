@@ -49,7 +49,7 @@ def lambda_handler(event: dict, context: LambdaContext):
     jira_issue_type = os.environ['JIRA_ISSUE_TYPE']
     jira_project_key = os.environ['JIRA_PROJECT_KEY']
     jira_secret_arn = os.environ['JIRA_SECRET_ARN']
-    jira_ssm_secret_arn = os.environ['JIRA_SSM_SECRET_ARN']
+    jira_secret_type = os.environ['JIRA_SECRET_TYPE']
 
     # Parse custom fields
     try:
@@ -62,12 +62,16 @@ def lambda_handler(event: dict, context: LambdaContext):
 
     # Retrieve Jira client
     try:
-        if jira_secret_arn != "REDACTED" and jira_secret_arn:
-            jira_secret = helpers.get_secret(secretsmanager, jira_secret_arn)
-        elif jira_ssm_secret_arn != "REDACTED" and jira_ssm_secret_arn:
-            jira_secret = helpers.get_ssm_secret(ssm, jira_ssm_secret_arn)
+        if not jira_secret_arn:
+            if jira_secret_type == 'SECRETSMANAGER':
+                jira_secret = helpers.get_secret(secretsmanager, jira_secret_arn)
+            elif jira_secret_type == "SSM":
+                jira_secret = helpers.get_ssm_secret(ssm, jira_secret_arn)
+            else:
+                raise ValueError(
+                    f"Invalid JIRA_SECRET_TYPE {jira_secret_type}. Must be SECRETSMANAGER or SSM.")
         else:
-            raise ValueError("Both JIRA_SECRET_ARN and JIRA_SSM_SECRET_ARN are REDACTED or empty. Cannot proceed without JIRA Credentials.")
+            raise ValueError(f"JIRA SECRET ARN {jira_secret_arn} is set to empty. Cannot proceed without JIRA Credentials.")
         jira_client = helpers.get_jira_client(jira_secret)
     except Exception as e:
         logger.error(f"Failed to retrieve Jira client: {e}")
