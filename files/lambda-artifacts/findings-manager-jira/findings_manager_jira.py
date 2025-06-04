@@ -12,7 +12,7 @@ secretsmanager = boto3.client('secretsmanager')
 ssm = boto3.client('ssm')
 
 REQUIRED_ENV_VARS = [
-    'EXCLUDE_ACCOUNT_FILTER', 'JIRA_ISSUE_CUSTOM_FIELDS', 'JIRA_ISSUE_TYPE', 'JIRA_PROJECT_KEY', 'JIRA_SECRET_ARN', 'JIRA_SSM_SECRET_ARN'
+    'EXCLUDE_ACCOUNT_FILTER', 'JIRA_ISSUE_CUSTOM_FIELDS', 'JIRA_ISSUE_TYPE', 'JIRA_PROJECT_KEY', 'JIRA_SECRET_ARN', 'JIRA_SECRET_TYPE'
 ]
 
 DEFAULT_JIRA_AUTOCLOSE_COMMENT = 'Security Hub finding has been resolved. Autoclosing the issue.'

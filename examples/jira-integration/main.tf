@@ -21,14 +21,17 @@ module "kms" {
   )
 }
 
+################################################################################
+# Example of Jira integration with Findings Manager using Credentials from Secrets Manager
+################################################################################
+
 resource "aws_secretsmanager_secret" "jira_credentials" {
   #checkov:skip=CKV2_AWS_57: automatic rotation of the jira credentials is recommended.
   description = "Security Hub Findings Manager Jira Credentials Secret"
   kms_key_id  = module.kms.arn
-  name        = "lambda/jira_credentials_secret"
+  name        = "lambda/securityhub_findings_manager/jira_credentials_secret"
 }
 
-// tfsec:ignore:GEN003
 resource "aws_secretsmanager_secret_version" "jira_credentials" {
   secret_id = aws_secretsmanager_secret.jira_credentials.id
   secret_string = jsonencode({
@@ -38,11 +41,12 @@ resource "aws_secretsmanager_secret_version" "jira_credentials" {
   })
 }
 
-module "aws_securityhub_findings_manager" {
+module "aws_securityhub_findings_manager_with_secretsmanager_credentials" {
   source = "../../"
 
   kms_key_arn    = module.kms.arn
   s3_bucket_name = local.s3_bucket_name
+  rules_filepath = "${path.module}/../rules.yaml"
 
   jira_integration = {
     enabled                        = true
@@ -61,28 +65,20 @@ module "aws_securityhub_findings_manager" {
   tags = { Terraform = true }
 }
 
-# It can take a long time before S3 notifications become active
-# You may want to deploy this resource a few minutes after those above
-resource "aws_s3_object" "rules" {
-  bucket       = local.s3_bucket_name
-  key          = "rules.yaml"
-  content_type = "application/x-yaml"
-  content      = file("${path.module}/../rules.yaml")
-  source_hash  = filemd5("${path.module}/../rules.yaml")
+################################################################################
+# Example of Jira integration with Findings Manager using Credentials from SSM Parameter Store
+################################################################################
 
-  depends_on = [module.aws_securityhub_findings_manager]
-}
-
-
-
-resource "aws_ssm_parameter" "jira_creds" {
-  name = "/jira/securityhub_findings_manager/secrets"
+resource "aws_ssm_parameter" "jira_credentials" {
+  name = "lambda/securityhub_findings_manager/jira_credentials_secret"
   type = "SecureString"
+
   value = jsonencode({
     "url"     = "https://jira.mycompany.com"
     "apiuser" = "username"
     "apikey"  = "apikey"
   })
+
   lifecycle {
     ignore_changes = [
       value
@@ -90,18 +86,17 @@ resource "aws_ssm_parameter" "jira_creds" {
   }
 }
 
-
-
-module "aws_securityhub_findings_manager_with_jira_ssm_credentials" {
+module "aws_securityhub_findings_manager_with_ssm_credentials" {
   source = "../../"
 
   kms_key_arn    = module.kms.arn
   s3_bucket_name = local.s3_bucket_name
+  rules_filepath = "${path.module}/../rules.yaml"
 
   jira_integration = {
-    enabled                        = true
-    credentials_secretsmanager_arn = aws_ssm_parameter.jira_creds.arn
-    project_key                    = "PROJECT"
+    enabled                    = true
+    credentials_ssm_secret_arn = aws_ssm_parameter.jira_credentials.arn
+    project_key                = "PROJECT"
 
     security_group_egress_rules = [{
       cidr_ipv4   = "1.1.1.1/32"

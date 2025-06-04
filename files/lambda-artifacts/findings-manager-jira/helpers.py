@@ -85,7 +85,7 @@ def get_secret(client: BaseClient, secret_arn: str) -> Dict[str, str]:
 
         if secret is None:
             secret = base64.b64decode(response['SecretBinary']).decode('utf-8')
-        
+
         logger.info(f"Secret fetched from ARN {secret_arn}")
         return json.loads(secret)
     except Exception as e:
@@ -120,8 +120,8 @@ def get_ssm_secret(client: BaseClient, ssm_secret_arn: str) -> Dict[str, str]:
         parameter_value = response['Parameter']['Value']
 
         logger.info(f"Parameter fetched from ARN {ssm_secret_arn}")
-        return json.loads(parameter_value) 
-        
+        return json.loads(parameter_value)
+
     except ClientError as e:
         logger.error(f"Error retrieving parameter from ARN {ssm_secret_arn}: {e}")
         raise e
