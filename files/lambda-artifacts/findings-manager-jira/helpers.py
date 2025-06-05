@@ -85,13 +85,49 @@ def get_secret(client: BaseClient, secret_arn: str) -> Dict[str, str]:
 
         if secret is None:
             secret = base64.b64decode(response['SecretBinary']).decode('utf-8')
-        
+
         logger.info(f"Secret fetched from ARN {secret_arn}")
         return json.loads(secret)
     except Exception as e:
         logger.error(f"Error retrieving secret from ARN {secret_arn}: {e}")
         raise e
 
+def get_ssm_secret(client: BaseClient, ssm_secret_arn: str) -> Dict[str, str]:
+    """
+    Retrieve a secret from AWS Secrets Manager.
+
+    Args:
+        client (BaseClient): A boto3 client instance for Secrets Manager.
+        secret_arn (str): The ARN of the secret to retrieve.
+
+    Returns:
+        Dict[str, str]: The secret value as a dictionary.
+
+    Raises:
+        ValueError: If the client is not an instance of Secrets Manager.
+        ClientError: If there is an error retrieving the secret.
+    """
+
+    # Validate that the client is an instance of botocore.client.SecretsManager
+    if client.meta.service_model.service_name != 'ssm':
+        raise ValueError(f"Client must be an instance of botocore.client.SSM. Got {type(client)} instead.")
+
+    try:
+        response = client.get_parameter(
+            Name=ssm_secret_arn,
+            WithDecryption=True  # Decrypt the parameter if it is encrypted
+        )
+        parameter_value = response['Parameter']['Value']
+
+        logger.info(f"Parameter fetched from ARN {ssm_secret_arn}")
+        return json.loads(parameter_value)
+
+    except ClientError as e:
+        logger.error(f"Error retrieving parameter from ARN {ssm_secret_arn}: {e}")
+        raise e
+    except Exception as e:
+        logger.error(f"Unexpected error retrieving parameter from ARN {ssm_secret_arn}: {e}")
+        raise e
 
 def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, event: dict, custom_fields: dict) -> Issue:
     """
