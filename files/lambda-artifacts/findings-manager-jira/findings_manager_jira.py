@@ -62,7 +62,7 @@ def lambda_handler(event: dict, context: LambdaContext):
 
     # Retrieve Jira client
     try:
-        if not jira_secret_arn:
+        if jira_secret_arn:
             if jira_secret_type == 'SECRETSMANAGER':
                 jira_secret = helpers.get_secret(secretsmanager, jira_secret_arn)
             elif jira_secret_type == "SSM":
