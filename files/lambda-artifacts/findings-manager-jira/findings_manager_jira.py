@@ -12,7 +12,7 @@ secretsmanager = boto3.client('secretsmanager')
 ssm = boto3.client('ssm')
 
 REQUIRED_ENV_VARS = [
-    'EXCLUDE_ACCOUNT_FILTER', 'JIRA_ISSUE_CUSTOM_FIELDS', 'JIRA_ISSUE_TYPE', 'JIRA_PROJECT_KEY', 'JIRA_SECRET_ARN', 'JIRA_SECRET_TYPE'
+    'EXCLUDE_ACCOUNT_FILTER', 'INCLUDE_ACCOUNT_FILTER', 'JIRA_ISSUE_CUSTOM_FIELDS', 'JIRA_ISSUE_TYPE', 'JIRA_PROJECT_KEY', 'JIRA_SECRET_ARN', 'JIRA_SECRET_TYPE'
 ]
 
 DEFAULT_JIRA_AUTOCLOSE_COMMENT = 'Security Hub finding has been resolved. Autoclosing the issue.'
@@ -40,7 +40,8 @@ def lambda_handler(event: dict, context: LambdaContext):
         raise RuntimeError("Required environment variables are missing.") from e
 
     # Retrieve environment variables
-    exclude_account_filter = os.environ['EXCLUDE_ACCOUNT_FILTER']
+    exclude_account_filter = json.loads(os.environ['EXCLUDE_ACCOUNT_FILTER'])
+    include_account_filter = json.loads(os.environ['INCLUDE_ACCOUNT_FILTER'])
     jira_autoclose_comment = os.getenv(
         'JIRA_AUTOCLOSE_COMMENT', DEFAULT_JIRA_AUTOCLOSE_COMMENT)
     jira_autoclose_transition = os.getenv(
@@ -85,11 +86,21 @@ def lambda_handler(event: dict, context: LambdaContext):
     compliance_status = finding['Compliance']['Status'] if 'Compliance' in finding else COMPLIANCE_STATUS_MISSING
     record_state = finding['RecordState']
 
-    # Only process finding if account is not excluded
-    if finding_account_id in exclude_account_filter:
-        logger.info(
-            f"Account {finding_account_id} is excluded from Jira ticket creation.")
-        return
+    # Apply account filtering logic
+    # Priority: include_account_filter > exclude_account_filter
+    if include_account_filter:
+        # If include list is provided, only process accounts in the list
+        if finding_account_id not in include_account_filter:
+            logger.info(
+                f"Account {finding_account_id} is not in the include list. Skipping Jira ticket creation.")
+            return
+    elif exclude_account_filter:
+        # If exclude list is provided (and no include list), skip accounts in the list
+        if finding_account_id in exclude_account_filter:
+            logger.info(
+                f"Account {finding_account_id} is excluded from Jira ticket creation.")
+            return
+    # If neither list is provided, process all accounts
 
     # Handle new findings
     # Ticket is created when Workflow Status is NEW and Compliance Status is FAILED, WARNING or is missing from the finding (case with e.g. Inspector findings)
