@@ -95,6 +95,7 @@ variable "jira_integration" {
     credentials_ssm_secret_arn            = optional(string)
     exclude_account_ids                   = optional(list(string), [])
     finding_severity_normalized_threshold = optional(number, 70)
+    include_account_ids                   = optional(list(string), [])
     issue_custom_fields                   = optional(map(string), {})
     issue_type                            = optional(string, "Security Advisory")
     project_key                           = string
@@ -147,6 +148,11 @@ variable "jira_integration" {
   validation {
     condition     = var.jira_integration.enabled == false || (var.jira_integration.credentials_secretsmanager_arn != null && var.jira_integration.credentials_ssm_secret_arn == null) || (var.jira_integration.credentials_secretsmanager_arn == null && var.jira_integration.credentials_ssm_secret_arn != null)
     error_message = "You must provide either 'credentials_secretsmanager_arn' or 'credentials_ssm_secret_arn' for jira credentials, but not both."
+  }
+
+  validation {
+    condition     = !(length(var.jira_integration.exclude_account_ids) > 0 && length(var.jira_integration.include_account_ids) > 0)
+    error_message = "You cannot provide both 'exclude_account_ids' and 'include_account_ids'. Use only one filtering method."
   }
 }
 
