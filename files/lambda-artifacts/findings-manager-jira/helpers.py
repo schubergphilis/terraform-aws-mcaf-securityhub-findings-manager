@@ -190,24 +190,67 @@ def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, even
 
 def close_jira_issue(jira_client: JIRA, issue: Issue, transition_name: str, comment: str) -> None:
     """
-    Close a Jira issue.
+    Close a Jira issue, handling multi-step transitions if needed.
+    
+    For issue types like Security Advisory that require intermediate transitions
+    (e.g., Review before Close), this function will automatically handle the
+    multi-step transition process.
 
     Args:
         jira_client (JIRA): An authenticated Jira client instance.
         issue (Issue): The Jira issue to close.
+        transition_name (str): The final transition name to apply (e.g., "Close", "Done").
+        comment (str): Comment to add to the issue.
 
     Raises:
         Exception: If there is an error closing the Jira issue.
     """
 
     try:
-        transition_id = jira_client.find_transitionid_by_name(issue, transition_name)
-        if transition_id is None:
-            logger.warning(f"Failed to close Jira issue: Invalid transition.")
-            return
+        # Add comment once at the beginning
         jira_client.add_comment(issue, comment)
-        jira_client.transition_issue(issue, transition_id, comment=comment)
-        logger.info(f"Closed Jira issue: {issue.key}")
+        
+        # Try to find the target transition directly
+        transition_id = jira_client.find_transitionid_by_name(issue, transition_name)
+        
+        if transition_id is None:
+            # Target transition not available, check for intermediate transitions
+            logger.info(f"Direct transition to '{transition_name}' not available for {issue.key}. Checking for intermediate transitions.")
+            
+            # Get all available transitions
+            transitions = jira_client.transitions(issue)
+            logger.info(f"Available transitions for {issue.key}: {[t['name'] for t in transitions]}")
+            
+            # Common intermediate transition names to try
+            intermediate_transitions = ['Review', 'In Review', 'To Review']
+            
+            intermediate_applied = False
+            for intermediate_name in intermediate_transitions:
+                intermediate_id = jira_client.find_transitionid_by_name(issue, intermediate_name)
+                if intermediate_id is not None:
+                    logger.info(f"Applying intermediate transition '{intermediate_name}' for {issue.key}")
+                    jira_client.transition_issue(issue, intermediate_id)
+                    intermediate_applied = True
+                    break
+            
+            if not intermediate_applied:
+                logger.warning(f"No intermediate transition found for {issue.key}. Cannot proceed to close.")
+                return
+            
+            # Refresh the issue to get updated transitions
+            issue = jira_client.issue(issue.key)
+            
+            # Now try the target transition again
+            transition_id = jira_client.find_transitionid_by_name(issue, transition_name)
+            
+            if transition_id is None:
+                logger.warning(f"Transition '{transition_name}' still not available after intermediate transition for {issue.key}.")
+                return
+        
+        # Apply the final transition
+        jira_client.transition_issue(issue, transition_id)
+        logger.info(f"Successfully closed Jira issue: {issue.key}")
+        
     except Exception as e:
         logger.error(f"Failed to close Jira issue {issue.key}: {e}")
         raise e

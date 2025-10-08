@@ -78,15 +78,16 @@
                   }
                 ]
               },
-              {
-                "Variable": "$.detail.findings[0].Severity.Normalized",
-                "NumericGreaterThanEquals": ${finding_severity_normalized}
-              },
               %{~ if jira_autoclose_enabled }
               {
                 "Or": [
                   {
+                    "Comment": "CREATE JIRA TICKET: Requires severity >= threshold",
                     "And": [
+                      {
+                        "Variable": "$.detail.findings[0].Severity.Normalized",
+                        "NumericGreaterThanEquals": ${finding_severity_normalized}
+                      },
                       {
                         "Variable": "$.detail.findings[0].Workflow.Status",
                         "StringEquals": "NEW"
@@ -126,6 +127,7 @@
                     ]
                   },
                   {
+                    "Comment": "CLOSE JIRA TICKET: Works at ANY severity (ticket already exists)",
                     "And": [
                       {
                         "Or": [
@@ -185,8 +187,16 @@
               }
               %{ else }
               {
-                "Variable": "$.detail.findings[0].Workflow.Status",
-                "StringEquals": "NEW"
+                "And": [
+                  {
+                    "Variable": "$.detail.findings[0].Severity.Normalized",
+                    "NumericGreaterThanEquals": ${finding_severity_normalized}
+                  },
+                  {
+                    "Variable": "$.detail.findings[0].Workflow.Status",
+                    "StringEquals": "NEW"
+                  }
+                ]
               }
               %{ endif ~}
             ],
