@@ -40,6 +40,7 @@ Deploys two Lambda functions:
 * Enable by setting the variable `jira_integration` to `true` (default = false).
 * Deploys an additional Jira lambda function and a Step function for orchestration, triggered by an EventBridge rule.
 * Non-suppressed findings with severity above a threshold result in ticket creation and workflow status update from `NEW` to `NOTIFIED`.
+* **ProductName Filtering**: You can optionally filter which AWS product findings create Jira tickets using `jira_integration.include_product_names` (default = `[]`, meaning all products). For example, set to `["Security Hub"]` to create tickets only for Security Hub findings, or `["Inspector"]` for Inspector findings only. Common values: `"Security Hub"`, `"Inspector"`, `"GuardDuty"`, `"Macie"`. The filtering is implemented at the Step Function level for optimal performance.
 * Auto-closing can be activated with `jira_integration.autoclose_enabled` (default = false). Using the issue number in the finding note, the function transitions issues using `jira_integration.autoclose_transition_name` and `jira_integration.autoclose_comment`. Criteria for being forwarded for automatic ticket closure are:
   * Workflow Status "RESOLVED"
   * Workflow Status "NOTIFIED" and one of:
