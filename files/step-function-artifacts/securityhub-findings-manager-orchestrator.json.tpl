@@ -78,6 +78,19 @@
                   }
                 ]
               },
+%{~ if length(include_product_names) > 0 }
+              {
+                "Comment": "PRODUCT NAME FILTER: Only process findings with ProductName in the include list",
+                "Or": [
+%{~ for idx, product_name in include_product_names }
+                  {
+                    "Variable": "$.detail.findings[0].ProductName",
+                    "StringEquals": "${product_name}"
+                  }%{if idx < length(include_product_names) - 1},%{endif}
+%{~ endfor }
+                ]
+              },
+%{ endif ~}
               %{~ if jira_autoclose_enabled }
               {
                 "Or": [

@@ -84,6 +84,7 @@ resource "aws_sfn_state_machine" "jira_orchestrator" {
     findings_manager_events_lambda = module.findings_manager_events_lambda.arn
     jira_autoclose_enabled         = var.jira_integration.autoclose_enabled
     jira_lambda                    = module.jira_lambda[0].arn
+    include_product_names          = var.jira_integration.include_product_names
   })
 
   logging_configuration {

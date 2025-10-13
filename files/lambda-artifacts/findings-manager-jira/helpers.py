@@ -149,10 +149,11 @@ def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, even
 
     finding = event['findings'][0]
     finding_account_id = finding['AwsAccountId']
+    finding_account_name = finding['AwsAccountName']
     finding_title = finding['Title']
 
     issue_title = f"Security Hub ({finding_title}) detected in {
-        finding_account_id}"
+        finding_account_id} ({finding_account_name})"
 
     issue_description = f"""
       {finding['Description']}
@@ -164,6 +165,7 @@ def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, even
     issue_labels = [
         finding["Region"],
         finding_account_id,
+        finding_account_name,
         finding['Severity']['Label'].lower(),
         *[finding['ProductFields'][key].replace(" ", "")
           for key in ["RuleId", "ControlId", "aws/securityhub/ProductName"]
