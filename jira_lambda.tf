@@ -105,18 +105,18 @@ module "jira_lambda" {
   timeout                     = var.jira_integration.lambda_settings.timeout
 
   environment = {
-    EXCLUDE_ACCOUNT_FILTER        = jsonencode(var.jira_integration.exclude_account_ids)
-    INCLUDE_ACCOUNT_FILTER        = jsonencode(var.jira_integration.include_account_ids)
-    JIRA_AUTOCLOSE_COMMENT        = var.jira_integration.autoclose_comment
-    JIRA_AUTOCLOSE_TRANSITION     = var.jira_integration.autoclose_transition_name
-    JIRA_INTERMEDIATE_TRANSITION  = var.jira_integration.include_intermediate_transition != null ? var.jira_integration.include_intermediate_transition : ""
-    JIRA_ISSUE_CUSTOM_FIELDS      = jsonencode(var.jira_integration.issue_custom_fields)
-    JIRA_ISSUE_TYPE               = var.jira_integration.issue_type
-    JIRA_PROJECT_KEY              = var.jira_integration.project_key
-    JIRA_SECRET_ARN               = var.jira_integration.credentials_secretsmanager_arn != null ? var.jira_integration.credentials_secretsmanager_arn : var.jira_integration.credentials_ssm_secret_arn
-    JIRA_SECRET_TYPE              = var.jira_integration.credentials_secretsmanager_arn != null ? "SECRETSMANAGER" : "SSM"
-    LOG_LEVEL                     = var.jira_integration.lambda_settings.log_level
-    POWERTOOLS_LOGGER_LOG_EVENT   = "false"
-    POWERTOOLS_SERVICE_NAME       = "securityhub-findings-manager-jira"
+    EXCLUDE_ACCOUNT_FILTER       = jsonencode(var.jira_integration.exclude_account_ids)
+    INCLUDE_ACCOUNT_FILTER       = jsonencode(var.jira_integration.include_account_ids)
+    JIRA_AUTOCLOSE_COMMENT       = var.jira_integration.autoclose_comment
+    JIRA_AUTOCLOSE_TRANSITION    = var.jira_integration.autoclose_transition_name
+    JIRA_INTERMEDIATE_TRANSITION = var.jira_integration.include_intermediate_transition != null ? var.jira_integration.include_intermediate_transition : ""
+    JIRA_ISSUE_CUSTOM_FIELDS     = jsonencode(var.jira_integration.issue_custom_fields)
+    JIRA_ISSUE_TYPE              = var.jira_integration.issue_type
+    JIRA_PROJECT_KEY             = var.jira_integration.project_key
+    JIRA_SECRET_ARN              = var.jira_integration.credentials_secretsmanager_arn != null ? var.jira_integration.credentials_secretsmanager_arn : var.jira_integration.credentials_ssm_secret_arn
+    JIRA_SECRET_TYPE             = var.jira_integration.credentials_secretsmanager_arn != null ? "SECRETSMANAGER" : "SSM"
+    LOG_LEVEL                    = var.jira_integration.lambda_settings.log_level
+    POWERTOOLS_LOGGER_LOG_EVENT  = "false"
+    POWERTOOLS_SERVICE_NAME      = "securityhub-findings-manager-jira"
   }
 }
