@@ -96,6 +96,7 @@ variable "jira_integration" {
     exclude_account_ids                   = optional(list(string), [])
     finding_severity_normalized_threshold = optional(number, 70)
     include_account_ids                   = optional(list(string), [])
+    include_intermediate_transition       = optional(string)
     include_product_names                 = optional(list(string), [])
     issue_custom_fields                   = optional(map(string), {})
     issue_type                            = optional(string, "Security Advisory")

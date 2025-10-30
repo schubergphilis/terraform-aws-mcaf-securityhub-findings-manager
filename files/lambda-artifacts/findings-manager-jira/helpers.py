@@ -190,22 +190,37 @@ def create_jira_issue(jira_client: JIRA, project_key: str, issue_type: str, even
         raise e
 
 
-def close_jira_issue(jira_client: JIRA, issue: Issue, transition_name: str, comment: str) -> None:
+def close_jira_issue(jira_client: JIRA, issue: Issue, transition_name: str, comment: str, intermediate_transition: str = '') -> None:
     """
-    Close a Jira issue.
+    Close a Jira issue, optionally transitioning through an intermediate status first.
 
     Args:
         jira_client (JIRA): An authenticated Jira client instance.
         issue (Issue): The Jira issue to close.
+        transition_name (str): The name of the final transition to close the issue.
+        comment (str): The comment to add when closing the issue.
+        intermediate_transition (str): Optional intermediate transition to perform before closing.
 
     Raises:
         Exception: If there is an error closing the Jira issue.
     """
 
     try:
+        # If intermediate transition is specified, perform it first
+        if intermediate_transition:
+            intermediate_transition_id = jira_client.find_transitionid_by_name(issue, intermediate_transition)
+            if intermediate_transition_id is not None:
+                jira_client.transition_issue(issue, intermediate_transition_id)
+                logger.info(f"Transitioned Jira issue {issue.key} to intermediate status: {intermediate_transition}")
+                # Refresh the issue to get the updated status
+                issue = jira_client.issue(issue.key)
+            else:
+                logger.warning(f"Intermediate transition '{intermediate_transition}' not found for issue {issue.key}. Skipping intermediate transition.")
+        
+        # Now perform the final transition to close the issue
         transition_id = jira_client.find_transitionid_by_name(issue, transition_name)
         if transition_id is None:
-            logger.warning(f"Failed to close Jira issue: Invalid transition.")
+            logger.warning(f"Failed to close Jira issue: Invalid transition '{transition_name}'.")
             return
         jira_client.add_comment(issue, comment)
         jira_client.transition_issue(issue, transition_id, comment=comment)

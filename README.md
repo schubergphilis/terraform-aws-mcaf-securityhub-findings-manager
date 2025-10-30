@@ -41,7 +41,9 @@ Deploys two Lambda functions:
 * Deploys an additional Jira lambda function and a Step function for orchestration, triggered by an EventBridge rule.
 * Non-suppressed findings with severity above a threshold result in ticket creation and workflow status update from `NEW` to `NOTIFIED`.
 * **ProductName Filtering**: You can optionally filter which AWS product findings create Jira tickets using `jira_integration.include_product_names` (default = `[]`, meaning all products). For example, set to `["Security Hub"]` to create tickets only for Security Hub findings, or `["Inspector"]` for Inspector findings only. Common values: `"Security Hub"`, `"Inspector"`, `"GuardDuty"`, `"Macie"`. The filtering is implemented at the Step Function level for optimal performance.
-* Auto-closing can be activated with `jira_integration.autoclose_enabled` (default = false). Using the issue number in the finding note, the function transitions issues using `jira_integration.autoclose_transition_name` and `jira_integration.autoclose_comment`. Criteria for being forwarded for automatic ticket closure are:
+* Auto-closing can be activated with `jira_integration.autoclose_enabled` (default = false). Using the issue number in the finding note, the function transitions issues using `jira_integration.autoclose_transition_name` and `jira_integration.autoclose_comment`. 
+* **Intermediate Transition**: Optionally specify `jira_integration.include_intermediate_transition` to transition the ticket through an intermediate status before closing it. This is useful for Jira workflows that require tickets to pass through specific statuses (e.g., "Review", "In Progress") before reaching the final closed state. If not specified, tickets are closed directly using `autoclose_transition_name`.
+* Criteria for being forwarded for automatic ticket closure are:
   * Workflow Status "RESOLVED"
   * Workflow Status "NOTIFIED" and one of:
     * Record State "ARCHIVED"
