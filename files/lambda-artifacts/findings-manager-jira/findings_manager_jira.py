@@ -46,6 +46,7 @@ def lambda_handler(event: dict, context: LambdaContext):
         'JIRA_AUTOCLOSE_COMMENT', DEFAULT_JIRA_AUTOCLOSE_COMMENT)
     jira_autoclose_transition = os.getenv(
         'JIRA_AUTOCLOSE_TRANSITION', DEFAULT_JIRA_AUTOCLOSE_TRANSITION)
+    jira_intermediate_transition = os.getenv('JIRA_INTERMEDIATE_TRANSITION', '')
     jira_issue_custom_fields = os.environ['JIRA_ISSUE_CUSTOM_FIELDS']
     jira_issue_type = os.environ['JIRA_ISSUE_TYPE']
     jira_project_key = os.environ['JIRA_PROJECT_KEY']
@@ -147,7 +148,7 @@ def lambda_handler(event: dict, context: LambdaContext):
                         f"Failed to retrieve Jira issue {jira_issue_id}: {e}. Cannot autoclose.")
                     return  # Skip further processing for this finding
                 helpers.close_jira_issue(
-                    jira_client, issue, jira_autoclose_transition, jira_autoclose_comment)
+                    jira_client, issue, jira_autoclose_transition, jira_autoclose_comment, jira_intermediate_transition)
                 if workflow_status == STATUS_NOTIFIED:
                     # Resolve SecHub finding as it will be reopened anyway in case the compliance fails
                     # Also change the note to prevent a second run with RESOLVED status.
