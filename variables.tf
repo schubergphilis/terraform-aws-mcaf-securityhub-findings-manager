@@ -180,6 +180,12 @@ variable "lambda_runtime" {
   }
 }
 
+variable "region" {
+  type        = string
+  default     = null
+  description = "The AWS region where resources will be created; if omitted the default provider region is used"
+}
+
 variable "rules_filepath" {
   type        = string
   default     = ""

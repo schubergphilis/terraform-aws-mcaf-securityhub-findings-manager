@@ -12,7 +12,7 @@ data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
       "logs:PutLogEvents"
     ]
     resources = [
-      "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:*"
+      "arn:aws:logs:${local.region}:${data.aws_caller_identity.current.account_id}:*"
     ]
   }
 
@@ -41,7 +41,7 @@ data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
       "securityhub:GetFindings"
     ]
     resources = [
-      "arn:aws:securityhub:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:hub/default"
+      "arn:aws:securityhub:${local.region}:${data.aws_caller_identity.current.account_id}:hub/default"
     ]
   }
 
@@ -86,6 +86,7 @@ resource "aws_s3_object" "findings_manager_lambdas_deployment_package" {
   bucket      = module.findings_manager_bucket.id
   key         = "lambda_securityhub-findings-manager_${var.lambda_runtime}.zip"
   kms_key_id  = var.kms_key_arn
+  region      = var.region
   source      = "${path.module}/files/pkg/lambda_securityhub-findings-manager_${var.lambda_runtime}.zip"
   source_hash = filemd5("${path.module}/files/pkg/lambda_securityhub-findings-manager_${var.lambda_runtime}.zip")
   tags        = var.tags
@@ -99,18 +100,17 @@ resource "aws_s3_object" "findings_manager_lambdas_deployment_package" {
 module "findings_manager_events_lambda" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
   source  = "schubergphilis/mcaf-lambda/aws"
-  version = "~> 1.4.1"
+  version = "~> 3.0.0"
 
   name                        = var.findings_manager_events_lambda.name
-  create_policy               = true
   create_s3_dummy_object      = false
   description                 = "Lambda to manage Security Hub findings in response to an EventBridge event"
   handler                     = "securityhub_events.lambda_handler"
   kms_key_arn                 = var.kms_key_arn
-  layers                      = ["arn:aws:lambda:${data.aws_region.current.name}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
+  layers                      = ["arn:aws:lambda:${local.region}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
   log_retention               = 365
   memory_size                 = var.findings_manager_events_lambda.memory_size
-  policy                      = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
+  region                      = var.region
   runtime                     = var.lambda_runtime
   s3_bucket                   = var.s3_bucket_name
   s3_key                      = aws_s3_object.findings_manager_lambdas_deployment_package.key
@@ -128,12 +128,17 @@ module "findings_manager_events_lambda" {
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
     POWERTOOLS_SERVICE_NAME     = "securityhub-findings-manager-events"
   }
+
+  execution_role = {
+    policy = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
+  }
 }
 
 # EventBridge Rule that detect Security Hub events
 resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
   name        = "rule-${var.findings_manager_events_lambda.name}"
   description = "EventBridge rule for detecting Security Hub findings events, triggering the findings manager events lambda."
+  region      = var.region
   tags        = var.tags
 
   event_pattern = <<EOF
@@ -158,6 +163,7 @@ resource "aws_lambda_permission" "eventbridge_invoke_findings_manager_events_lam
   action        = "lambda:InvokeFunction"
   function_name = var.findings_manager_events_lambda.name
   principal     = "events.amazonaws.com"
+  region        = var.region
   source_arn    = aws_cloudwatch_event_rule.securityhub_findings_events.arn
 }
 
@@ -165,8 +171,9 @@ resource "aws_lambda_permission" "eventbridge_invoke_findings_manager_events_lam
 resource "aws_cloudwatch_event_target" "findings_manager_events_lambda" {
   count = var.jira_integration.enabled ? 0 : 1
 
-  arn  = module.findings_manager_events_lambda.arn
-  rule = aws_cloudwatch_event_rule.securityhub_findings_events.name
+  arn    = module.findings_manager_events_lambda.arn
+  region = var.region
+  rule   = aws_cloudwatch_event_rule.securityhub_findings_events.name
 }
 
 ################################################################################
@@ -177,18 +184,17 @@ resource "aws_cloudwatch_event_target" "findings_manager_events_lambda" {
 module "findings_manager_trigger_lambda" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
   source  = "schubergphilis/mcaf-lambda/aws"
-  version = "~> 1.4.1"
+  version = "~> 3.0.0"
 
   name                        = var.findings_manager_trigger_lambda.name
-  create_policy               = true
   create_s3_dummy_object      = false
   description                 = "Lambda to manage Security Hub findings in response to S3 rules file uploads"
   handler                     = "securityhub_trigger.lambda_handler"
   kms_key_arn                 = var.kms_key_arn
-  layers                      = ["arn:aws:lambda:${data.aws_region.current.name}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
+  layers                      = ["arn:aws:lambda:${local.region}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
   log_retention               = 365
   memory_size                 = var.findings_manager_trigger_lambda.memory_size
-  policy                      = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
+  region                      = var.region
   runtime                     = var.lambda_runtime
   s3_bucket                   = var.s3_bucket_name
   s3_key                      = aws_s3_object.findings_manager_lambdas_deployment_package.key
@@ -207,6 +213,10 @@ module "findings_manager_trigger_lambda" {
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
     POWERTOOLS_SERVICE_NAME     = "securityhub-findings-manager-trigger"
   }
+
+  execution_role = {
+    policy = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
+  }
 }
 
 # Allow S3 to invoke S3 Trigger Lambda function
@@ -214,6 +224,7 @@ resource "aws_lambda_permission" "s3_invoke_findings_manager_trigger_lambda" {
   action         = "lambda:InvokeFunction"
   function_name  = var.findings_manager_trigger_lambda.name
   principal      = "s3.amazonaws.com"
+  region         = var.region
   source_account = data.aws_caller_identity.current.account_id
   source_arn     = module.findings_manager_bucket.arn
 }
@@ -221,6 +232,7 @@ resource "aws_lambda_permission" "s3_invoke_findings_manager_trigger_lambda" {
 # Add Security Hub Trigger Lambda function as a target to rules S3 Object Creation Trigger Events
 resource "aws_s3_bucket_notification" "findings_manager_trigger" {
   bucket = module.findings_manager_bucket.name
+  region = var.region
 
   lambda_function {
     lambda_function_arn = module.findings_manager_trigger_lambda.arn
@@ -240,18 +252,17 @@ resource "aws_s3_bucket_notification" "findings_manager_trigger" {
 module "findings_manager_worker_lambda" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
   source  = "schubergphilis/mcaf-lambda/aws"
-  version = "~> 1.4.1"
+  version = "~> 3.0.0"
 
   name                        = var.findings_manager_worker_lambda.name
-  create_policy               = true
   create_s3_dummy_object      = false
   description                 = "Lambda to manage Security Hub findings in response to rules on SQS"
   handler                     = "securityhub_trigger_worker.lambda_handler"
   kms_key_arn                 = var.kms_key_arn
-  layers                      = ["arn:aws:lambda:${data.aws_region.current.name}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
+  layers                      = ["arn:aws:lambda:${local.region}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
   log_retention               = 365
   memory_size                 = var.findings_manager_worker_lambda.memory_size
-  policy                      = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
+  region                      = var.region
   runtime                     = var.lambda_runtime
   s3_bucket                   = var.s3_bucket_name
   s3_key                      = aws_s3_object.findings_manager_lambdas_deployment_package.key
@@ -267,6 +278,10 @@ module "findings_manager_worker_lambda" {
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
     POWERTOOLS_SERVICE_NAME     = "securityhub-findings-manager-worker"
   }
+
+  execution_role = {
+    policy = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
+  }
 }
 
 # Upload rules list to S3
@@ -277,6 +292,7 @@ resource "aws_s3_object" "rules" {
   key          = var.rules_s3_object_name
   content_type = "application/x-yaml"
   content      = file(var.rules_filepath)
+  region       = var.region
   source_hash  = filemd5(var.rules_filepath)
   tags         = var.tags
 
@@ -288,22 +304,27 @@ resource "aws_s3_object" "rules" {
 resource "aws_sqs_queue" "findings_manager_rule_q" {
   name                       = "SecurityHubFindingsManagerRuleQueue"
   kms_master_key_id          = var.kms_key_arn
+  region                     = var.region
   visibility_timeout_seconds = var.findings_manager_worker_lambda.timeout
   # Queue visibility timeout needs to >= Function timeout
 }
 
 resource "aws_sqs_queue_policy" "findings_manager_rule_sqs_policy" {
   policy    = data.aws_iam_policy_document.findings_manager_rule_sqs_policy_doc.json
+  region    = var.region
   queue_url = aws_sqs_queue.findings_manager_rule_q.id
 }
 
 resource "aws_sqs_queue" "dlq_for_findings_manager_rule_q" {
   name              = "DlqForSecurityHubFindingsManagerRuleQueue"
   kms_master_key_id = var.kms_key_arn
+  region            = var.region
 }
 
 resource "aws_sqs_queue_redrive_policy" "redrive_policy" {
   queue_url = aws_sqs_queue.findings_manager_rule_q.id
+  region    = var.region
+
   redrive_policy = jsonencode({
     deadLetterTargetArn = aws_sqs_queue.dlq_for_findings_manager_rule_q.arn
     maxReceiveCount     = 10
@@ -312,6 +333,7 @@ resource "aws_sqs_queue_redrive_policy" "redrive_policy" {
 
 resource "aws_sqs_queue_redrive_allow_policy" "dead_letter_allow_policy" {
   queue_url = aws_sqs_queue.dlq_for_findings_manager_rule_q.id
+  region    = var.region
 
   redrive_allow_policy = jsonencode({
     redrivePermission = "byQueue",
@@ -344,6 +366,7 @@ resource "aws_lambda_event_source_mapping" "sqs_to_worker" {
   # assumes a rule processing time of 30 sec average (which is high)
   batch_size                         = var.findings_manager_worker_lambda.timeout / 30
   maximum_batching_window_in_seconds = 60
+  region                             = var.region
   scaling_config {
     maximum_concurrency = 4 #  to prevent Security Hub API rate limits
   }

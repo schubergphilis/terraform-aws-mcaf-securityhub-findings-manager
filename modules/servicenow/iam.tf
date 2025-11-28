@@ -1,11 +1,14 @@
 module "sync-user" {
   #checkov:skip=CKV_AWS_273:We really need a user for this setup
-  name                  = "SCSyncUser"
-  source                = "github.com/schubergphilis/terraform-aws-mcaf-user?ref=v0.4.0"
+  source  = "schubergphilis/mcaf-user/aws"
+  version = "1.0.0"
+
   create_iam_access_key = var.create_access_keys
   create_policy         = true
   kms_key_id            = var.kms_key_arn
+  name                  = "SCSyncUser"
   policy                = aws_iam_policy.sqs_sechub.policy
+  region                = var.region
   tags                  = var.tags
 
   policy_arns = [
@@ -40,6 +43,6 @@ data "aws_iam_policy_document" "sqs_sechub" {
       "securityhub:BatchUpdateFindings",
       "securityhub:GetFindings"
     ]
-    resources = ["arn:aws:securityhub:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:hub/default"]
+    resources = ["arn:aws:securityhub:${local.region}:${data.aws_caller_identity.current.account_id}:hub/default"]
   }
 }

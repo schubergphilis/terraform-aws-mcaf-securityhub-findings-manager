@@ -7,7 +7,7 @@ module "jira_step_function_iam_role" {
   count = var.jira_integration.enabled ? 1 : 0
 
   source  = "schubergphilis/mcaf-role/aws"
-  version = "~> 0.3.2"
+  version = "~> 0.5.3"
 
   name                  = var.jira_step_function_iam_role_name
   create_policy         = true
@@ -55,7 +55,7 @@ data "aws_iam_policy_document" "jira_step_function_iam_role" {
       "logs:PutLogEvents"
     ]
     resources = [
-      "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:*"
+      "arn:aws:logs:${local.region}:${data.aws_caller_identity.current.account_id}:*"
     ]
   }
 }
@@ -99,7 +99,7 @@ module "jira_eventbridge_iam_role" {
   count = var.jira_integration.enabled ? 1 : 0
 
   source  = "schubergphilis/mcaf-role/aws"
-  version = "~> 0.3.2"
+  version = "~> 0.5.3"
 
   name                  = var.jira_eventbridge_iam_role_name
   create_policy         = true
@@ -127,6 +127,7 @@ resource "aws_cloudwatch_event_target" "jira_orchestrator" {
   count = var.jira_integration.enabled ? 1 : 0
 
   arn      = aws_sfn_state_machine.jira_orchestrator[0].arn
+  region   = var.region
   role_arn = module.jira_eventbridge_iam_role[0].arn
   rule     = aws_cloudwatch_event_rule.securityhub_findings_events.name
 }

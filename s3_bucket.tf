@@ -3,12 +3,13 @@ module "findings_manager_bucket" {
   #checkov:skip=CKV_AWS_145:Bug in CheckOV https://github.com/bridgecrewio/checkov/issues/3847
   #checkov:skip=CKV_AWS_19:Bug in CheckOV https://github.com/bridgecrewio/checkov/issues/3847
   source  = "schubergphilis/mcaf-s3/aws"
-  version = "~> 0.14.1"
+  version = "~> 2.0.0"
 
   name        = var.s3_bucket_name
   kms_key_arn = var.kms_key_arn
   logging     = null
   tags        = var.tags
+  region      = var.region
   versioning  = true
 
   lifecycle_rule = [

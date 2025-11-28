@@ -10,7 +10,7 @@ data "aws_iam_policy_document" "jira_lambda_iam_role" {
       "logs:PutLogEvents"
     ]
     resources = [
-      "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:*"
+      "arn:aws:logs:${local.region}:${data.aws_caller_identity.current.account_id}:*"
     ]
   }
 
@@ -40,7 +40,7 @@ data "aws_iam_policy_document" "jira_lambda_iam_role" {
       "securityhub:BatchUpdateFindings"
     ]
     resources = [
-      "arn:aws:securityhub:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:hub/default"
+      "arn:aws:securityhub:${local.region}:${data.aws_caller_identity.current.account_id}:hub/default"
     ]
     condition {
       test     = "ForAnyValue:StringEquals"
@@ -71,6 +71,7 @@ resource "aws_s3_object" "jira_lambda_deployment_package" {
   bucket      = module.findings_manager_bucket.id
   key         = "lambda_${var.jira_integration.lambda_settings.name}_${var.lambda_runtime}.zip"
   kms_key_id  = var.kms_key_arn
+  region      = var.region
   source      = "${path.module}/files/pkg/lambda_findings-manager-jira_${var.lambda_runtime}.zip"
   source_hash = filemd5("${path.module}/files/pkg/lambda_findings-manager-jira_${var.lambda_runtime}.zip")
   tags        = var.tags
@@ -82,18 +83,17 @@ module "jira_lambda" {
   count = var.jira_integration.enabled ? 1 : 0
 
   source  = "schubergphilis/mcaf-lambda/aws"
-  version = "~> 1.4.1"
+  version = "~> 3.0.0"
 
   name                        = var.jira_integration.lambda_settings.name
-  create_policy               = true
   create_s3_dummy_object      = false
   description                 = "Lambda to create jira ticket and set the Security Hub workflow status to notified"
   handler                     = "findings_manager_jira.lambda_handler"
   kms_key_arn                 = var.kms_key_arn
-  layers                      = ["arn:aws:lambda:${data.aws_region.current.name}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
+  layers                      = ["arn:aws:lambda:${local.region}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
   log_retention               = 365
   memory_size                 = var.jira_integration.lambda_settings.memory_size
-  policy                      = data.aws_iam_policy_document.jira_lambda_iam_role[0].json
+  region                      = var.region
   runtime                     = var.lambda_runtime
   s3_bucket                   = var.s3_bucket_name
   s3_key                      = aws_s3_object.jira_lambda_deployment_package[0].key
@@ -118,5 +118,9 @@ module "jira_lambda" {
     LOG_LEVEL                    = var.jira_integration.lambda_settings.log_level
     POWERTOOLS_LOGGER_LOG_EVENT  = "false"
     POWERTOOLS_SERVICE_NAME      = "securityhub-findings-manager-jira"
+  }
+
+  execution_role = {
+    policy = data.aws_iam_policy_document.jira_lambda_iam_role[0].json
   }
 }

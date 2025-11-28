@@ -1,5 +1,6 @@
 resource "aws_cloudwatch_log_group" "servicenow" {
   name              = "/aws/events/servicenow-integration"
+  region            = var.region
   retention_in_days = var.cloudwatch_retention_days
   kms_key_id        = var.kms_key_arn
 }
@@ -32,4 +33,5 @@ data "aws_iam_policy_document" "servicenow" {
 resource "aws_cloudwatch_log_resource_policy" "servicenow" {
   policy_document = data.aws_iam_policy_document.servicenow.json
   policy_name     = "log-delivery-servicenow"
+  region          = var.region
 }

@@ -21,6 +21,12 @@ variable "kms_key_arn" {
   description = "The ARN of the KMS key used to encrypt the resources"
 }
 
+variable "region" {
+  type        = string
+  default     = null
+  description = "The AWS region where resources will be created; if omitted the default provider region is used"
+}
+
 variable "tags" {
   type        = map(string)
   description = "A mapping of tags to assign to the resources"
