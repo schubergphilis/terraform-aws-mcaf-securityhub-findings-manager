@@ -1,7 +1,3 @@
-locals {
-  workflow_status_filter = var.jira_integration.autoclose_enabled ? ["NEW", "NOTIFIED", "RESOLVED"] : ["NEW", "NOTIFIED"]
-}
-
 data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
   statement {
     sid = "TrustEventsToStoreLogEvent"
