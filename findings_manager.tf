@@ -158,7 +158,7 @@ EOF
 }
 
 resource "aws_cloudwatch_event_rule" "securityhub_findings_resolved_events" {
-  count       = var.jira_integration.autoclose_enabled ? 1 : 0
+  count       = var.jira_integration.enabled && var.jira_integration.autoclose_enabled ? 1 : 0
   name        = "rule-resolved-${var.findings_manager_events_lambda.name}"
   description = "EventBridge rule for transiting resolved messages, triggering the findings manager events lambda."
   tags        = var.tags
