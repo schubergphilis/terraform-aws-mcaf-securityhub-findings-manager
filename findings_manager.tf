@@ -194,7 +194,7 @@ resource "aws_lambda_permission" "eventbridge_invoke_findings_manager_events_lam
 }
 
 resource "aws_lambda_permission" "eventbridge_invoke_findings_manager_events_lambda_resolved" {
-  count = var.jira_integration.enabled ? 0 : 1
+  count = var.jira_integration.enabled && var.jira_integration.autoclose_enabled ? 0 : 1
 
   action        = "lambda:InvokeFunction"
   function_name = var.findings_manager_events_lambda.name
@@ -211,7 +211,7 @@ resource "aws_cloudwatch_event_target" "findings_manager_events_lambda" {
 }
 
 resource "aws_cloudwatch_event_target" "findings_manager_events_lambda_resolved" {
-  count = var.jira_integration.enabled ? 0 : 1
+  count = var.jira_integration.enabled && var.jira_integration.autoclose_enabled ? 0 : 1
 
   arn  = module.findings_manager_events_lambda.arn
   rule = aws_cloudwatch_event_rule.securityhub_findings_resolved_events[count.index].name
