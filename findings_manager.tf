@@ -196,28 +196,12 @@ resource "aws_lambda_permission" "eventbridge_invoke_findings_manager_events_lam
   source_arn    = aws_cloudwatch_event_rule.securityhub_findings_events.arn
 }
 
-resource "aws_lambda_permission" "eventbridge_invoke_findings_manager_events_lambda_resolved" {
-  count = var.jira_integration.enabled && var.jira_integration.autoclose_enabled ? 0 : 1
-
-  action        = "lambda:InvokeFunction"
-  function_name = var.findings_manager_events_lambda.name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.securityhub_findings_resolved_events[0].arn
-}
-
 # Add Security Hub Events Lambda function as a target to the EventBridge rule
 resource "aws_cloudwatch_event_target" "findings_manager_events_lambda" {
   count = var.jira_integration.enabled ? 0 : 1
 
   arn  = module.findings_manager_events_lambda.arn
   rule = aws_cloudwatch_event_rule.securityhub_findings_events.name
-}
-
-resource "aws_cloudwatch_event_target" "findings_manager_events_lambda_resolved" {
-  count = var.jira_integration.enabled && var.jira_integration.autoclose_enabled ? 0 : 1
-
-  arn  = module.findings_manager_events_lambda.arn
-  rule = aws_cloudwatch_event_rule.securityhub_findings_resolved_events[0].name
 }
 
 ################################################################################
