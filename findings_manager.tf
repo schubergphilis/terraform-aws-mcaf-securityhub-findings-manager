@@ -147,9 +147,10 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
         }]
       },
       "Compliance": {
-        "Status": [{
-          "anything-but": "PASSED"
-        }]
+        "Status": [
+        {"anything-but": "PASSED"},
+        { "exists": false }
+        ]
       }
     }
   }
@@ -158,7 +159,8 @@ EOF
 }
 
 resource "aws_cloudwatch_event_rule" "securityhub_findings_resolved_events" {
-  count       = var.jira_integration.enabled && var.jira_integration.autoclose_enabled ? 1 : 0
+  count = var.jira_integration.enabled && var.jira_integration.autoclose_enabled ? 1 : 0
+
   name        = "rule-resolved-${var.findings_manager_events_lambda.name}"
   description = "EventBridge rule for transiting resolved messages, triggering the findings manager events lambda."
   tags        = var.tags
@@ -173,9 +175,10 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_resolved_events" {
         "Status": ["RESOLVED"]
       },
       "ProductFields": {
-        "PreviousComplianceStatus": [{
-          "anything-but": "PASSED"
-        }]
+        "PreviousComplianceStatus": [
+        {"anything-but": "PASSED"},
+        { "exists": false }
+        ]
       }
     }
   }
@@ -199,7 +202,7 @@ resource "aws_lambda_permission" "eventbridge_invoke_findings_manager_events_lam
   action        = "lambda:InvokeFunction"
   function_name = var.findings_manager_events_lambda.name
   principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.securityhub_findings_resolved_events[count.index].arn
+  source_arn    = aws_cloudwatch_event_rule.securityhub_findings_resolved_events[0].arn
 }
 
 # Add Security Hub Events Lambda function as a target to the EventBridge rule
@@ -214,7 +217,7 @@ resource "aws_cloudwatch_event_target" "findings_manager_events_lambda_resolved"
   count = var.jira_integration.enabled && var.jira_integration.autoclose_enabled ? 0 : 1
 
   arn  = module.findings_manager_events_lambda.arn
-  rule = aws_cloudwatch_event_rule.securityhub_findings_resolved_events[count.index].name
+  rule = aws_cloudwatch_event_rule.securityhub_findings_resolved_events[0].name
 }
 
 ################################################################################
