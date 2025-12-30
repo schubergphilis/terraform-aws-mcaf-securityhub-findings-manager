@@ -130,3 +130,11 @@ resource "aws_cloudwatch_event_target" "jira_orchestrator" {
   role_arn = module.jira_eventbridge_iam_role[0].arn
   rule     = aws_cloudwatch_event_rule.securityhub_findings_events.name
 }
+
+resource "aws_cloudwatch_event_target" "jira_orchestrator_resolved" {
+  count = var.jira_integration.enabled && var.jira_integration.autoclose_enabled ? 1 : 0
+
+  arn      = aws_sfn_state_machine.jira_orchestrator[0].arn
+  role_arn = module.jira_eventbridge_iam_role[0].arn
+  rule     = aws_cloudwatch_event_rule.securityhub_findings_resolved_events[0].name
+}

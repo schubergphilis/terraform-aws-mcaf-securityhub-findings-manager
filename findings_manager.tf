@@ -1,7 +1,3 @@
-locals {
-  workflow_status_filter = var.jira_integration.autoclose_enabled ? ["NEW", "NOTIFIED", "RESOLVED"] : ["NEW", "NOTIFIED"]
-}
-
 data "aws_iam_policy_document" "findings_manager_lambda_iam_role" {
   statement {
     sid = "TrustEventsToStoreLogEvent"
@@ -143,7 +139,46 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
   "detail": {
     "findings": {
       "Workflow": {
-        "Status": ${jsonencode(local.workflow_status_filter)}
+        "Status": ["NEW", "NOTIFIED"]
+      },
+      "Severity": {
+        "Label": [{
+          "anything-but": "INFORMATIONAL"
+        }]
+      },
+      "Compliance": {
+        "Status": [
+        {"anything-but": "PASSED"},
+        { "exists": false }
+        ]
+      }
+    }
+  }
+}
+EOF
+}
+
+resource "aws_cloudwatch_event_rule" "securityhub_findings_resolved_events" {
+  count = var.jira_integration.enabled && var.jira_integration.autoclose_enabled ? 1 : 0
+
+  name        = "rule-resolved-${var.findings_manager_events_lambda.name}"
+  description = "EventBridge rule for transiting resolved messages, triggering the findings manager events lambda."
+  tags        = var.tags
+
+  event_pattern = <<EOF
+{
+  "source": ["aws.securityhub"],
+  "detail-type": ["Security Hub Findings - Imported"],
+  "detail": {
+    "findings": {
+      "Workflow": {
+        "Status": ["RESOLVED"]
+      },
+      "ProductFields": {
+        "PreviousComplianceStatus": [
+        {"anything-but": "PASSED"},
+        { "exists": false }
+        ]
       }
     }
   }
