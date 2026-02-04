@@ -2,6 +2,8 @@ provider "aws" {
   region = "eu-west-1"
 }
 
+data "aws_caller_identity" "current" {}
+
 # Example: Create Jira tickets only for Security Hub findings
 module "securityhub_findings_manager" {
   source = "../.."
@@ -12,16 +14,18 @@ module "securityhub_findings_manager" {
   jira_integration = {
     enabled                               = true
     autoclose_enabled                     = true
-    project_key                           = "SEC"
-    credentials_secretsmanager_arn        = aws_secretsmanager_secret.jira_credentials.arn
     finding_severity_normalized_threshold = 70
+    include_product_names                 = ["Security Hub"]
 
-    # Only create Jira tickets for Security Hub findings
-    # Inspector findings will be ignored
-    include_product_names = ["Security Hub"]
-
-    issue_custom_fields = {
-      "customfield_10001" = "Security Team"
+    instances = {
+      "default" = {
+        default_instance               = true
+        project_key                    = "SEC"
+        credentials_secretsmanager_arn = aws_secretsmanager_secret.jira_credentials.arn
+        issue_custom_fields = {
+          "customfield_10001" = "Security Team"
+        }
+      }
     }
   }
 }

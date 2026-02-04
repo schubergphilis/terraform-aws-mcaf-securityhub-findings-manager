@@ -37,19 +37,21 @@ Deploys two Lambda functions:
 * `securityhub-findings-manager-trigger`: target for the S3 PutObject trigger.
 
 ### With Jira Integration
-* Enable by setting the variable `jira_integration` to `true` (default = false).
+
+* Enable by setting the variable `jira_integration.enabled` to `true` (default = false).
 * Deploys an additional Jira lambda function and a Step function for orchestration, triggered by an EventBridge rule.
 * Non-suppressed findings with severity above a threshold result in ticket creation and workflow status update from `NEW` to `NOTIFIED`.
-* **ProductName Filtering**: You can optionally filter which AWS product findings create Jira tickets using `jira_integration.include_product_names` (default = `[]`, meaning all products). For example, set to `["Security Hub"]` to create tickets only for Security Hub findings, or `["Inspector"]` for Inspector findings only. Common values: `"Security Hub"`, `"Inspector"`, `"GuardDuty"`, `"Macie"`. The filtering is implemented at the Step Function level for optimal performance.
-* Auto-closing can be activated with `jira_integration.autoclose_enabled` (default = false). Using the issue number in the finding note, the function transitions issues using `jira_integration.autoclose_transition_name` and `jira_integration.autoclose_comment`. 
-* **Intermediate Transition**: Optionally specify `jira_integration.include_intermediate_transition` to transition the ticket through an intermediate status before closing it. This is useful for Jira workflows that require tickets to pass through specific statuses (e.g., "Review", "In Progress") before reaching the final closed state. If not specified, tickets are closed directly using `autoclose_transition_name`.
+* **Multiple Jira Instances**: Configure multiple Jira instances to route findings to different Jira projects based on AWS account IDs. Each AWS account is routed to exactly one Jira instance. Supports a default instance as fallback for unmatched accounts.
+* **ProductName Filtering**: You can optionally filter which AWS product findings create Jira tickets using `jira_integration.include_product_names` (default = `[]`, meaning all products). For example, set to `["Security Hub"]` to create tickets only for Security Hub findings, or `["Inspector"]` for Inspector findings only. Common values: `"Security Hub"`, `"Inspector"`, `"GuardDuty"`, `"Macie"`. The filtering is implemented at the Step Function level for optimal performance and applies globally to all Jira instances.
+* Auto-closing can be activated with `jira_integration.autoclose_enabled` (default = false). Using the issue number in the finding note, the function transitions issues using `jira_integration.autoclose_transition_name` and `jira_integration.autoclose_comment`. Autoclose settings apply globally to all Jira instances.
+* **Intermediate Transition**: Optionally specify `jira_integration.instances.<name>.include_intermediate_transition` to transition the ticket through an intermediate status before closing it. This is useful for Jira workflows that require tickets to pass through specific statuses (e.g., "Review", "In Progress") before reaching the final closed state. If not specified, tickets are closed directly using `autoclose_transition_name`. This setting is per-instance.
 * Criteria for being forwarded for automatic ticket closure are:
   * Workflow Status "RESOLVED"
   * Workflow Status "NOTIFIED" and one of:
     * Record State "ARCHIVED"
     * Compliance State "PASSED" or "NOT_AVAILABLE"
 
-Only findings with a normalized severity level above the threshold (default `70`) initiate Jira integration.
+Only findings with a normalized severity level above the threshold (default `70`) initiate Jira integration. This threshold applies globally to all Jira instances.
 
 [Normalized severity levels](https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Severity.html):
 * 0 - INFORMATIONAL

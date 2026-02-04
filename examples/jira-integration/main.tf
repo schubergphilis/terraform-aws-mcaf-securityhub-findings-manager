@@ -49,9 +49,15 @@ module "aws_securityhub_findings_manager_with_secretsmanager_credentials" {
   rules_filepath = "${path.module}/../rules.yaml"
 
   jira_integration = {
-    enabled                        = true
-    credentials_secretsmanager_arn = aws_secretsmanager_secret.jira_credentials.arn
-    project_key                    = "PROJECT"
+    enabled = true
+
+    instances = {
+      "default" = {
+        default_instance               = true
+        project_key                    = "PROJECT"
+        credentials_secretsmanager_arn = aws_secretsmanager_secret.jira_credentials.arn
+      }
+    }
 
     security_group_egress_rules = [{
       cidr_ipv4   = "1.1.1.1/32"
@@ -94,9 +100,15 @@ module "aws_securityhub_findings_manager_with_ssm_credentials" {
   rules_filepath = "${path.module}/../rules.yaml"
 
   jira_integration = {
-    enabled                    = true
-    credentials_ssm_secret_arn = aws_ssm_parameter.jira_credentials.arn
-    project_key                = "PROJECT"
+    enabled = true
+
+    instances = {
+      "default" = {
+        default_instance           = true
+        project_key                = "PROJECT"
+        credentials_ssm_secret_arn = aws_ssm_parameter.jira_credentials.arn
+      }
+    }
 
     security_group_egress_rules = [{
       cidr_ipv4   = "1.1.1.1/32"

@@ -291,3 +291,36 @@ def update_security_hub(client: BaseClient, finding_id: str,
     except Exception as e:
         logger.exception(f"Updating SecurityHub finding failed: {e}")
         raise e
+
+
+def find_instance_for_account(account_id: str, instances_config: dict) -> tuple:
+    """
+    Find which Jira instance should handle this account.
+    First tries to match account_id in include_account_ids.
+    If no match, falls back to the default_instance (if configured).
+    Returns: (instance_name, instance_config) or (None, None) if not found
+    """
+    default_instance_name = None
+    default_instance_config = None
+
+    for instance_name, instance_config in instances_config.items():
+        if not instance_config.get('enabled', True):
+            continue
+
+        # Track default instance for fallback
+        if instance_config.get('default_instance', False):
+            default_instance_name = instance_name
+            default_instance_config = instance_config
+
+        # Check if this instance has the account (skip if include_account_ids is empty - default instance only)
+        include_account_ids = instance_config.get('include_account_ids', [])
+        if len(include_account_ids) > 0 and account_id in include_account_ids:
+            logger.info(f"Account {account_id} matched to Jira instance '{instance_name}'")
+            return instance_name, instance_config
+
+    # Use default instance if configured
+    if default_instance_config:
+        logger.info(f"Account {account_id} not matched, using default instance '{default_instance_name}'")
+        return default_instance_name, default_instance_config
+
+    return None, None
