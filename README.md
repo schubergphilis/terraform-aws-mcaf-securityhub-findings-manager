@@ -1,9 +1,11 @@
 # Security Hub Findings Manager
+
 Automated scanning and finding consolidation are essential for evaluating your security posture. AWS Security Hub is the native solution for this task within AWS. The number of findings it generates can initially be overwhelming. Additionally, some findings may be irrelevant or have less urgency for your specific situation.
 
 The Security Hub Findings Manager is a framework designed to automatically manage findings recorded by AWS Security Hub, including its [AWS service integrations](https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-internal-providers.html#internal-integrations-summary), based on a configurable rules list. Its primary aim is to reduce noise and help you prioritize genuine security issues.
 
-### Supported Functionality:
+## Supported Functionality
+
 * Suppressing findings to manage irrelevant or less urgent issues effectively.
 * Automated ticket creation in Jira and ServiceNow for non-suppressed findings exceeding a customizable severity threshold.
 
@@ -14,6 +16,7 @@ The Security Hub Findings Manager is a framework designed to automatically manag
 > This module relies heavily on [awsfindingsmanagerlib](https://github.com/schubergphilis/awsfindingsmanagerlib/tree/main). For detailed suppression logic information, refer to the library's [documentation](https://awsfindingsmanagerlib.readthedocs.io/en/latest/).
 
 ## Components
+
 Here's a high-level overview of the components. For more details, see [Resources](#resources) and [Modules](#modules).
 
 * Rules backend (currently only S3 supported).
@@ -26,13 +29,16 @@ Here's a high-level overview of the components. For more details, see [Resources
 * Optional ServiceNow integration components.
 
 ## Deployment Modes
+
 Three deployment modes are available:
 
 > [!IMPORTANT]
 > During the first deployment, be aware that S3 triggers might take time to become fully functional. Re-create the rules object later to apply rules to your findings history.
 
 ### Default (Without Jira & ServiceNow Integration)
+
 Deploys two Lambda functions:
+
 * `securityhub-findings-manager-events`: target for the EventBridge rule `Security Hub Findings - Imported` events.
 * `securityhub-findings-manager-trigger`: target for the S3 PutObject trigger.
 
@@ -41,6 +47,7 @@ Deploys two Lambda functions:
 * Enable by setting the variable `jira_integration.enabled` to `true` (default = false).
 * Deploys an additional Jira lambda function and a Step function for orchestration, triggered by an EventBridge rule.
 * Non-suppressed findings with severity above a threshold result in ticket creation and workflow status update from `NEW` to `NOTIFIED`.
+
 * **Multiple Jira Instances**: Configure multiple Jira instances to route findings to different Jira projects based on AWS account IDs. Each AWS account is routed to exactly one Jira instance. Supports a default instance as fallback for unmatched accounts.
 * **ProductName Filtering**: You can optionally filter which AWS product findings create Jira tickets using `jira_integration.include_product_names` (default = `[]`, meaning all products). For example, set to `["Security Hub"]` to create tickets only for Security Hub findings, or `["Inspector"]` for Inspector findings only. Common values: `"Security Hub"`, `"Inspector"`, `"GuardDuty"`, `"Macie"`. The filtering is implemented at the Step Function level for optimal performance and applies globally to all Jira instances.
 * Auto-closing can be activated with `jira_integration.autoclose_enabled` (default = false). Using the issue number in the finding note, the function transitions issues using `jira_integration.autoclose_transition_name` and `jira_integration.autoclose_comment`. Autoclose settings apply globally to all Jira instances.
@@ -63,6 +70,7 @@ Only findings with a normalized severity level above the threshold (default `70`
 ![Step Function Graph](files/step-function-artifacts/securityhub-findings-manager-orchestrator-graph.png)
 
 ### With ServiceNow Integration
+
 [Reference design](https://aws.amazon.com/blogs/security/how-to-set-up-two-way-integration-between-aws-security-hub-and-servicenow)
 * Enable by setting the variable `servicenow_integration` to `true` (default = false).
 * Deploys resources supporting ServiceNow integration, including an SQS Queue, EventBridge Rule, and required IAM user.
@@ -74,9 +82,11 @@ Only findings with a normalized severity level above the threshold (default `70`
 > Generate the `access_key` & `secret_access_key` in the AWS Console. If you prefer Terraform to handle this (and output them), set the variable `create_servicenow_access_keys` to `true` (default = false).
 
 ## Formatting the `rules.yaml` File
+
 An example file is available under `examples/rules.yaml`. For detailed information, see the Rule Syntax section in the [awsfindingsmanagerlib documentation](https://awsfindingsmanagerlib.readthedocs.io/en/latest/#rule-syntax).
 
 ## Local Development on Python Code
+
 A lambda layer provides aws-lambda-powertools. To have these dependencies locally, use `requirements-dev.txt` from the source code.
 
 <!-- BEGIN_TF_DOCS -->

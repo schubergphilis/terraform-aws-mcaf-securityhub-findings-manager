@@ -118,8 +118,8 @@ def lambda_handler(event: dict, context: LambdaContext):
                 jira_client, jira_project_key, jira_issue_type, event_detail, jira_issue_custom_fields)
             # Create note with instance tracking for proper autoclose handling
             note = json.dumps({
-                'jiraIssue': issue.key,        # Issue key for backward compatibility
-                'jiraInstance': instance_name  # Track which instance created it
+                'jiraIssue': issue.key,
+                'jiraInstance': instance_name
             })
             helpers.update_security_hub(
                 securityhub, finding["Id"], finding["ProductArn"], STATUS_NOTIFIED, note)

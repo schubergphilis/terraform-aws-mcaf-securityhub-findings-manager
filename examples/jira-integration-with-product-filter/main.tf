@@ -2,8 +2,6 @@ provider "aws" {
   region = "eu-west-1"
 }
 
-data "aws_caller_identity" "current" {}
-
 # Example: Create Jira tickets only for Security Hub findings
 module "securityhub_findings_manager" {
   source = "../.."
@@ -12,10 +10,8 @@ module "securityhub_findings_manager" {
   kms_key_arn    = aws_kms_key.findings_manager.arn
 
   jira_integration = {
-    enabled                               = true
-    autoclose_enabled                     = true
-    finding_severity_normalized_threshold = 70
-    include_product_names                 = ["Security Hub"]
+    enabled               = true
+    include_product_names = ["Security Hub"]
 
     instances = {
       "default" = {

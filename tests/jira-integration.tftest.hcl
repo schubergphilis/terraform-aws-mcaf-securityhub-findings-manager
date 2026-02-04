@@ -106,7 +106,7 @@ run "setup_tests" {
   }
 }
 
-run "jira_integration_disabled" {
+run "jira_disabled" {
   command = plan
 
   variables {
@@ -121,17 +121,12 @@ run "jira_integration_disabled" {
   }
 
   assert {
-    condition     = var.jira_integration.enabled == false
-    error_message = "Expected Jira integration to be disabled"
-  }
-
-  assert {
     condition     = length(module.jira_lambda) == 0
-    error_message = "Expected no Jira lambda when integration is disabled"
+    error_message = "Jira lambda should not be created when disabled"
   }
 }
 
-run "jira_integration_single_instance" {
+run "jira_enabled" {
   command = plan
 
   variables {
@@ -140,8 +135,7 @@ run "jira_integration_single_instance" {
     rules_filepath = "examples/rules.yaml"
 
     jira_integration = {
-      enabled                               = true
-      finding_severity_normalized_threshold = 70
+      enabled = true
 
       instances = {
         prod = {
@@ -159,37 +153,27 @@ run "jira_integration_single_instance" {
   }
 
   assert {
-    condition     = var.jira_integration.enabled == true
-    error_message = "Expected Jira integration to be enabled"
-  }
-
-  assert {
-    condition     = length(var.jira_integration.instances) == 1
-    error_message = "Expected 1 Jira instance to be configured"
-  }
-
-  assert {
     condition     = length(module.jira_lambda) == 1
-    error_message = "Expected 1 Jira lambda when integration is enabled"
+    error_message = "Jira lambda should be created when enabled"
   }
 
   assert {
     condition     = length(aws_sfn_state_machine.jira_orchestrator) == 1
-    error_message = "Expected 1 Step Function state machine for Jira"
+    error_message = "Step Function should be created"
   }
 
   assert {
     condition     = length(aws_cloudwatch_event_target.jira_orchestrator) == 1
-    error_message = "Expected 1 EventBridge target for Jira orchestrator"
+    error_message = "EventBridge target should be created"
   }
 
   assert {
     condition     = length(aws_cloudwatch_event_target.jira_orchestrator_resolved) == 0
-    error_message = "Expected no EventBridge target for resolved findings when autoclose is disabled"
+    error_message = "Resolved findings target should not exist when autoclose is disabled"
   }
 }
 
-run "jira_integration_multiple_instances" {
+run "jira_multiple_instances" {
   command = plan
 
   variables {
@@ -198,8 +182,7 @@ run "jira_integration_multiple_instances" {
     rules_filepath = "examples/rules.yaml"
 
     jira_integration = {
-      enabled                               = true
-      finding_severity_normalized_threshold = 70
+      enabled = true
 
       instances = {
         prod = {
@@ -222,22 +205,17 @@ run "jira_integration_multiple_instances" {
   }
 
   assert {
-    condition     = length(var.jira_integration.instances) == 2
-    error_message = "Expected 2 Jira instances to be configured"
-  }
-
-  assert {
     condition     = length(module.jira_lambda) == 1
-    error_message = "Expected 1 shared Jira lambda for all instances"
+    error_message = "Jira lambda should be created when enabled"
   }
 
   assert {
     condition     = length(aws_sfn_state_machine.jira_orchestrator) == 1
-    error_message = "Expected 1 Step Function state machine for Jira"
+    error_message = "Step Function should be created"
   }
 }
 
-run "jira_integration_with_autoclose" {
+run "jira_autoclose" {
   command = plan
 
   variables {
@@ -246,11 +224,10 @@ run "jira_integration_with_autoclose" {
     rules_filepath = "examples/rules.yaml"
 
     jira_integration = {
-      enabled                               = true
-      autoclose_enabled                     = true
-      autoclose_comment                     = "Security Hub finding resolved. Auto-closing ticket."
-      autoclose_transition_name             = "Done"
-      finding_severity_normalized_threshold = 80
+      enabled                   = true
+      autoclose_enabled         = true
+      autoclose_comment         = "Auto-closing ticket"
+      autoclose_transition_name = "Done"
 
       instances = {
         prod = {
@@ -265,69 +242,15 @@ run "jira_integration_with_autoclose" {
         description = "Allow all outbound traffic"
       }]
     }
-  }
-
-  assert {
-    condition     = var.jira_integration.autoclose_enabled == true
-    error_message = "Expected Jira autoclose to be enabled"
-  }
-
-  assert {
-    condition     = var.jira_integration.finding_severity_normalized_threshold == 80
-    error_message = "Expected severity threshold to be 80"
   }
 
   assert {
     condition     = length(aws_cloudwatch_event_target.jira_orchestrator_resolved) == 1
-    error_message = "Expected 1 EventBridge target for resolved findings when autoclose is enabled"
+    error_message = "Resolved findings target should be created when autoclose is enabled"
   }
 
   assert {
     condition     = length(aws_cloudwatch_event_rule.securityhub_findings_resolved_events) == 1
-    error_message = "Expected 1 EventBridge rule for resolved findings when autoclose is enabled"
-  }
-}
-
-run "jira_integration_with_product_filter" {
-  command = plan
-
-  variables {
-    kms_key_arn    = "arn:aws:kms:eu-west-1:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"
-    s3_bucket_name = "securityhub-findings-manager-jira-filter"
-    rules_filepath = "examples/rules.yaml"
-
-    jira_integration = {
-      enabled                               = true
-      finding_severity_normalized_threshold = 70
-      include_product_names                 = ["Security Hub", "GuardDuty"]
-
-      instances = {
-        prod = {
-          include_account_ids            = ["123456789000"]
-          project_key                    = "SEC"
-          credentials_secretsmanager_arn = "arn:aws:secretsmanager:eu-west-1:123456789012:secret:jira-creds"
-        }
-      }
-
-      security_group_egress_rules = [{
-        cidr_ipv4   = "0.0.0.0/0"
-        description = "Allow all outbound traffic"
-      }]
-    }
-  }
-
-  assert {
-    condition     = length(var.jira_integration.include_product_names) == 2
-    error_message = "Expected 2 product names to be included in filter"
-  }
-
-  assert {
-    condition     = contains(var.jira_integration.include_product_names, "Security Hub")
-    error_message = "Expected Security Hub to be in product filter"
-  }
-
-  assert {
-    condition     = contains(var.jira_integration.include_product_names, "GuardDuty")
-    error_message = "Expected GuardDuty to be in product filter"
+    error_message = "Resolved findings rule should be created when autoclose is enabled"
   }
 }

@@ -6,6 +6,15 @@ This document captures required refactoring on your part when upgrading to a mod
 
 The Jira integration has been restructured to support multiple Jira instances. This allows routing Security Hub findings to different Jira projects based on AWS account IDs.
 
+### Behaviour (v6.0.0)
+
+**New functionality:**
+
+- **Multiple Jira instances**: Route findings to different Jira projects based on AWS account ID
+- **Default instance fallback**: Configure a fallback instance for accounts not explicitly mapped to any instance
+- **Per-instance credentials**: Each instance can use different Jira credentials (different Jira servers or projects)
+- **Mutually exclusive routing**: Each AWS account is routed to exactly one Jira instance (findings from an account always go to the same instance)
+
 ### Variables (v6.0.0)
 
 The `jira_integration` variable structure has been completely redesigned:
@@ -31,132 +40,28 @@ jira_integration = {
 **New structure:**
 ```hcl
 jira_integration = {
-  enabled = true
-
-  # Global settings (apply to ALL instances)
-  exclude_account_ids                   = []
-  autoclose_enabled                     = true
+  enabled                               = true
   autoclose_comment                     = "Closing issue"
+  autoclose_enabled                     = true
   autoclose_transition_name             = "Done"
+  exclude_account_ids                   = []
   finding_severity_normalized_threshold = 70
   include_product_names                 = ["GuardDuty"]
 
   # Per-instance configurations
   instances = {
     "default" = {
-      enabled                         = true
-      default_instance                = true  # Catches all accounts
-      project_key                     = "PROJ"
       credentials_secretsmanager_arn  = "arn:aws:secretsmanager:..."
-      issue_type                      = "Security Advisory"
-      issue_custom_fields             = {}
+      default_instance                = true # Catches all accounts
       include_intermediate_transition = "In Progress"
+      issue_custom_fields             = {}
+      issue_type                      = "Security Advisory"
+      project_key                     = "PROJ"
       # Note: include_account_ids is optional when default_instance = true
     }
   }
 }
 ```
-
-**Migration steps:**
-
-1. **Move to global level** (these now apply to all instances):
-   - `autoclose_enabled`, `autoclose_comment`, `autoclose_transition_name`
-   - `finding_severity_normalized_threshold`, `include_product_names`
-   - `exclude_account_ids` (replaces the old filtering logic)
-
-2. **Move to instance level** (wrap in `instances = { "name" = { ... } }`):
-   - `project_key` (required)
-   - `include_account_ids` (optional, must be mutually exclusive across instances if specified)
-   - `credentials_secretsmanager_arn` or `credentials_ssm_secret_arn` (required, one per instance)
-   - `issue_type`, `issue_custom_fields`, `include_intermediate_transition` (optional)
-
-3. **New per-instance fields:**
-   - `enabled` (optional, default: `true`) - Enable/disable a specific instance
-   - `default_instance` (optional, default: `false`) - Use this instance as fallback for unmatched accounts
-   - **Note:** If `include_account_ids` is empty or not specified, `default_instance` must be `true`
-
-**Multiple instances example:**
-```hcl
-jira_integration = {
-  enabled           = true
-  autoclose_enabled = true
-
-  instances = {
-    "team-a" = {
-      include_account_ids            = ["111111111111", "222222222222"]
-      project_key                    = "TEAMA"
-      credentials_secretsmanager_arn = "arn:aws:secretsmanager:...:secret:jira-team-a"
-    }
-
-    "team-b" = {
-      include_account_ids        = ["333333333333"]
-      project_key                = "TEAMB"
-      credentials_ssm_secret_arn = "arn:aws:ssm:...:parameter/jira-team-b"
-      issue_type                 = "Bug"
-    }
-
-    "default" = {
-      default_instance               = true
-      project_key                    = "DEFAULT"
-      credentials_secretsmanager_arn = "arn:aws:secretsmanager:...:secret:jira-default"
-      # Note: include_account_ids is optional when default_instance = true
-      # This instance catches all accounts not matched by team-a or team-b
-    }
-  }
-}
-```
-
-### Validation Rules (v6.0.0)
-
-The following validation rules have been added:
-
-- Each instance must have exactly one credential type (`credentials_secretsmanager_arn` OR `credentials_ssm_secret_arn`)
-- If `include_account_ids` is empty, `default_instance` must be set to `true`
-- `include_account_ids` must be mutually exclusive across all instances (no account can appear in multiple instances)
-- At most one instance can have `default_instance = true`
-- When `jira_integration.enabled = true`, at least one instance must be configured with `enabled = true`
-- `exclude_account_ids` cannot overlap with any instance's `include_account_ids`
-
-### Behaviour (v6.0.0)
-
-**New functionality:**
-
-- **Multiple Jira instances**: Route findings to different Jira projects based on AWS account ID
-- **Default instance fallback**: Configure a fallback instance for accounts not explicitly mapped to any instance
-- **Per-instance credentials**: Each instance can use different Jira credentials (different Jira servers or projects)
-- **Mutually exclusive routing**: Each AWS account is routed to exactly one Jira instance (findings from an account always go to the same instance)
-
-**Global filters:**
-
-The following settings now apply to ALL Jira instances:
-- `finding_severity_normalized_threshold` - Minimum severity for creating issues
-- `include_product_names` - Filter findings by AWS service (e.g., GuardDuty, Inspector)
-- `autoclose_enabled`, `autoclose_comment`, `autoclose_transition_name` - Autoclose behavior
-
-**Security Hub note format:**
-
-The Lambda now writes a new note format to Security Hub findings for backward compatibility:
-
-**Old format:**
-```json
-{"jiraIssue": "KEY-123"}
-```
-
-**New format:**
-```json
-{
-  "jiraIssue": "KEY-123",
-  "jiraInstance": "team-a"
-}
-```
-
-The `jiraInstance` field allows the autoclose functionality to use the correct Jira instance credentials and intermediate transition for the instance that created the ticket. This ensures that tickets are closed in the correct Jira instance even if account-to-instance mappings are reconfigured after ticket creation. For old notes without `jiraInstance`, the system falls back to the default instance if configured. Existing findings with the old note format will continue to work correctly during autoclose operations.
-
-**Note:**
-
-- The Step Function template and helper functions remain unchanged - no regression risk
-- Lambda code changes are minimal (~60 lines added/modified) to maintain stability
-- Existing Security Hub findings will continue to work with the new Lambda code
 
 ## Upgrading to v5.0.0
 

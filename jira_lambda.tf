@@ -126,10 +126,8 @@ module "jira_lambda" {
     # Multi-instance configuration as JSON
     JIRA_INSTANCES_CONFIG = jsonencode(var.jira_integration.instances)
 
-    # Global account filters
-    EXCLUDE_ACCOUNT_FILTER = jsonencode(var.jira_integration.exclude_account_ids)
-
-    # Global autoclose settings
+    # Global settings
+    EXCLUDE_ACCOUNT_FILTER    = jsonencode(var.jira_integration.exclude_account_ids)
     JIRA_AUTOCLOSE_COMMENT    = var.jira_integration.autoclose_comment
     JIRA_AUTOCLOSE_TRANSITION = var.jira_integration.autoclose_transition_name
 
