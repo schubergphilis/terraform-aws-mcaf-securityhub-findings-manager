@@ -122,7 +122,7 @@ variable "jira_integration" {
 
     lambda_settings = optional(object({
       name        = optional(string, "securityhub-findings-manager-jira")
-      log_level   = optional(string, "INFO")
+      log_level   = optional(string, "ERROR")
       memory_size = optional(number, 256)
       timeout     = optional(number, 60)
     }), {})
