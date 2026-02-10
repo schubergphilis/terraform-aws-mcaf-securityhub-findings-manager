@@ -147,36 +147,39 @@ variable "jira_integration" {
   validation {
     condition = alltrue([
       for instance_name, instance in var.jira_integration.instances : (
+        instance.enabled == false ||
         (instance.credentials_secretsmanager_arn != null && instance.credentials_ssm_secret_arn == null) ||
         (instance.credentials_secretsmanager_arn == null && instance.credentials_ssm_secret_arn != null)
       )
     ])
-    error_message = "Each Jira instance must provide either 'credentials_secretsmanager_arn' or 'credentials_ssm_secret_arn', but not both."
+    error_message = "Each enabled Jira instance must provide either 'credentials_secretsmanager_arn' or 'credentials_ssm_secret_arn', but not both."
   }
 
   validation {
     condition = alltrue([
       for instance_name, instance in var.jira_integration.instances : (
-        length(instance.include_account_ids) > 0 || instance.default_instance == true
+        instance.enabled == false ||
+        length(instance.include_account_ids) > 0 ||
+        instance.default_instance == true
       )
     ])
-    error_message = "If 'include_account_ids' is empty, 'default_instance' must be set to true."
+    error_message = "For each enabled Jira instance: if 'include_account_ids' is empty, 'default_instance' must be set to true."
   }
 
   validation {
     condition = length(var.jira_integration.instances) == 0 || (
-      length(flatten([for instance in var.jira_integration.instances : instance.include_account_ids if length(instance.include_account_ids) > 0])) ==
-      length(distinct(flatten([for instance in var.jira_integration.instances : instance.include_account_ids if length(instance.include_account_ids) > 0])))
+      length(flatten([for instance in var.jira_integration.instances : instance.include_account_ids if instance.enabled != false && length(instance.include_account_ids) > 0])) ==
+      length(distinct(flatten([for instance in var.jira_integration.instances : instance.include_account_ids if instance.enabled != false && length(instance.include_account_ids) > 0])))
     )
-    error_message = "The 'include_account_ids' must be mutually exclusive across all Jira instances. Each account ID can only appear in one instance."
+    error_message = "The 'include_account_ids' must be mutually exclusive across all enabled Jira instances. Each account ID can only appear in one instance."
   }
 
   validation {
     condition = length([
       for instance_name, instance in var.jira_integration.instances : instance_name
-      if instance.default_instance == true
+      if instance.enabled != false && instance.default_instance == true
     ]) <= 1
-    error_message = "At most one Jira instance can have 'default_instance' set to true."
+    error_message = "At most one enabled Jira instance can have 'default_instance' set to true."
   }
 
   validation {
