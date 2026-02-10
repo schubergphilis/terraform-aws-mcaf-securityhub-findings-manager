@@ -24,6 +24,5 @@ module "aws_securityhub_findings_manager" {
   kms_key_arn    = module.kms.arn
   s3_bucket_name = "securityhub-findings-manager-artifacts" # Replace with a globally unique bucket name
   rules_filepath = "${path.module}/../rules.yaml"
-
-  tags = { Terraform = true }
+  tags           = { Terraform = true }
 }

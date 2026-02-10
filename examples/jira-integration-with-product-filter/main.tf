@@ -18,6 +18,7 @@ module "securityhub_findings_manager" {
         default_instance               = true
         project_key                    = "SEC"
         credentials_secretsmanager_arn = aws_secretsmanager_secret.jira_credentials.arn
+
         issue_custom_fields = {
           "customfield_10001" = "Security Team"
         }

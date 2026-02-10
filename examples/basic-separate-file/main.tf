@@ -26,8 +26,7 @@ module "aws_securityhub_findings_manager" {
 
   kms_key_arn    = module.kms.arn
   s3_bucket_name = local.s3_bucket_name
-
-  tags = { Terraform = true }
+  tags           = { Terraform = true }
 }
 
 # It can take a long time before S3 notifications become active

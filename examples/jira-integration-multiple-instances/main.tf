@@ -74,7 +74,7 @@ module "aws_securityhub_findings_manager_multi_instance" {
 
     # Multiple instance configurations
     instances = {
-      # Team A instance - handles specific production accounts
+      # Team A instance - handles specific production accounts & is the default for accounts not explicitly included in other instances.
       "team-a" = {
         enabled                        = true
         credentials_secretsmanager_arn = aws_secretsmanager_secret.jira_credentials_team_a.arn
@@ -90,10 +90,6 @@ module "aws_securityhub_findings_manager_multi_instance" {
         include_account_ids        = ["333333333333"]
         issue_type                 = "Bug"
         project_key                = "TEAMB"
-
-        issue_custom_fields = {
-          "customfield_10002" = "Team B"
-        }
       }
     }
 
