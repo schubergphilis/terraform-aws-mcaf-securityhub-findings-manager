@@ -40,7 +40,7 @@ def lambda_handler(event: dict, context: LambdaContext):
         logger.error(f"Environment variable validation failed: {e}")
         raise RuntimeError("Required environment variables are missing.") from e
 
-    # Get finding account ID (needed for instance lookup)
+    # Extract event details and finding information
     event_detail = event['detail']
     finding = event_detail['findings'][0]
     finding_account_id = finding['AwsAccountId']
@@ -50,57 +50,13 @@ def lambda_handler(event: dict, context: LambdaContext):
     jira_autoclose_transition = os.getenv('JIRA_AUTOCLOSE_TRANSITION', DEFAULT_JIRA_AUTOCLOSE_TRANSITION)
     exclude_account_filter = json.loads(os.environ['EXCLUDE_ACCOUNT_FILTER'])
     
-    if finding_account_id in exclude_account_filter:
-        logger.info(
-            f"Account {finding_account_id} is in the global exclude list. Skipping Jira ticket creation."
-        )
-        return
-    
-    # Load multi-instance configuration
-    instances_config = json.loads(os.environ.get('JIRA_INSTANCES_CONFIG', '{}'))
-
-    # Find which instance matches this account
-    instance_name, instance_config = helpers.find_instance_for_account(finding_account_id, instances_config)
-
-    if not instance_config:
-        logger.info(f"No Jira instance configured for account {finding_account_id}")
-        return
-
-    # Extract instance-specific configuration
-    jira_issue_custom_fields = instance_config.get('issue_custom_fields', {})
-    jira_issue_type = instance_config.get('issue_type', 'Security Advisory')
-    jira_project_key = instance_config['project_key']
-    jira_secret_arn = instance_config.get('credentials_secretsmanager_arn') or instance_config.get('credentials_ssm_secret_arn')
-    jira_secret_type = 'SECRETSMANAGER' if instance_config.get('credentials_secretsmanager_arn') else 'SSM'
-
-    # Parse custom fields
-    try:
-        jira_issue_custom_fields = {k: {"value": v} for k, v in jira_issue_custom_fields.items()}
-    except Exception as e:
-        logger.error(f"Failed to parse custom fields: {e}.")
-        raise ValueError(f"Invalid custom fields format: {e}") from e
-
-    # Retrieve Jira client
-    try:
-        if jira_secret_arn:
-            if jira_secret_type == 'SECRETSMANAGER':
-                jira_secret = helpers.get_secret(secretsmanager, jira_secret_arn)
-            elif jira_secret_type == "SSM":
-                jira_secret = helpers.get_ssm_secret(ssm, jira_secret_arn)
-            else:
-                raise ValueError(
-                    f"Invalid JIRA_SECRET_TYPE {jira_secret_type}. Must be SECRETSMANAGER or SSM.")
-        else:
-            raise ValueError(f"JIRA SECRET ARN {jira_secret_arn} is set to empty. Cannot proceed without JIRA Credentials.")
-        jira_client = helpers.get_jira_client(jira_secret)
-    except Exception as e:
-        logger.error(f"Failed to retrieve Jira client: {e}")
-        raise RuntimeError("Could not initialize Jira client.") from e
-
-    # Get remaining Security Hub finding details
+    # Get workflow status early to determine processing path
     workflow_status = finding['Workflow']['Status']
     compliance_status = finding['Compliance']['Status'] if 'Compliance' in finding else COMPLIANCE_STATUS_MISSING
     record_state = finding['RecordState']
+    
+    # Load multi-instance configuration (needed for both paths)
+    instances_config = json.loads(os.environ.get('JIRA_INSTANCES_CONFIG', '{}'))
 
     # Handle new findings
     # Ticket is created when Workflow Status is NEW and Compliance Status is FAILED, WARNING or is missing from the finding (case with e.g. Inspector findings)
@@ -111,6 +67,52 @@ def lambda_handler(event: dict, context: LambdaContext):
                                       COMPLIANCE_STATUS_WARNING,
                                       COMPLIANCE_STATUS_MISSING]
             and record_state == RECORD_STATE_ACTIVE):
+        
+        # Check if account is in global exclude list
+        if finding_account_id in exclude_account_filter:
+            logger.info(
+                f"Account {finding_account_id} is in the global exclude list. Skipping Jira ticket creation."
+            )
+            return
+        
+        # Find which instance matches this account (only for NEW findings)
+        instance_name, instance_config = helpers.find_instance_for_account(finding_account_id, instances_config)
+
+        if not instance_config:
+            logger.info(f"No Jira instance configured for account {finding_account_id}")
+            return
+
+        # Extract instance-specific configuration
+        jira_issue_custom_fields = instance_config.get('issue_custom_fields', {})
+        jira_issue_type = instance_config.get('issue_type', 'Security Advisory')
+        jira_project_key = instance_config['project_key']
+        jira_secret_arn = instance_config.get('credentials_secretsmanager_arn') or instance_config.get('credentials_ssm_secret_arn')
+        jira_secret_type = 'SECRETSMANAGER' if instance_config.get('credentials_secretsmanager_arn') else 'SSM'
+
+        # Parse custom fields
+        try:
+            jira_issue_custom_fields = {k: {"value": v} for k, v in jira_issue_custom_fields.items()}
+        except Exception as e:
+            logger.error(f"Failed to parse custom fields: {e}.")
+            raise ValueError(f"Invalid custom fields format: {e}") from e
+
+        # Retrieve Jira client for ticket creation
+        try:
+            if jira_secret_arn:
+                if jira_secret_type == 'SECRETSMANAGER':
+                    jira_secret = helpers.get_secret(secretsmanager, jira_secret_arn)
+                elif jira_secret_type == "SSM":
+                    jira_secret = helpers.get_ssm_secret(ssm, jira_secret_arn)
+                else:
+                    raise ValueError(
+                        f"Invalid JIRA_SECRET_TYPE {jira_secret_type}. Must be SECRETSMANAGER or SSM.")
+            else:
+                raise ValueError(f"JIRA SECRET ARN {jira_secret_arn} is set to empty. Cannot proceed without JIRA Credentials.")
+            jira_client = helpers.get_jira_client(jira_secret)
+        except Exception as e:
+            logger.error(f"Failed to retrieve Jira client: {e}")
+            raise RuntimeError("Could not initialize Jira client.") from e
+        
         # Create Jira issue and updates Security Hub status to NOTIFIED
         # and adds Jira issue key to note (in JSON format)
         try:
