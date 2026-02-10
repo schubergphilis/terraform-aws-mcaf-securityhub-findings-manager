@@ -160,7 +160,7 @@ variable "jira_integration" {
       for instance_name, instance in var.jira_integration.instances : (
         !instance.enabled ||
         length(instance.include_account_ids) > 0 ||
-        instance.default_instance == true
+        instance.default_instance
       )
     ])
     error_message = "For each enabled Jira instance: if 'include_account_ids' is empty, 'default_instance' must be set to true."
@@ -177,7 +177,7 @@ variable "jira_integration" {
   validation {
     condition = length([
       for instance_name, instance in var.jira_integration.instances : instance_name
-      if instance.enabled && instance.default_instance == true
+      if instance.enabled && instance.default_instance
     ]) <= 1
     error_message = "At most one enabled Jira instance can have 'default_instance' set to true."
   }
