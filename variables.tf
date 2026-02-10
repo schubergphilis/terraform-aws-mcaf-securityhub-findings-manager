@@ -147,7 +147,7 @@ variable "jira_integration" {
   validation {
     condition = alltrue([
       for instance_name, instance in var.jira_integration.instances : (
-        instance.enabled == false ||
+        !instance.enabled ||
         (instance.credentials_secretsmanager_arn != null && instance.credentials_ssm_secret_arn == null) ||
         (instance.credentials_secretsmanager_arn == null && instance.credentials_ssm_secret_arn != null)
       )
@@ -158,7 +158,7 @@ variable "jira_integration" {
   validation {
     condition = alltrue([
       for instance_name, instance in var.jira_integration.instances : (
-        instance.enabled == false ||
+        !instance.enabled ||
         length(instance.include_account_ids) > 0 ||
         instance.default_instance == true
       )
@@ -168,8 +168,8 @@ variable "jira_integration" {
 
   validation {
     condition = length(var.jira_integration.instances) == 0 || (
-      length(flatten([for instance in var.jira_integration.instances : instance.include_account_ids if instance.enabled != false && length(instance.include_account_ids) > 0])) ==
-      length(distinct(flatten([for instance in var.jira_integration.instances : instance.include_account_ids if instance.enabled != false && length(instance.include_account_ids) > 0])))
+      length(flatten([for instance in var.jira_integration.instances : instance.include_account_ids if instance.enabled && length(instance.include_account_ids) > 0])) ==
+      length(distinct(flatten([for instance in var.jira_integration.instances : instance.include_account_ids if instance.enabled && length(instance.include_account_ids) > 0])))
     )
     error_message = "The 'include_account_ids' must be mutually exclusive across all enabled Jira instances. Each account ID can only appear in one instance."
   }
@@ -177,7 +177,7 @@ variable "jira_integration" {
   validation {
     condition = length([
       for instance_name, instance in var.jira_integration.instances : instance_name
-      if instance.enabled != false && instance.default_instance == true
+      if instance.enabled && instance.default_instance == true
     ]) <= 1
     error_message = "At most one enabled Jira instance can have 'default_instance' set to true."
   }
