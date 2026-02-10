@@ -63,7 +63,7 @@ data "aws_iam_policy_document" "jira_lambda_iam_role" {
     condition {
       test     = "ForAnyValue:StringEquals"
       variable = "securityhub:ASFFSyntaxPath/Workflow.Status"
-      values   = var.jira_integration.autoclose_enabled ? ["NOTIFIED", "RESOLVED", "SUPPRESSED"] : ["NOTIFIED"]
+      values   = var.jira_integration.autoclose_enabled ? ["NOTIFIED", "RESOLVED"] : ["NOTIFIED"]
     }
   }
 

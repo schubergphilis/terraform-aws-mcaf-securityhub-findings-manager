@@ -149,10 +149,6 @@
                             "StringEquals": "RESOLVED"
                           },
                           {
-                            "Variable": "$.detail.findings[0].Workflow.Status",
-                            "StringEquals": "SUPPRESSED"
-                          },
-                          {
                             "And": [
                               {
                                 "Variable": "$.detail.findings[0].Workflow.Status",

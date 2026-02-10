@@ -22,7 +22,6 @@ DEFAULT_JIRA_AUTOCLOSE_TRANSITION = 'Done'
 STATUS_NEW = 'NEW'
 STATUS_NOTIFIED = 'NOTIFIED'
 STATUS_RESOLVED = 'RESOLVED'
-STATUS_SUPPRESSED = 'SUPPRESSED'
 COMPLIANCE_STATUS_FAILED = 'FAILED'
 COMPLIANCE_STATUS_NOT_AVAILABLE = 'NOT_AVAILABLE'
 COMPLIANCE_STATUS_PASSED = 'PASSED'
@@ -130,11 +129,10 @@ def lambda_handler(event: dict, context: LambdaContext):
             raise RuntimeError(f"Failed to create Jira issue or update Security Hub for finding ID {finding['Id']}.") from e
 
     # Handle resolved findings
-    # Close Jira issue if finding in SecurityHub has Workflow Status RESOLVED or SUPPRESSED
+    # Close Jira issue if finding in SecurityHub has Workflow Status RESOLVED
     # or if the finding is in NOTIFIED status and compliance is PASSED (finding resoloved) or NOT_AVAILABLE (when the resource is deleted, for example) or the finding's Record State is ARCHIVED
     # If closed from NOTIFIED status, also resolve the finding in SecurityHub. If the finding becomes relevant again, Security Hub will reopen it and new ticket will be created.
     elif (workflow_status == STATUS_RESOLVED
-            or workflow_status == STATUS_SUPPRESSED
             or (workflow_status == STATUS_NOTIFIED
                 and (compliance_status in [COMPLIANCE_STATUS_PASSED,
                                            COMPLIANCE_STATUS_NOT_AVAILABLE]
