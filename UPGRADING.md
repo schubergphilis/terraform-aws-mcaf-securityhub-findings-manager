@@ -40,7 +40,6 @@ jira_integration = {
 **New structure:**
 ```hcl
 jira_integration = {
-  enabled                               = true
   autoclose_comment                     = "Closing issue"
   autoclose_enabled                     = true
   autoclose_transition_name             = "Done"

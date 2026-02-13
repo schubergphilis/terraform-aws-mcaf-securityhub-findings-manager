@@ -114,10 +114,7 @@ run "jira_disabled" {
     s3_bucket_name = "securityhub-findings-manager-jira"
     rules_filepath = "examples/rules.yaml"
 
-    jira_integration = {
-      enabled   = false
-      instances = {}
-    }
+    jira_integration = null
   }
 
   assert {
@@ -135,8 +132,6 @@ run "jira_enabled" {
     rules_filepath = "examples/rules.yaml"
 
     jira_integration = {
-      enabled = true
-
       instances = {
         prod = {
           include_account_ids            = ["123456789000"]
@@ -182,8 +177,6 @@ run "jira_multiple_instances" {
     rules_filepath = "examples/rules.yaml"
 
     jira_integration = {
-      enabled = true
-
       instances = {
         prod = {
           include_account_ids            = ["123456789000"]
@@ -224,7 +217,6 @@ run "jira_autoclose" {
     rules_filepath = "examples/rules.yaml"
 
     jira_integration = {
-      enabled                   = true
       autoclose_enabled         = true
       autoclose_comment         = "Auto-closing ticket"
       autoclose_transition_name = "Done"

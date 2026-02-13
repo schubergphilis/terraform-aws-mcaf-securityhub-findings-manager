@@ -88,26 +88,12 @@ variable "jira_eventbridge_iam_role_name" {
 variable "jira_integration" {
   type = object({
     # Global settings for all jira instances
-    enabled                               = optional(bool, false)
     autoclose_comment                     = optional(string, "Security Hub finding has been resolved. Autoclosing the issue.")
     autoclose_enabled                     = optional(bool, false)
     autoclose_transition_name             = optional(string, "Close Issue")
     exclude_account_ids                   = optional(list(string), [])
     finding_severity_normalized_threshold = optional(number, 70)
     include_product_names                 = optional(list(string), [])
-
-    # Per-instance configurations
-    instances = optional(map(object({
-      enabled                         = optional(bool, true)
-      credentials_secretsmanager_arn  = optional(string)
-      credentials_ssm_secret_arn      = optional(string)
-      default_instance                = optional(bool, false)
-      include_account_ids             = optional(list(string), [])
-      include_intermediate_transition = optional(string)
-      issue_custom_fields             = optional(map(string), {})
-      issue_type                      = optional(string, "Security Advisory")
-      project_key                     = string
-    })), {})
 
     security_group_egress_rules = optional(list(object({
       cidr_ipv4                    = optional(string)
@@ -132,20 +118,29 @@ variable "jira_integration" {
       retention = optional(number, 90)
     }), {})
 
+    # Per-instance configurations
+    instances = optional(map(object({
+      enabled                         = optional(bool, true)
+      credentials_secretsmanager_arn  = optional(string)
+      credentials_ssm_secret_arn      = optional(string)
+      default_instance                = optional(bool, false)
+      include_account_ids             = optional(list(string), [])
+      include_intermediate_transition = optional(string)
+      issue_custom_fields             = optional(map(string), {})
+      issue_type                      = optional(string, "Security Advisory")
+      project_key                     = string
+    })), {})
   })
-  default = {
-    enabled   = false
-    instances = {}
-  }
+  default     = null
   description = "Findings Manager - Jira integration settings"
 
   validation {
-    condition     = alltrue([for o in var.jira_integration.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
+    condition     = var.jira_integration == null || alltrue([for o in var.jira_integration.security_group_egress_rules : (o.cidr_ipv4 != null || o.cidr_ipv6 != null || o.prefix_list_id != null || o.referenced_security_group_id != null)])
     error_message = "Although \"cidr_ipv4\", \"cidr_ipv6\", \"prefix_list_id\", and \"referenced_security_group_id\" are all marked as optional, you must provide one of them in order to configure the destination of the traffic."
   }
 
   validation {
-    condition = alltrue([
+    condition = var.jira_integration == null || alltrue([
       for instance_name, instance in var.jira_integration.instances : (
         !instance.enabled ||
         (instance.credentials_secretsmanager_arn != null && instance.credentials_ssm_secret_arn == null) ||
@@ -156,7 +151,7 @@ variable "jira_integration" {
   }
 
   validation {
-    condition = alltrue([
+    condition = var.jira_integration == null || alltrue([
       for instance_name, instance in var.jira_integration.instances : (
         !instance.enabled ||
         length(instance.include_account_ids) > 0 ||
@@ -167,7 +162,7 @@ variable "jira_integration" {
   }
 
   validation {
-    condition = length(var.jira_integration.instances) == 0 || (
+    condition = var.jira_integration == null || length(var.jira_integration.instances) == 0 || (
       length(flatten([for instance in var.jira_integration.instances : instance.include_account_ids if instance.enabled && length(instance.include_account_ids) > 0])) ==
       length(distinct(flatten([for instance in var.jira_integration.instances : instance.include_account_ids if instance.enabled && length(instance.include_account_ids) > 0])))
     )
@@ -175,7 +170,7 @@ variable "jira_integration" {
   }
 
   validation {
-    condition = length([
+    condition = var.jira_integration == null || length([
       for instance_name, instance in var.jira_integration.instances : instance_name
       if instance.enabled && instance.default_instance
     ]) <= 1
@@ -183,15 +178,7 @@ variable "jira_integration" {
   }
 
   validation {
-    condition = !var.jira_integration.enabled || (
-      length(var.jira_integration.instances) > 0 &&
-      length([for instance in var.jira_integration.instances : instance if instance.enabled]) > 0
-    )
-    error_message = "When jira_integration is enabled, you must configure at least one instance with 'enabled' set to true."
-  }
-
-  validation {
-    condition = length(setintersection(
+    condition = var.jira_integration == null || length(setintersection(
       var.jira_integration.exclude_account_ids,
       flatten([for instance in var.jira_integration.instances : instance.include_account_ids if instance.enabled && length(instance.include_account_ids) > 0])
     )) == 0

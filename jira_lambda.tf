@@ -1,21 +1,27 @@
 locals {
+  # Check if Jira integration is enabled (at least 1 instance defined)
+  jira_integration_enabled = var.jira_integration != null && length([
+    for instance_key, instance in var.jira_integration.instances :
+    instance if instance.enabled != false
+  ]) > 0
+
   # Collect all SecretsManager ARNs from all enabled instances
-  jira_secretsmanager_arns = [
+  jira_secretsmanager_arns = var.jira_integration != null ? [
     for instance_key, instance in var.jira_integration.instances :
     instance.credentials_secretsmanager_arn
     if instance.enabled != false && instance.credentials_secretsmanager_arn != null && instance.credentials_secretsmanager_arn != "REDACTED"
-  ]
+  ] : []
 
   # Collect all SSM parameter ARNs from all enabled instances
-  jira_ssm_arns = [
+  jira_ssm_arns = var.jira_integration != null ? [
     for instance_key, instance in var.jira_integration.instances :
     instance.credentials_ssm_secret_arn
     if instance.enabled != false && instance.credentials_ssm_secret_arn != null && instance.credentials_ssm_secret_arn != "REDACTED"
-  ]
+  ] : []
 }
 
 data "aws_iam_policy_document" "jira_lambda_iam_role" {
-  count = var.jira_integration.enabled ? 1 : 0
+  count = local.jira_integration_enabled ? 1 : 0
 
   statement {
     sid = "TrustEventsToStoreLogEvent"
@@ -63,7 +69,7 @@ data "aws_iam_policy_document" "jira_lambda_iam_role" {
     condition {
       test     = "ForAnyValue:StringEquals"
       variable = "securityhub:ASFFSyntaxPath/Workflow.Status"
-      values   = var.jira_integration.autoclose_enabled ? ["NOTIFIED", "RESOLVED"] : ["NOTIFIED"]
+      values   = try(var.jira_integration.autoclose_enabled, false) ? ["NOTIFIED", "RESOLVED"] : ["NOTIFIED"]
     }
   }
 
@@ -84,7 +90,7 @@ data "aws_iam_policy_document" "jira_lambda_iam_role" {
 
 # Upload the zip archive to S3
 resource "aws_s3_object" "jira_lambda_deployment_package" {
-  count = var.jira_integration.enabled ? 1 : 0
+  count = local.jira_integration_enabled ? 1 : 0
 
   bucket      = module.findings_manager_bucket.id
   key         = "lambda_${var.jira_integration.lambda_settings.name}_${var.lambda_runtime}.zip"
@@ -97,7 +103,7 @@ resource "aws_s3_object" "jira_lambda_deployment_package" {
 # Lambda function to create Jira ticket for Security Hub findings and set the workflow state to NOTIFIED
 module "jira_lambda" {
   #checkov:skip=CKV_AWS_272:Code signing not used for now
-  count = var.jira_integration.enabled ? 1 : 0
+  count = local.jira_integration_enabled ? 1 : 0
 
   source  = "schubergphilis/mcaf-lambda/aws"
   version = "~> 1.4.1"

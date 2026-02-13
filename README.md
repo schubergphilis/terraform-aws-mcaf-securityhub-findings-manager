@@ -44,7 +44,6 @@ Deploys two Lambda functions:
 
 ### With Jira Integration
 
-* Enable by setting the variable `jira_integration.enabled` to `true` (default = false).
 * Deploys an additional Jira lambda function and a Step function for orchestration, triggered by an EventBridge rule.
 * Non-suppressed findings with severity above a threshold result in ticket creation and workflow status update from `NEW` to `NOTIFIED`.
 
@@ -61,6 +60,7 @@ Deploys two Lambda functions:
 Only findings with a normalized severity level above the threshold (default `70`) initiate Jira integration. This threshold applies globally to all Jira instances.
 
 [Normalized severity levels](https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Severity.html):
+
 * 0 - INFORMATIONAL
 * 1–39 - LOW
 * 40–69 - MEDIUM
@@ -72,6 +72,7 @@ Only findings with a normalized severity level above the threshold (default `70`
 ### With ServiceNow Integration
 
 [Reference design](https://aws.amazon.com/blogs/security/how-to-set-up-two-way-integration-between-aws-security-hub-and-servicenow)
+
 * Enable by setting the variable `servicenow_integration` to `true` (default = false).
 * Deploys resources supporting ServiceNow integration, including an SQS Queue, EventBridge Rule, and required IAM user.
 * EventBridge triggers events for Security Hub, placing them on an SQS Queue.

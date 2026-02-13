@@ -4,7 +4,7 @@ locals {
 
 # IAM role to be assumed by Step Function
 module "jira_step_function_iam_role" {
-  count = var.jira_integration.enabled ? 1 : 0
+  count = local.jira_integration_enabled ? 1 : 0
 
   source  = "schubergphilis/mcaf-role/aws"
   version = "~> 0.3.2"
@@ -18,7 +18,7 @@ module "jira_step_function_iam_role" {
 }
 
 data "aws_iam_policy_document" "jira_step_function_iam_role" {
-  count = var.jira_integration.enabled ? 1 : 0
+  count = local.jira_integration_enabled ? 1 : 0
 
   statement {
     sid = "LambdaInvokeAccess"
@@ -62,7 +62,7 @@ data "aws_iam_policy_document" "jira_step_function_iam_role" {
 
 resource "aws_cloudwatch_log_group" "log_group_jira_orchestrator_sfn" {
   #checkov:skip=CKV_AWS_338:Ensure CloudWatch log groups retains logs for at least 1 year
-  count = var.jira_integration.enabled ? 1 : 0
+  count = local.jira_integration_enabled ? 1 : 0
 
   name              = "/aws/sfn/${local.sfn_jira_orchestrator_name}"
   retention_in_days = var.jira_integration.step_function_settings.retention
@@ -73,7 +73,7 @@ resource "aws_cloudwatch_log_group" "log_group_jira_orchestrator_sfn" {
 resource "aws_sfn_state_machine" "jira_orchestrator" {
   #checkov:skip=CKV_AWS_284:x-ray is not enabled due to the simplicity of this state machine and the costs involved with enabling this feature.
   #checkov:skip=CKV_AWS_285:logging configuration is only supported for SFN type 'EXPRESS'.
-  count = var.jira_integration.enabled ? 1 : 0
+  count = local.jira_integration_enabled ? 1 : 0
 
   name     = local.sfn_jira_orchestrator_name
   role_arn = module.jira_step_function_iam_role[0].arn
@@ -96,7 +96,7 @@ resource "aws_sfn_state_machine" "jira_orchestrator" {
 
 # IAM role to be assumed by EventBridge
 module "jira_eventbridge_iam_role" {
-  count = var.jira_integration.enabled ? 1 : 0
+  count = local.jira_integration_enabled ? 1 : 0
 
   source  = "schubergphilis/mcaf-role/aws"
   version = "~> 0.3.2"
@@ -110,7 +110,7 @@ module "jira_eventbridge_iam_role" {
 }
 
 data "aws_iam_policy_document" "jira_eventbridge_iam_role" {
-  count = var.jira_integration.enabled ? 1 : 0
+  count = local.jira_integration_enabled ? 1 : 0
 
   statement {
     sid = "StepFunctionExecutionAccess"
@@ -124,7 +124,7 @@ data "aws_iam_policy_document" "jira_eventbridge_iam_role" {
 }
 
 resource "aws_cloudwatch_event_target" "jira_orchestrator" {
-  count = var.jira_integration.enabled ? 1 : 0
+  count = local.jira_integration_enabled ? 1 : 0
 
   arn      = aws_sfn_state_machine.jira_orchestrator[0].arn
   role_arn = module.jira_eventbridge_iam_role[0].arn
@@ -132,7 +132,7 @@ resource "aws_cloudwatch_event_target" "jira_orchestrator" {
 }
 
 resource "aws_cloudwatch_event_target" "jira_orchestrator_resolved" {
-  count = var.jira_integration.enabled && var.jira_integration.autoclose_enabled ? 1 : 0
+  count = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false) ? 1 : 0
 
   arn      = aws_sfn_state_machine.jira_orchestrator[0].arn
   role_arn = module.jira_eventbridge_iam_role[0].arn
