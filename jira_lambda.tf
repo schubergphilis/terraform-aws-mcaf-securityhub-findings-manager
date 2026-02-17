@@ -1,21 +1,19 @@
 locals {
   # Check if Jira integration is enabled (at least 1 instance defined)
   jira_integration_enabled = var.jira_integration != null && length([
-    for instance_key, instance in var.jira_integration.instances :
-    instance if instance.enabled != false
+    for instance_key, instance in var.jira_integration.instances : instance
+    if instance.enabled != false
   ]) > 0
 
   # Collect all SecretsManager ARNs from all enabled instances
   jira_secretsmanager_arns = var.jira_integration != null ? [
-    for instance_key, instance in var.jira_integration.instances :
-    instance.credentials_secretsmanager_arn
+    for instance_key, instance in var.jira_integration.instances : instance.credentials_secretsmanager_arn
     if instance.enabled != false && instance.credentials_secretsmanager_arn != null && instance.credentials_secretsmanager_arn != "REDACTED"
   ] : []
 
   # Collect all SSM parameter ARNs from all enabled instances
   jira_ssm_arns = var.jira_integration != null ? [
-    for instance_key, instance in var.jira_integration.instances :
-    instance.credentials_ssm_secret_arn
+    for instance_key, instance in var.jira_integration.instances : instance.credentials_ssm_secret_arn
     if instance.enabled != false && instance.credentials_ssm_secret_arn != null && instance.credentials_ssm_secret_arn != "REDACTED"
   ] : []
 }
