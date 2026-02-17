@@ -95,7 +95,7 @@
               {
                 "Or": [
                   {
-                    "Comment": "CREATE JIRA TICKET: Requires severity >= threshold",
+                    "Comment": "CREATE JIRA TICKET: Requires severity >= threshold AND no existing Jira issue",
                     "And": [
                       {
                         "Variable": "$.detail.findings[0].Severity.Normalized",
@@ -136,6 +136,21 @@
                             ]
                           }
                         ]
+                      },
+                      {
+                        "Comment": "Prevent duplicate Jira creation: Ensure no existing jiraIssue in Note",
+                        "Not": {
+                          "And": [
+                            {
+                              "Variable": "$.detail.findings[0].Note.Text",
+                              "IsPresent": true
+                            },
+                            {
+                              "Variable": "$.detail.findings[0].Note.Text",
+                              "StringMatches": "*jiraIssue*"
+                            }
+                          ]
+                        }
                       }
                     ]
                   },
