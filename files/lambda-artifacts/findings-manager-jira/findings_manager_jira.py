@@ -22,6 +22,7 @@ DEFAULT_JIRA_AUTOCLOSE_TRANSITION = 'Done'
 STATUS_NEW = 'NEW'
 STATUS_NOTIFIED = 'NOTIFIED'
 STATUS_RESOLVED = 'RESOLVED'
+STATUS_SUPPRESSED = 'SUPPRESSED'
 COMPLIANCE_STATUS_FAILED = 'FAILED'
 COMPLIANCE_STATUS_NOT_AVAILABLE = 'NOT_AVAILABLE'
 COMPLIANCE_STATUS_PASSED = 'PASSED'
@@ -128,11 +129,17 @@ def lambda_handler(event: dict, context: LambdaContext):
                 f"Error processing new finding for findingID {finding['Id']}: {e}")
             raise RuntimeError(f"Failed to create Jira issue or update Security Hub for finding ID {finding['Id']}.") from e
 
-    # Handle resolved findings
-    # Close Jira issue if finding in SecurityHub has Workflow Status RESOLVED
-    # or if the finding is in NOTIFIED status and compliance is PASSED (finding resoloved) or NOT_AVAILABLE (when the resource is deleted, for example) or the finding's Record State is ARCHIVED
-    # If closed from NOTIFIED status, also resolve the finding in SecurityHub. If the finding becomes relevant again, Security Hub will reopen it and new ticket will be created.
+    # Handle resolved findings - Close Jira issue when:
+    # 1. Workflow status is RESOLVED (finding explicitly resolved)
+    # 2. Workflow status is SUPPRESSED (finding suppressed)
+    # 3. Workflow status is NOTIFIED AND any of:
+    #    - Compliance status is PASSED (resolved but not yet marked in SecurityHub)
+    #    - Compliance status is NOT_AVAILABLE (resource deleted)
+    #    - Record state is ARCHIVED
+    # Note: Findings closed from NOTIFIED status are automatically marked as RESOLVED in SecurityHub.
+    #       SecurityHub will reopen and create a new ticket if the finding becomes relevant again.
     elif (workflow_status == STATUS_RESOLVED
+            or workflow_status == STATUS_SUPPRESSED
             or (workflow_status == STATUS_NOTIFIED
                 and (compliance_status in [COMPLIANCE_STATUS_PASSED,
                                            COMPLIANCE_STATUS_NOT_AVAILABLE]
@@ -195,11 +202,22 @@ def lambda_handler(event: dict, context: LambdaContext):
                     return  # Skip further processing for this finding
                 helpers.close_jira_issue(
                     autoclose_jira_client, issue, jira_autoclose_transition, jira_autoclose_comment, autoclose_intermediate_transition)
-                if workflow_status == STATUS_NOTIFIED:
-                    # Resolve SecHub finding as it will be reopened anyway in case the compliance fails
-                    # Also change the note to prevent a second run with RESOLVED status.
+
+                # Update note to prevent re-processing: remove 'jiraIssue' to prevent Step Function filter match
+                # Add 'jiraClosedIssue' for audit trail, preserving all other note content
+                updated_note_json = note_text_json.copy()
+                if 'jiraIssue' in updated_note_json:
+                    updated_note_json['jiraClosedIssue'] = updated_note_json.pop('jiraIssue')
+                updated_note = json.dumps(updated_note_json)
+
+                # Update Security Hub note for NOTIFIED and SUPPRESSED findings
+                # NOTIFIED: Change to RESOLVED (finding will reopen if compliance fails again)
+                # SUPPRESSED: Keep SUPPRESSED status
+                if workflow_status in [STATUS_NOTIFIED, STATUS_SUPPRESSED]:
+                    target_status = STATUS_RESOLVED if workflow_status == STATUS_NOTIFIED else STATUS_SUPPRESSED
                     helpers.update_security_hub(
-                        securityhub, finding["Id"], finding["ProductArn"], STATUS_RESOLVED, f"Closed Jira issue {jira_issue_id}")
+                        securityhub, finding["Id"], finding["ProductArn"], target_status, updated_note)
+                    
         except json.JSONDecodeError as e:
             logger.error(
                 f"Failed to decode JSON from note text: {e}. Cannot autoclose.")

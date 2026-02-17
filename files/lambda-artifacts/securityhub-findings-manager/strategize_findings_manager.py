@@ -1,6 +1,6 @@
 from os import environ
 from aws_lambda_powertools import Logger
-from awsfindingsmanagerlib import S3, FindingsManager
+from awsfindingsmanagerlib import S3, FindingsManager, NoteTextConfig
 
 S3_BUCKET_NAME = environ.get("S3_BUCKET_NAME")
 S3_OBJECT_NAME = environ.get("S3_OBJECT_NAME")
@@ -10,7 +10,9 @@ def _initialize_findings_manager(logger: Logger) -> FindingsManager:
     s3_backend = S3(S3_BUCKET_NAME, S3_OBJECT_NAME)
     rules = s3_backend.get_rules()
     logger.info(rules)
-    findings_manager = FindingsManager()
+    # Note: NoteTextConfig(format="json") enables awsfindingsmanagerlib 1.4.0+ to merge suppression notes
+    # with existing Jira ticket metadata, preserving jiraIssue and jiraInstance fields for autoclose functionality
+    findings_manager = FindingsManager(note_text=NoteTextConfig(format="json"))
     findings_manager.register_rules(rules)
     return findings_manager
 
@@ -43,7 +45,9 @@ def manage(func, args, logger: Logger):
 def manager_per_rule(rule: list, logger: Logger):
     try:
         logger.info(f"Processing rule: {rule}")
-        findings_manager_per_rule = FindingsManager()
+        # Note: NoteTextConfig(format="json") enables awsfindingsmanagerlib 1.4.0+ to merge suppression notes
+        # with existing Jira ticket metadata, preserving jiraIssue and jiraInstance fields for autoclose functionality
+        findings_manager_per_rule = FindingsManager(note_text=NoteTextConfig(format="json"))
         findings_manager_per_rule.register_rules([rule])
         success, suppressed_payload = findings_manager_per_rule.suppress_matching_findings()
     except Exception as e:
