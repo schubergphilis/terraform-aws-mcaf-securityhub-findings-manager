@@ -2,6 +2,66 @@
 
 This document captures required refactoring on your part when upgrading to a module version that contains breaking changes.
 
+## Upgrading to v6.0.0
+
+The Jira integration has been restructured to support multiple Jira instances. This allows routing Security Hub findings to different Jira projects based on AWS account IDs.
+
+### Behaviour (v6.0.0)
+
+**New functionality:**
+
+- **Multiple Jira instances**: Route findings to different Jira projects based on AWS account ID
+- **Default instance fallback**: Configure a fallback instance for accounts not explicitly mapped to any instance
+- **Per-instance credentials**: Each instance can use different Jira credentials (different Jira servers or projects)
+- **Mutually exclusive routing**: Each AWS account is routed to exactly one Jira instance (findings from an account always go to the same instance)
+
+### Variables (v6.0.0)
+
+The `jira_integration` variable structure has been completely redesigned:
+
+**Old structure:**
+```hcl
+jira_integration = {
+  enabled                               = true
+  project_key                           = "PROJ"
+  include_account_ids                   = ["123456789012"]
+  credentials_secretsmanager_arn        = "arn:aws:secretsmanager:..."
+  autoclose_enabled                     = true
+  autoclose_comment                     = "Closing issue"
+  autoclose_transition_name             = "Done"
+  finding_severity_normalized_threshold = 70
+  include_product_names                 = ["GuardDuty"]
+  issue_type                            = "Security Advisory"
+  issue_custom_fields                   = {}
+  include_intermediate_transition       = "In Progress"
+}
+```
+
+**New structure:**
+```hcl
+jira_integration = {
+  autoclose_comment                     = "Closing issue"
+  autoclose_enabled                     = true
+  autoclose_transition_name             = "Done"
+  exclude_account_ids                   = []
+  finding_severity_normalized_threshold = 70
+  include_product_names                 = ["GuardDuty"]
+
+  # Per-instance configurations
+  instances = {
+    "default" = {
+      credentials_secretsmanager_arn  = "arn:aws:secretsmanager:..."
+      default_instance                = true # Catches all accounts
+      include_intermediate_transition = "In Progress"
+      issue_custom_fields             = {}
+      issue_type                      = "Security Advisory"
+      project_key                     = "PROJ"
+      # Note: include_account_ids is optional when default_instance = true
+    }
+  }
+}
+```
+
 ## Upgrading to v5.0.0
 
 The following variables have been renamed:

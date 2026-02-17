@@ -1,11 +1,14 @@
 locals {
-  # Replace with a globally unique bucket name
-  s3_bucket_name = "securityhub-findings-manager"
+  s3_bucket_name = "securityhub-findings-manager-${random_string.suffix.result}"
 }
 
-provider "aws" {
-  region = "eu-west-1"
+resource "random_string" "suffix" {
+  length  = 8
+  special = false
+  upper   = false
 }
+
+provider "aws" {}
 
 data "aws_caller_identity" "current" {}
 
@@ -13,12 +16,8 @@ module "kms" {
   source  = "schubergphilis/mcaf-kms/aws"
   version = "~> 0.3.0"
 
-  name = "securityhub-findings-manager"
-
-  policy = templatefile(
-    "${path.module}/../kms.json",
-    { account_id = data.aws_caller_identity.current.account_id }
-  )
+  name   = "securityhub-findings-manager"
+  policy = templatefile("${path.module}/../kms.json", { account_id = data.aws_caller_identity.current.account_id })
 }
 
 ################################################################################
@@ -49,9 +48,13 @@ module "aws_securityhub_findings_manager_with_secretsmanager_credentials" {
   rules_filepath = "${path.module}/../rules.yaml"
 
   jira_integration = {
-    enabled                        = true
-    credentials_secretsmanager_arn = aws_secretsmanager_secret.jira_credentials.arn
-    project_key                    = "PROJECT"
+    instances = {
+      "default" = {
+        default_instance               = true
+        project_key                    = "PROJECT"
+        credentials_secretsmanager_arn = aws_secretsmanager_secret.jira_credentials.arn
+      }
+    }
 
     security_group_egress_rules = [{
       cidr_ipv4   = "1.1.1.1/32"
@@ -94,9 +97,15 @@ module "aws_securityhub_findings_manager_with_ssm_credentials" {
   rules_filepath = "${path.module}/../rules.yaml"
 
   jira_integration = {
-    enabled                    = true
-    credentials_ssm_secret_arn = aws_ssm_parameter.jira_credentials.arn
-    project_key                = "PROJECT"
+    enabled = true
+
+    instances = {
+      "default" = {
+        default_instance           = true
+        project_key                = "PROJECT"
+        credentials_ssm_secret_arn = aws_ssm_parameter.jira_credentials.arn
+      }
+    }
 
     security_group_egress_rules = [{
       cidr_ipv4   = "1.1.1.1/32"

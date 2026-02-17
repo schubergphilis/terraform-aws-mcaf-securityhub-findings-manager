@@ -1,0 +1,20 @@
+name: "terraform-test"
+
+on:
+  pull_request:
+
+jobs:
+  terraform-test-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Task
+        uses: arduino/setup-task@v2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+
+      - name: Run unit tests
+        run: task test

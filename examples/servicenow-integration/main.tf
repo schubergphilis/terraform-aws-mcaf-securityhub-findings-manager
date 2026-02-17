@@ -1,11 +1,14 @@
 locals {
-  # Replace with a globally unique bucket name
-  s3_bucket_name = "securityhub-findings-manager"
+  s3_bucket_name = "securityhub-findings-manager-${random_string.suffix.result}"
 }
 
-provider "aws" {
-  region = "eu-west-1"
+resource "random_string" "suffix" {
+  length  = 8
+  special = false
+  upper   = false
 }
+
+provider "aws" {}
 
 data "aws_caller_identity" "current" {}
 

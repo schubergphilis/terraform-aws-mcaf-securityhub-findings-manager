@@ -12,7 +12,8 @@ secretsmanager = boto3.client('secretsmanager')
 ssm = boto3.client('ssm')
 
 REQUIRED_ENV_VARS = [
-    'EXCLUDE_ACCOUNT_FILTER', 'INCLUDE_ACCOUNT_FILTER', 'JIRA_ISSUE_CUSTOM_FIELDS', 'JIRA_ISSUE_TYPE', 'JIRA_PROJECT_KEY', 'JIRA_SECRET_ARN', 'JIRA_SECRET_TYPE'
+    'EXCLUDE_ACCOUNT_FILTER',
+    'JIRA_INSTANCES_CONFIG'
 ]
 
 DEFAULT_JIRA_AUTOCLOSE_COMMENT = 'Security Hub finding has been resolved. Autoclosing the issue.'
@@ -39,28 +40,45 @@ def lambda_handler(event: dict, context: LambdaContext):
         logger.error(f"Environment variable validation failed: {e}")
         raise RuntimeError("Required environment variables are missing.") from e
 
-    # Retrieve environment variables
+    # Get finding account ID (needed for instance lookup)
+    event_detail = event['detail']
+    finding = event_detail['findings'][0]
+    finding_account_id = finding['AwsAccountId']
+    
+    # Extract global settings
+    jira_autoclose_comment = os.getenv('JIRA_AUTOCLOSE_COMMENT', DEFAULT_JIRA_AUTOCLOSE_COMMENT)
+    jira_autoclose_transition = os.getenv('JIRA_AUTOCLOSE_TRANSITION', DEFAULT_JIRA_AUTOCLOSE_TRANSITION)
     exclude_account_filter = json.loads(os.environ['EXCLUDE_ACCOUNT_FILTER'])
-    include_account_filter = json.loads(os.environ['INCLUDE_ACCOUNT_FILTER'])
-    jira_autoclose_comment = os.getenv(
-        'JIRA_AUTOCLOSE_COMMENT', DEFAULT_JIRA_AUTOCLOSE_COMMENT)
-    jira_autoclose_transition = os.getenv(
-        'JIRA_AUTOCLOSE_TRANSITION', DEFAULT_JIRA_AUTOCLOSE_TRANSITION)
-    jira_intermediate_transition = os.getenv('JIRA_INTERMEDIATE_TRANSITION', '')
-    jira_issue_custom_fields = os.environ['JIRA_ISSUE_CUSTOM_FIELDS']
-    jira_issue_type = os.environ['JIRA_ISSUE_TYPE']
-    jira_project_key = os.environ['JIRA_PROJECT_KEY']
-    jira_secret_arn = os.environ['JIRA_SECRET_ARN']
-    jira_secret_type = os.environ['JIRA_SECRET_TYPE']
+    
+    if finding_account_id in exclude_account_filter:
+        logger.info(
+            f"Account {finding_account_id} is in the global exclude list. Skipping Jira ticket creation."
+        )
+        return
+    
+    # Load multi-instance configuration
+    instances_config = json.loads(os.environ.get('JIRA_INSTANCES_CONFIG', '{}'))
+
+    # Find which instance matches this account
+    instance_name, instance_config = helpers.find_instance_for_account(finding_account_id, instances_config)
+
+    if not instance_config:
+        logger.info(f"No Jira instance configured for account {finding_account_id}")
+        return
+
+    # Extract instance-specific configuration
+    jira_issue_custom_fields = instance_config.get('issue_custom_fields', {})
+    jira_issue_type = instance_config.get('issue_type', 'Security Advisory')
+    jira_project_key = instance_config['project_key']
+    jira_secret_arn = instance_config.get('credentials_secretsmanager_arn') or instance_config.get('credentials_ssm_secret_arn')
+    jira_secret_type = 'SECRETSMANAGER' if instance_config.get('credentials_secretsmanager_arn') else 'SSM'
 
     # Parse custom fields
     try:
-        jira_issue_custom_fields = json.loads(jira_issue_custom_fields)
-        jira_issue_custom_fields = {k: {"value": v}
-                                    for k, v in jira_issue_custom_fields.items()}
-    except json.JSONDecodeError as e:
-        logger.error(f"Failed to parse JSON for custom fields: {e}.")
-        raise ValueError(f"Invalid JSON in JIRA_ISSUE_CUSTOM_FIELDS: {e}") from e
+        jira_issue_custom_fields = {k: {"value": v} for k, v in jira_issue_custom_fields.items()}
+    except Exception as e:
+        logger.error(f"Failed to parse custom fields: {e}.")
+        raise ValueError(f"Invalid custom fields format: {e}") from e
 
     # Retrieve Jira client
     try:
@@ -79,29 +97,10 @@ def lambda_handler(event: dict, context: LambdaContext):
         logger.error(f"Failed to retrieve Jira client: {e}")
         raise RuntimeError("Could not initialize Jira client.") from e
 
-    # Get Sechub event details
-    event_detail = event['detail']
-    finding = event_detail['findings'][0]
-    finding_account_id = finding['AwsAccountId']
+    # Get remaining Security Hub finding details
     workflow_status = finding['Workflow']['Status']
     compliance_status = finding['Compliance']['Status'] if 'Compliance' in finding else COMPLIANCE_STATUS_MISSING
     record_state = finding['RecordState']
-
-    # Apply account filtering logic
-    # Priority: include_account_filter > exclude_account_filter
-    if include_account_filter:
-        # If include list is provided, only process accounts in the list
-        if finding_account_id not in include_account_filter:
-            logger.info(
-                f"Account {finding_account_id} is not in the include list. Skipping Jira ticket creation.")
-            return
-    elif exclude_account_filter:
-        # If exclude list is provided (and no include list), skip accounts in the list
-        if finding_account_id in exclude_account_filter:
-            logger.info(
-                f"Account {finding_account_id} is excluded from Jira ticket creation.")
-            return
-    # If neither list is provided, process all accounts
 
     # Handle new findings
     # Ticket is created when Workflow Status is NEW and Compliance Status is FAILED, WARNING or is missing from the finding (case with e.g. Inspector findings)
@@ -117,7 +116,11 @@ def lambda_handler(event: dict, context: LambdaContext):
         try:
             issue = helpers.create_jira_issue(
                 jira_client, jira_project_key, jira_issue_type, event_detail, jira_issue_custom_fields)
-            note = json.dumps({'jiraIssue': issue.key})
+            # Create note with instance tracking for proper autoclose handling
+            note = json.dumps({
+                'jiraIssue': issue.key,
+                'jiraInstance': instance_name
+            })
             helpers.update_security_hub(
                 securityhub, finding["Id"], finding["ProductArn"], STATUS_NOTIFIED, note)
         except Exception as e:
@@ -140,15 +143,58 @@ def lambda_handler(event: dict, context: LambdaContext):
             note_text = finding['Note']['Text']
             note_text_json = json.loads(note_text)
             jira_issue_id = note_text_json.get('jiraIssue')
+            note_instance_name = note_text_json.get('jiraInstance')
+
+            # Determine which instance to use for autoclose
+            # Priority: note_instance_name > default_instance > error
+            autoclose_instance_config = None
+            autoclose_instance_name = None
+
+            if note_instance_name and note_instance_name in instances_config:
+                # Use the instance that created the ticket
+                autoclose_instance_config = instances_config[note_instance_name]
+                autoclose_instance_name = note_instance_name
+                logger.info(f"Using Jira instance '{note_instance_name}' from note for autoclose")
+            else:
+                # Fallback to default instance for old notes without jiraInstance field
+                for inst_name, inst_config in instances_config.items():
+                    if inst_config.get('enabled', True) and inst_config.get('default_instance', False):
+                        autoclose_instance_config = inst_config
+                        autoclose_instance_name = inst_name
+                        logger.info(f"Using default Jira instance '{inst_name}' for autoclose (note has no jiraInstance field)")
+                        break
+
+                if not autoclose_instance_config:
+                    logger.error(f"Cannot autoclose: jiraInstance '{note_instance_name}' not found in config and no default instance configured")
+                    return
+
+            # Get credentials from the autoclose instance
+            autoclose_secret_arn = autoclose_instance_config.get('credentials_secretsmanager_arn') or autoclose_instance_config.get('credentials_ssm_secret_arn')
+            autoclose_secret_type = 'SECRETSMANAGER' if autoclose_instance_config.get('credentials_secretsmanager_arn') else 'SSM'
+            autoclose_intermediate_transition = autoclose_instance_config.get('include_intermediate_transition', '')
+
+            # Initialize Jira client with the autoclose instance's credentials
+            try:
+                if autoclose_secret_type == 'SECRETSMANAGER':
+                    autoclose_secret = helpers.get_secret(secretsmanager, autoclose_secret_arn)
+                elif autoclose_secret_type == "SSM":
+                    autoclose_secret = helpers.get_ssm_secret(ssm, autoclose_secret_arn)
+                else:
+                    raise ValueError(f"Invalid secret type {autoclose_secret_type} for instance '{autoclose_instance_name}'")
+                autoclose_jira_client = helpers.get_jira_client(autoclose_secret)
+            except Exception as e:
+                logger.error(f"Failed to get credentials for autoclose instance '{autoclose_instance_name}': {e}")
+                raise RuntimeError(f"Could not initialize Jira client for autoclose.") from e
+
             if jira_issue_id:
                 try:
-                    issue = jira_client.issue(jira_issue_id)
+                    issue = autoclose_jira_client.issue(jira_issue_id)
                 except JIRAError as e:
                     logger.error(
                         f"Failed to retrieve Jira issue {jira_issue_id}: {e}. Cannot autoclose.")
                     return  # Skip further processing for this finding
                 helpers.close_jira_issue(
-                    jira_client, issue, jira_autoclose_transition, jira_autoclose_comment, jira_intermediate_transition)
+                    autoclose_jira_client, issue, jira_autoclose_transition, jira_autoclose_comment, autoclose_intermediate_transition)
                 if workflow_status == STATUS_NOTIFIED:
                     # Resolve SecHub finding as it will be reopened anyway in case the compliance fails
                     # Also change the note to prevent a second run with RESOLVED status.

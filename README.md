@@ -1,9 +1,11 @@
 # Security Hub Findings Manager
+
 Automated scanning and finding consolidation are essential for evaluating your security posture. AWS Security Hub is the native solution for this task within AWS. The number of findings it generates can initially be overwhelming. Additionally, some findings may be irrelevant or have less urgency for your specific situation.
 
 The Security Hub Findings Manager is a framework designed to automatically manage findings recorded by AWS Security Hub, including its [AWS service integrations](https://docs.aws.amazon.com/securityhub/latest/userguide/securityhub-internal-providers.html#internal-integrations-summary), based on a configurable rules list. Its primary aim is to reduce noise and help you prioritize genuine security issues.
 
-### Supported Functionality:
+## Supported Functionality
+
 * Suppressing findings to manage irrelevant or less urgent issues effectively.
 * Automated ticket creation in Jira and ServiceNow for non-suppressed findings exceeding a customizable severity threshold.
 
@@ -14,6 +16,7 @@ The Security Hub Findings Manager is a framework designed to automatically manag
 > This module relies heavily on [awsfindingsmanagerlib](https://github.com/schubergphilis/awsfindingsmanagerlib/tree/main). For detailed suppression logic information, refer to the library's [documentation](https://awsfindingsmanagerlib.readthedocs.io/en/latest/).
 
 ## Components
+
 Here's a high-level overview of the components. For more details, see [Resources](#resources) and [Modules](#modules).
 
 * Rules backend (currently only S3 supported).
@@ -26,42 +29,47 @@ Here's a high-level overview of the components. For more details, see [Resources
 * Optional ServiceNow integration components.
 
 ## Deployment Modes
+
 Three deployment modes are available:
 
 > [!IMPORTANT]
 > During the first deployment, be aware that S3 triggers might take time to become fully functional. Re-create the rules object later to apply rules to your findings history.
 
 ### Default (Without Jira & ServiceNow Integration)
+
 Deploys two Lambda functions:
+
 * `securityhub-findings-manager-events`: target for the EventBridge rule `Security Hub Findings - Imported` events.
 * `securityhub-findings-manager-trigger`: target for the S3 PutObject trigger.
 
 ### With Jira Integration
-* Enable by setting the variable `jira_integration` to `true` (default = false).
-* Deploys an additional Jira lambda function and a Step function for orchestration, triggered by an EventBridge rule.
-* Non-suppressed findings with severity above a threshold result in ticket creation and workflow status update from `NEW` to `NOTIFIED`.
-* **ProductName Filtering**: You can optionally filter which AWS product findings create Jira tickets using `jira_integration.include_product_names` (default = `[]`, meaning all products). For example, set to `["Security Hub"]` to create tickets only for Security Hub findings, or `["Inspector"]` for Inspector findings only. Common values: `"Security Hub"`, `"Inspector"`, `"GuardDuty"`, `"Macie"`. The filtering is implemented at the Step Function level for optimal performance.
-* Auto-closing can be activated with `jira_integration.autoclose_enabled` (default = false). Using the issue number in the finding note, the function transitions issues using `jira_integration.autoclose_transition_name` and `jira_integration.autoclose_comment`. 
-* **Intermediate Transition**: Optionally specify `jira_integration.include_intermediate_transition` to transition the ticket through an intermediate status before closing it. This is useful for Jira workflows that require tickets to pass through specific statuses (e.g., "Review", "In Progress") before reaching the final closed state. If not specified, tickets are closed directly using `autoclose_transition_name`.
-* Criteria for being forwarded for automatic ticket closure are:
+
+* **Orchestrated Jira ticketing**: Deploys an additional Jira lambda function and a Step function for orchestration, triggered by an EventBridge rule. Non-suppressed findings with severity above a threshold result in ticket creation and workflow status update from `NEW` to `NOTIFIED`.
+* **Multiple Jira Instances**: Supports routing findings to different Jira projects based on AWS account IDs. Each AWS account is routed to exactly one Jira instance. Supports a default instance as fallback for unmatched accounts.
+* **ProductName Filtering**:  Optionally restrict ticket creation to specific AWS products using `jira_integration.include_product_names` (`default = []`, meaning all products). For example, `["Security Hub"]`, `["Inspector"]`, `["GuardDuty"]`, or `["Macie"]`. Filtering is implemented at the Step Function level for optimal performance and applies globally to all Jira instance configurations.
+* **Global auto-closing:** Enable automatic ticket closure with `jira_integration.autoclose_enabled` (`default = false`). Based on the issue key stored in the finding note, the function transitions issues using `jira_integration.autoclose_transition_name` and adds `jira_integration.autoclose_comment`. Autoclose settings apply globally across all configured Jira instances.
+* **Per-instance intermediate transition:**: Optionally specify `jira_integration.instances.<name>.include_intermediate_transition` to transition the ticket through an intermediate status before closing it. This is useful for Jira workflows that require tickets to pass through specific statuses (e.g., "Review", "In Progress") before reaching the final closed state. If not specified, tickets are closed directly using `autoclose_transition_name`. This setting is defined per Jira instance.
+* **Closure criteria**: Criteria for being forw3arded for automatic ticket closure are:
   * Workflow Status "RESOLVED"
   * Workflow Status "NOTIFIED" and one of:
     * Record State "ARCHIVED"
     * Compliance State "PASSED" or "NOT_AVAILABLE"
-
-Only findings with a normalized severity level above the threshold (default `70`) initiate Jira integration.
+* **Global severity threshold:**: Only findings with a normalized severity level above the threshold (default `70`) initiate Jira integration. This threshold applies to all Jira instance configurations.
 
 [Normalized severity levels](https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Severity.html):
-* 0 - INFORMATIONAL
-* 1–39 - LOW
-* 40–69 - MEDIUM
-* 70–89 - HIGH
-* 90–100 - CRITICAL
+
+* `0` - INFORMATIONAL
+* `1–39` - LOW
+* `40–69` - MEDIUM
+* `70–89` - HIGH
+* `90–100` - CRITICAL
 
 ![Step Function Graph](files/step-function-artifacts/securityhub-findings-manager-orchestrator-graph.png)
 
 ### With ServiceNow Integration
+
 [Reference design](https://aws.amazon.com/blogs/security/how-to-set-up-two-way-integration-between-aws-security-hub-and-servicenow)
+
 * Enable by setting the variable `servicenow_integration` to `true` (default = false).
 * Deploys resources supporting ServiceNow integration, including an SQS Queue, EventBridge Rule, and required IAM user.
 * EventBridge triggers events for Security Hub, placing them on an SQS Queue.
@@ -72,9 +80,11 @@ Only findings with a normalized severity level above the threshold (default `70`
 > Generate the `access_key` & `secret_access_key` in the AWS Console. If you prefer Terraform to handle this (and output them), set the variable `create_servicenow_access_keys` to `true` (default = false).
 
 ## Formatting the `rules.yaml` File
+
 An example file is available under `examples/rules.yaml`. For detailed information, see the Rule Syntax section in the [awsfindingsmanagerlib documentation](https://awsfindingsmanagerlib.readthedocs.io/en/latest/#rule-syntax).
 
 ## Local Development on Python Code
+
 A lambda layer provides aws-lambda-powertools. To have these dependencies locally, use `requirements-dev.txt` from the source code.
 
 <!-- BEGIN_TF_DOCS -->
@@ -82,7 +92,7 @@ A lambda layer provides aws-lambda-powertools. To have these dependencies locall
 
 | Name | Version |
 |------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.6.0 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7.0 |
 | <a name="requirement_archive"></a> [archive](#requirement\_archive) | >= 2.0 |
 | <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 4.9 |
 | <a name="requirement_external"></a> [external](#requirement\_external) | >= 2.0 |
@@ -149,7 +159,7 @@ A lambda layer provides aws-lambda-powertools. To have these dependencies locall
 | <a name="input_findings_manager_trigger_lambda"></a> [findings\_manager\_trigger\_lambda](#input\_findings\_manager\_trigger\_lambda) | Findings Manager Lambda settings - Manage Security Hub findings in response to S3 file upload triggers | <pre>object({<br/>    name        = optional(string, "securityhub-findings-manager-trigger")<br/>    log_level   = optional(string, "ERROR")<br/>    memory_size = optional(number, 256)<br/>    timeout     = optional(number, 300)<br/><br/>    security_group_egress_rules = optional(list(object({<br/>      cidr_ipv4                    = optional(string)<br/>      cidr_ipv6                    = optional(string)<br/>      description                  = string<br/>      from_port                    = optional(number, 0)<br/>      ip_protocol                  = optional(string, "-1")<br/>      prefix_list_id               = optional(string)<br/>      referenced_security_group_id = optional(string)<br/>      to_port                      = optional(number, 0)<br/>    })), [])<br/>  })</pre> | `{}` | no |
 | <a name="input_findings_manager_worker_lambda"></a> [findings\_manager\_worker\_lambda](#input\_findings\_manager\_worker\_lambda) | Findings Manager Lambda settings - Manage Security Hub findings in response to SQS trigger | <pre>object({<br/>    name        = optional(string, "securityhub-findings-manager-worker")<br/>    log_level   = optional(string, "ERROR")<br/>    memory_size = optional(number, 256)<br/>    timeout     = optional(number, 900)<br/><br/>    security_group_egress_rules = optional(list(object({<br/>      cidr_ipv4                    = optional(string)<br/>      cidr_ipv6                    = optional(string)<br/>      description                  = string<br/>      from_port                    = optional(number, 0)<br/>      ip_protocol                  = optional(string, "-1")<br/>      prefix_list_id               = optional(string)<br/>      referenced_security_group_id = optional(string)<br/>      to_port                      = optional(number, 0)<br/>    })), [])<br/>  })</pre> | `{}` | no |
 | <a name="input_jira_eventbridge_iam_role_name"></a> [jira\_eventbridge\_iam\_role\_name](#input\_jira\_eventbridge\_iam\_role\_name) | The name of the role which will be assumed by EventBridge rules for Jira integration | `string` | `"SecurityHubFindingsManagerJiraEventBridge"` | no |
-| <a name="input_jira_integration"></a> [jira\_integration](#input\_jira\_integration) | Findings Manager - Jira integration settings | <pre>object({<br/>    enabled                               = optional(bool, false)<br/>    autoclose_enabled                     = optional(bool, false)<br/>    autoclose_comment                     = optional(string, "Security Hub finding has been resolved. Autoclosing the issue.")<br/>    autoclose_transition_name             = optional(string, "Close Issue")<br/>    credentials_secretsmanager_arn        = optional(string)<br/>    credentials_ssm_secret_arn            = optional(string)<br/>    exclude_account_ids                   = optional(list(string), [])<br/>    finding_severity_normalized_threshold = optional(number, 70)<br/>    include_account_ids                   = optional(list(string), [])<br/>    include_intermediate_transition       = optional(string)<br/>    include_product_names                 = optional(list(string), [])<br/>    issue_custom_fields                   = optional(map(string), {})<br/>    issue_type                            = optional(string, "Security Advisory")<br/>    project_key                           = string<br/><br/>    security_group_egress_rules = optional(list(object({<br/>      cidr_ipv4                    = optional(string)<br/>      cidr_ipv6                    = optional(string)<br/>      description                  = string<br/>      from_port                    = optional(number, 0)<br/>      ip_protocol                  = optional(string, "-1")<br/>      prefix_list_id               = optional(string)<br/>      referenced_security_group_id = optional(string)<br/>      to_port                      = optional(number, 0)<br/>    })), [])<br/><br/>    lambda_settings = optional(object({<br/>      name        = optional(string, "securityhub-findings-manager-jira")<br/>      log_level   = optional(string, "INFO")<br/>      memory_size = optional(number, 256)<br/>      timeout     = optional(number, 60)<br/>      }), {<br/>      name                        = "securityhub-findings-manager-jira"<br/>      iam_role_name               = "SecurityHubFindingsManagerJiraLambda"<br/>      log_level                   = "INFO"<br/>      memory_size                 = 256<br/>      timeout                     = 60<br/>      security_group_egress_rules = []<br/>    })<br/><br/>    step_function_settings = optional(object({<br/>      log_level = optional(string, "ERROR")<br/>      retention = optional(number, 90)<br/>      }), {<br/>      log_level = "ERROR"<br/>      retention = 90<br/>    })<br/><br/>  })</pre> | <pre>{<br/>  "enabled": false,<br/>  "project_key": null<br/>}</pre> | no |
+| <a name="input_jira_integration"></a> [jira\_integration](#input\_jira\_integration) | Findings Manager - Jira integration settings | <pre>object({<br/>    # Global settings for all jira instances<br/>    autoclose_comment                     = optional(string, "Security Hub finding has been resolved. Autoclosing the issue.")<br/>    autoclose_enabled                     = optional(bool, false)<br/>    autoclose_transition_name             = optional(string, "Close Issue")<br/>    exclude_account_ids                   = optional(list(string), [])<br/>    finding_severity_normalized_threshold = optional(number, 70)<br/>    include_product_names                 = optional(list(string), [])<br/><br/>    security_group_egress_rules = optional(list(object({<br/>      cidr_ipv4                    = optional(string)<br/>      cidr_ipv6                    = optional(string)<br/>      description                  = string<br/>      from_port                    = optional(number, 0)<br/>      ip_protocol                  = optional(string, "-1")<br/>      prefix_list_id               = optional(string)<br/>      referenced_security_group_id = optional(string)<br/>      to_port                      = optional(number, 0)<br/>    })), [])<br/><br/>    lambda_settings = optional(object({<br/>      name        = optional(string, "securityhub-findings-manager-jira")<br/>      log_level   = optional(string, "ERROR")<br/>      memory_size = optional(number, 256)<br/>      timeout     = optional(number, 60)<br/>    }), {})<br/><br/>    step_function_settings = optional(object({<br/>      log_level = optional(string, "ERROR")<br/>      retention = optional(number, 90)<br/>    }), {})<br/><br/>    # Per-instance configurations<br/>    instances = optional(map(object({<br/>      enabled                         = optional(bool, true)<br/>      credentials_secretsmanager_arn  = optional(string)<br/>      credentials_ssm_secret_arn      = optional(string)<br/>      default_instance                = optional(bool, false)<br/>      include_account_ids             = optional(list(string), [])<br/>      include_intermediate_transition = optional(string)<br/>      issue_custom_fields             = optional(map(string), {})<br/>      issue_type                      = optional(string, "Security Advisory")<br/>      project_key                     = string<br/>    })), {})<br/>  })</pre> | `null` | no |
 | <a name="input_jira_step_function_iam_role_name"></a> [jira\_step\_function\_iam\_role\_name](#input\_jira\_step\_function\_iam\_role\_name) | The name of the role which will be assumed by AWS Step Function for Jira integration | `string` | `"SecurityHubFindingsManagerJiraStepFunction"` | no |
 | <a name="input_lambda_runtime"></a> [lambda\_runtime](#input\_lambda\_runtime) | The version of Python to use for the Lambda functions | `string` | `"python3.12"` | no |
 | <a name="input_rules_filepath"></a> [rules\_filepath](#input\_rules\_filepath) | Pathname to the file that stores the manager rules | `string` | `""` | no |

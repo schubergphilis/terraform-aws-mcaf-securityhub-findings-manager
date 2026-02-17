@@ -159,7 +159,7 @@ EOF
 }
 
 resource "aws_cloudwatch_event_rule" "securityhub_findings_resolved_events" {
-  count = var.jira_integration.enabled && var.jira_integration.autoclose_enabled ? 1 : 0
+  count = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false) ? 1 : 0
 
   name        = "rule-resolved-${var.findings_manager_events_lambda.name}"
   description = "EventBridge rule for transiting resolved messages, triggering the findings manager events lambda."
@@ -188,7 +188,7 @@ EOF
 
 # Allow Eventbridge to invoke Security Hub Events Lambda function
 resource "aws_lambda_permission" "eventbridge_invoke_findings_manager_events_lambda" {
-  count = var.jira_integration.enabled ? 0 : 1
+  count = local.jira_integration_enabled ? 0 : 1
 
   action        = "lambda:InvokeFunction"
   function_name = var.findings_manager_events_lambda.name
@@ -198,7 +198,7 @@ resource "aws_lambda_permission" "eventbridge_invoke_findings_manager_events_lam
 
 # Add Security Hub Events Lambda function as a target to the EventBridge rule
 resource "aws_cloudwatch_event_target" "findings_manager_events_lambda" {
-  count = var.jira_integration.enabled ? 0 : 1
+  count = local.jira_integration_enabled ? 0 : 1
 
   arn  = module.findings_manager_events_lambda.arn
   rule = aws_cloudwatch_event_rule.securityhub_findings_events.name

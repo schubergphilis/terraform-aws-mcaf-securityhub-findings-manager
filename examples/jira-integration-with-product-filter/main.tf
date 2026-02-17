@@ -1,27 +1,35 @@
-provider "aws" {
-  region = "eu-west-1"
+locals {
+  s3_bucket_name = "securityhub-findings-manager-${random_string.suffix.result}"
 }
+
+resource "random_string" "suffix" {
+  length  = 8
+  special = false
+  upper   = false
+}
+
+provider "aws" {}
 
 # Example: Create Jira tickets only for Security Hub findings
 module "securityhub_findings_manager" {
   source = "../.."
 
-  s3_bucket_name = "my-securityhub-findings-bucket"
+  s3_bucket_name = local.s3_bucket_name
   kms_key_arn    = aws_kms_key.findings_manager.arn
 
   jira_integration = {
-    enabled                               = true
-    autoclose_enabled                     = true
-    project_key                           = "SEC"
-    credentials_secretsmanager_arn        = aws_secretsmanager_secret.jira_credentials.arn
-    finding_severity_normalized_threshold = 70
-
-    # Only create Jira tickets for Security Hub findings
-    # Inspector findings will be ignored
     include_product_names = ["Security Hub"]
 
-    issue_custom_fields = {
-      "customfield_10001" = "Security Team"
+    instances = {
+      "default" = {
+        default_instance               = true
+        project_key                    = "SEC"
+        credentials_secretsmanager_arn = aws_secretsmanager_secret.jira_credentials.arn
+
+        issue_custom_fields = {
+          "customfield_10001" = "Security Team"
+        }
+      }
     }
   }
 }

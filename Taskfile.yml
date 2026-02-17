@@ -1,0 +1,34 @@
+# https://taskfile.dev
+
+version: "3"
+
+env:
+  TF_IN_AUTOMATION: 1
+
+tasks:
+  default:
+    cmds:
+      - cmd: task --list
+        ignore_error: true
+    silent: true
+
+  clean:
+    desc: Clean lock files and cache directories
+    cmds:
+      - rm -rf .terraform.lock.hcl .terraform
+      - rm -rf **/.terraform.lock.hcl **/.terraform
+    silent: true
+
+  test:
+    desc: Run Terraform tests
+    cmds:
+      - terraform init
+      - terraform test
+    silent: true
+
+  verbose-test:
+    desc: Run verbose Terraform tests
+    cmds:
+      - terraform init
+      - terraform test -verbose
+    silent: true
