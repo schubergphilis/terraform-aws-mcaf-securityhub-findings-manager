@@ -147,11 +147,11 @@
                           {
                             "Variable": "$.detail.findings[0].Workflow.Status",
                             "StringEquals": "RESOLVED"
-                          },
+                          },%{~ if jira_autoclose_suppressed_enabled }
                           {
                             "Variable": "$.detail.findings[0].Workflow.Status",
                             "StringEquals": "SUPPRESSED"
-                          },
+                          },%{ endif ~}
                           {
                             "And": [
                               {

@@ -165,25 +165,26 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_resolved_events" {
   description = "EventBridge rule for transiting resolved and suppressed messages, triggering Jira ticket closure."
   tags        = var.tags
 
-  event_pattern = <<EOF
-{
-  "source": ["aws.securityhub"],
-  "detail-type": ["Security Hub Findings - Imported"],
-  "detail": {
-    "findings": {
-      "Workflow": {
-        "Status": ["RESOLVED", "SUPPRESSED"]
-      },
-      "ProductFields": {
-        "PreviousComplianceStatus": [
-        {"anything-but": "PASSED"},
-        { "exists": false }
-        ]
+  event_pattern = jsonencode({
+    source      = ["aws.securityhub"]
+    detail-type = ["Security Hub Findings - Imported"]
+    detail = {
+      findings = {
+        Workflow = {
+          Status = concat(
+            ["RESOLVED"],
+            try(var.jira_integration.autoclose_suppressed_findings, false) ? ["SUPPRESSED"] : []
+          )
+        }
+        ProductFields = {
+          PreviousComplianceStatus = [
+            { "anything-but" : "PASSED" },
+            { "exists" : false }
+          ]
+        }
       }
     }
-  }
-}
-EOF
+  })
 }
 
 # Allow Eventbridge to invoke Security Hub Events Lambda function

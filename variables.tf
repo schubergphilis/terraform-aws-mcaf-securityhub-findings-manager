@@ -90,6 +90,7 @@ variable "jira_integration" {
     # Global settings for all jira instances
     autoclose_comment                     = optional(string, "Security Hub finding has been resolved. Autoclosing the issue.")
     autoclose_enabled                     = optional(bool, false)
+    autoclose_suppressed_findings         = optional(bool, false)
     autoclose_transition_name             = optional(string, "Close Issue")
     exclude_account_ids                   = optional(list(string), [])
     finding_severity_normalized_threshold = optional(number, 70)
@@ -183,6 +184,14 @@ variable "jira_integration" {
       flatten([for instance in var.jira_integration.instances : instance.include_account_ids if instance.enabled && length(instance.include_account_ids) > 0])
     )) == 0
     error_message = "For each enabled Jira instance the 'exclude_account_ids' cannot overlap with any enabled instance's 'include_account_ids'."
+  }
+
+  validation {
+    condition = var.jira_integration == null || (
+      !try(var.jira_integration.autoclose_suppressed_findings, false) ||
+      try(var.jira_integration.autoclose_enabled, false)
+    )
+    error_message = "When 'autoclose_suppressed_findings' is set to true, 'autoclose_enabled' must also be set to true."
   }
 }
 

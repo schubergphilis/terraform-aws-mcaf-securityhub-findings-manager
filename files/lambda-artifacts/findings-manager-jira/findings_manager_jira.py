@@ -131,7 +131,7 @@ def lambda_handler(event: dict, context: LambdaContext):
 
     # Handle resolved findings - Close Jira issue when:
     # 1. Workflow status is RESOLVED (finding explicitly resolved)
-    # 2. Workflow status is SUPPRESSED (finding suppressed)
+    # 2. Workflow status is SUPPRESSED (finding suppressed, step function only passed these type of findings when autoclose_suppressed_findings = true)
     # 3. Workflow status is NOTIFIED AND any of:
     #    - Compliance status is PASSED (resolved but not yet marked in SecurityHub)
     #    - Compliance status is NOT_AVAILABLE (resource deleted)
