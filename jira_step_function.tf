@@ -80,11 +80,12 @@ resource "aws_sfn_state_machine" "jira_orchestrator" {
   tags     = var.tags
 
   definition = templatefile("${path.module}/files/step-function-artifacts/${local.sfn_jira_orchestrator_name}.json.tpl", {
-    finding_severity_normalized    = var.jira_integration.finding_severity_normalized_threshold
-    findings_manager_events_lambda = module.findings_manager_events_lambda.arn
-    jira_autoclose_enabled         = var.jira_integration.autoclose_enabled
-    jira_lambda                    = module.jira_lambda[0].arn
-    include_product_names          = var.jira_integration.include_product_names
+    finding_severity_normalized       = var.jira_integration.finding_severity_normalized_threshold
+    findings_manager_events_lambda    = module.findings_manager_events_lambda.arn
+    jira_autoclose_enabled            = var.jira_integration.autoclose_enabled
+    jira_autoclose_suppressed_enabled = var.jira_integration.autoclose_suppressed_findings
+    jira_lambda                       = module.jira_lambda[0].arn
+    include_product_names             = var.jira_integration.include_product_names
   })
 
   logging_configuration {
