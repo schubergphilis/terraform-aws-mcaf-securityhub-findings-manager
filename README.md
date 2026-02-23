@@ -50,8 +50,8 @@ Deploys two Lambda functions:
 
 * **Orchestrated Jira ticketing**: Deploys an additional Jira lambda function and a Step function for orchestration, triggered by an EventBridge rule. Non-suppressed findings with severity above a threshold result in ticket creation and workflow status update from `NEW` to `NOTIFIED`.
 * **Multiple Jira Instances**: Supports routing findings to different Jira projects based on AWS account IDs. Each AWS account is routed to exactly one Jira instance. Supports a default instance as fallback for unmatched accounts.
-* **ProductName Filtering**:  Optionally restrict ticket creation to specific AWS products using `jira_integration.include_product_names` (`default = []`, meaning all products). For example, `["Security Hub"]`, `["Inspector"]`, `["GuardDuty"]`, or `["Macie"]`. Filtering is implemented at the Step Function level for optimal performance and applies globally to all Jira instance configurations.
-* **Global severity threshold:**: Only findings with a normalized severity level above the threshold (default `70`) initiate Jira integration. This threshold applies to all Jira instance configurations.
+* **Per-instance ProductName Filtering**:  Optionally restrict ticket creation to specific AWS products using `jira_integration.instances.<name>.include_product_names` (`default = []`, meaning all products). For example, `["Security Hub"]`, `["Inspector"]`, `["GuardDuty"]`, or `["Macie"]`. The Step Function applies aggregate filtering (union of all instance product names) for performance, and the Lambda applies precise per-instance filtering.
+* **Per-instance severity threshold**: Only findings with a normalized severity level above the per-instance threshold (default `70`) create tickets. Configure via `jira_integration.instances.<name>.finding_severity_normalized_threshold`. The Step Function applies aggregate filtering (minimum across all instances) for performance, and the Lambda applies precise per-instance filtering.
 
 [Normalized severity levels](https://docs.aws.amazon.com/securityhub/1.0/APIReference/API_Severity.html):
 
@@ -65,9 +65,9 @@ Deploys two Lambda functions:
 
 #### Enable automatic ticket closure
 
-* **Global auto-closing:** Enable automatic ticket closure with `jira_integration.autoclose_enabled` (`default = false`). Based on the issue key stored in the finding note, the function transitions issues using `jira_integration.autoclose_transition_name` and adds `jira_integration.autoclose_comment`. Autoclose settings apply globally across all configured Jira instances.
+* **Global auto-closing:** Enable automatic ticket closure with `jira_integration.autoclose_enabled` (`default = false`). Based on the issue key stored in the finding note, the function transitions issues using `jira_integration.instances.<name>.autoclose_transition_name` (default `"Close Issue"`) and adds `jira_integration.autoclose_comment`. The autoclose transition can be configured per instance to accommodate different Jira workflows.
 * **Suppressed findings auto-closing:** Enable automatic ticket closure for suppressed findings with `jira_integration.autoclose_suppressed_findings` (`default = false`). When enabled, findings with Workflow Status `"SUPPRESSED"` will trigger automatic ticket closure.
-* **Per-instance intermediate transition:**: Optionally specify `jira_integration.instances.<name>.include_intermediate_transition` to transition the ticket through an intermediate status before closing it. This is useful for Jira workflows that require tickets to pass through specific statuses (e.g., `"Review"`, `"In Progress"`) before reaching the final closed state. If not specified, tickets are closed directly using `autoclose_transition_name`. This setting is defined per Jira instance.
+* **Per-instance intermediate transition:** Optionally specify `jira_integration.instances.<name>.include_intermediate_transition` to transition the ticket through an intermediate status before closing it. This is useful for Jira workflows that require tickets to pass through specific statuses (e.g., `"Review"`, `"In Progress"`) before reaching the final closed state. If not specified, tickets are closed directly using `autoclose_transition_name`. This setting is defined per Jira instance.
 * **Closure criteria**: Criteria for being forwarded for automatic ticket closure are:
   * Workflow Status "RESOLVED"
   * Workflow Status "SUPPRESSED" (when `jira_integration.autoclose_suppressed_findings = true`)

@@ -1,5 +1,25 @@
 locals {
   sfn_jira_orchestrator_name = "securityhub-findings-manager-orchestrator"
+
+  # Compute aggregate filters from all enabled instances
+  enabled_instances = local.jira_integration_enabled ? {
+    for k, v in var.jira_integration.instances : k => v if v.enabled != false
+  } : {}
+
+  # Union of all include_product_names from all enabled instances.
+  # If ANY instance has an empty list (accept all products), the aggregate must be empty
+  # so the Step Function doesn't filter out products that instance should receive.
+  aggregate_include_product_names = local.jira_integration_enabled ? (
+    anytrue([for instance in values(local.enabled_instances) : length(instance.include_product_names) == 0])
+    ? []
+    : distinct(flatten([for instance in values(local.enabled_instances) : instance.include_product_names]))
+  ) : []
+
+  # Minimum threshold across all enabled instances (most permissive)
+  aggregate_finding_severity_threshold = local.jira_integration_enabled && length(local.enabled_instances) > 0 ? min([
+    for instance in values(local.enabled_instances) :
+    instance.finding_severity_normalized_threshold
+  ]...) : 70
 }
 
 # IAM role to be assumed by Step Function
@@ -80,12 +100,12 @@ resource "aws_sfn_state_machine" "jira_orchestrator" {
   tags     = var.tags
 
   definition = templatefile("${path.module}/files/step-function-artifacts/${local.sfn_jira_orchestrator_name}.json.tpl", {
-    finding_severity_normalized       = var.jira_integration.finding_severity_normalized_threshold
+    finding_severity_normalized       = local.aggregate_finding_severity_threshold
     findings_manager_events_lambda    = module.findings_manager_events_lambda.arn
     jira_autoclose_enabled            = var.jira_integration.autoclose_enabled
     jira_autoclose_suppressed_enabled = var.jira_integration.autoclose_suppressed_findings
     jira_lambda                       = module.jira_lambda[0].arn
-    include_product_names             = var.jira_integration.include_product_names
+    include_product_names             = local.aggregate_include_product_names
   })
 
   logging_configuration {

@@ -18,13 +18,12 @@ module "securityhub_findings_manager" {
   kms_key_arn    = aws_kms_key.findings_manager.arn
 
   jira_integration = {
-    include_product_names = ["Security Hub"]
-
     instances = {
       "default" = {
         default_instance               = true
         project_key                    = "SEC"
         credentials_secretsmanager_arn = aws_secretsmanager_secret.jira_credentials.arn
+        include_product_names          = ["Security Hub"]
 
         issue_custom_fields = {
           "customfield_10001" = "Security Team"

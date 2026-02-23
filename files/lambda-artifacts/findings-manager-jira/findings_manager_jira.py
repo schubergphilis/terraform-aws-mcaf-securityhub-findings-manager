@@ -17,7 +17,7 @@ REQUIRED_ENV_VARS = [
 ]
 
 DEFAULT_JIRA_AUTOCLOSE_COMMENT = 'Security Hub finding has been resolved. Autoclosing the issue.'
-DEFAULT_JIRA_AUTOCLOSE_TRANSITION = 'Done'
+DEFAULT_JIRA_AUTOCLOSE_TRANSITION = 'Close Issue'
 
 STATUS_NEW = 'NEW'
 STATUS_NOTIFIED = 'NOTIFIED'
@@ -48,7 +48,6 @@ def lambda_handler(event: dict, context: LambdaContext):
     
     # Extract global settings
     jira_autoclose_comment = os.getenv('JIRA_AUTOCLOSE_COMMENT', DEFAULT_JIRA_AUTOCLOSE_COMMENT)
-    jira_autoclose_transition = os.getenv('JIRA_AUTOCLOSE_TRANSITION', DEFAULT_JIRA_AUTOCLOSE_TRANSITION)
     exclude_account_filter = json.loads(os.environ['EXCLUDE_ACCOUNT_FILTER'])
     
     if finding_account_id in exclude_account_filter:
@@ -67,7 +66,36 @@ def lambda_handler(event: dict, context: LambdaContext):
         logger.info(f"No Jira instance configured for account {finding_account_id}")
         return
 
-    # Extract instance-specific configuration
+    # Extract per-instance settings with defaults
+    instance_include_product_names = instance_config.get('include_product_names', [])
+    instance_threshold = instance_config.get('finding_severity_normalized_threshold', 70)
+
+    # Apply per-instance product name filter (for both create and autoclose)
+    if instance_include_product_names:
+        product_name = finding.get('ProductName', '')
+        if product_name not in instance_include_product_names:
+            logger.info(
+                f"Product '{product_name}' not in include list {instance_include_product_names} for instance {instance_name}. Skipping."
+            )
+            return
+
+    # Get remaining Security Hub finding details
+    workflow_status = finding['Workflow']['Status']
+    compliance_status = finding['Compliance']['Status'] if 'Compliance' in finding else COMPLIANCE_STATUS_MISSING
+    record_state = finding['RecordState']
+
+    # Apply per-instance severity threshold (only for CREATE new findings, not autoclose)
+    if (workflow_status == STATUS_NEW
+            and compliance_status in [COMPLIANCE_STATUS_FAILED, COMPLIANCE_STATUS_WARNING, COMPLIANCE_STATUS_MISSING]
+            and record_state == RECORD_STATE_ACTIVE):
+        normalized_severity = finding.get('Severity', {}).get('Normalized', 0)
+        if normalized_severity < instance_threshold:
+            logger.info(
+                f"Severity {normalized_severity} below threshold {instance_threshold} for instance {instance_name}. Skipping."
+            )
+            return
+
+    # Get remaining Security Hub finding details
     jira_issue_custom_fields = instance_config.get('issue_custom_fields', {})
     jira_issue_type = instance_config.get('issue_type', 'Security Advisory')
     jira_project_key = instance_config['project_key']
@@ -97,11 +125,6 @@ def lambda_handler(event: dict, context: LambdaContext):
     except Exception as e:
         logger.error(f"Failed to retrieve Jira client: {e}")
         raise RuntimeError("Could not initialize Jira client.") from e
-
-    # Get remaining Security Hub finding details
-    workflow_status = finding['Workflow']['Status']
-    compliance_status = finding['Compliance']['Status'] if 'Compliance' in finding else COMPLIANCE_STATUS_MISSING
-    record_state = finding['RecordState']
 
     # Handle new findings
     # Ticket is created when Workflow Status is NEW and Compliance Status is FAILED, WARNING or is missing from the finding (case with e.g. Inspector findings)
@@ -179,6 +202,8 @@ def lambda_handler(event: dict, context: LambdaContext):
             autoclose_secret_arn = autoclose_instance_config.get('credentials_secretsmanager_arn') or autoclose_instance_config.get('credentials_ssm_secret_arn')
             autoclose_secret_type = 'SECRETSMANAGER' if autoclose_instance_config.get('credentials_secretsmanager_arn') else 'SSM'
             autoclose_intermediate_transition = autoclose_instance_config.get('include_intermediate_transition', '')
+            # Get per-instance autoclose transition
+            autoclose_transition = autoclose_instance_config.get('autoclose_transition_name', DEFAULT_JIRA_AUTOCLOSE_TRANSITION)
 
             # Initialize Jira client with the autoclose instance's credentials
             try:
@@ -201,7 +226,7 @@ def lambda_handler(event: dict, context: LambdaContext):
                         f"Failed to retrieve Jira issue {jira_issue_id}: {e}. Cannot autoclose.")
                     return  # Skip further processing for this finding
                 helpers.close_jira_issue(
-                    autoclose_jira_client, issue, jira_autoclose_transition, jira_autoclose_comment, autoclose_intermediate_transition)
+                    autoclose_jira_client, issue, autoclose_transition, jira_autoclose_comment, autoclose_intermediate_transition)
 
                 # Update note to prevent re-processing: remove 'jiraIssue' to prevent Step Function filter match
                 # Add 'jiraClosedIssue' for audit trail, preserving all other note content

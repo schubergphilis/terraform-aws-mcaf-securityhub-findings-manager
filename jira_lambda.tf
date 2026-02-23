@@ -135,9 +135,8 @@ module "jira_lambda" {
     JIRA_INSTANCES_CONFIG = jsonencode(var.jira_integration.instances)
 
     # Global settings
-    EXCLUDE_ACCOUNT_FILTER    = jsonencode(var.jira_integration.exclude_account_ids)
-    JIRA_AUTOCLOSE_COMMENT    = var.jira_integration.autoclose_comment
-    JIRA_AUTOCLOSE_TRANSITION = var.jira_integration.autoclose_transition_name
+    EXCLUDE_ACCOUNT_FILTER = jsonencode(var.jira_integration.exclude_account_ids)
+    JIRA_AUTOCLOSE_COMMENT = var.jira_integration.autoclose_comment
 
     # Logging settings
     LOG_LEVEL                   = var.jira_integration.lambda_settings.log_level

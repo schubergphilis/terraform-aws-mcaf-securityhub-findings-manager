@@ -2,6 +2,77 @@
 
 This document captures required refactoring on your part when upgrading to a module version that contains breaking changes.
 
+## Upgrading to v7.0.0
+
+Three Jira integration settings have been moved from global configuration to per-instance configuration. This allows different Jira instances to have different filtering thresholds, product filters, and autoclose transitions.
+
+### Variables (v7.0.0)
+
+The following fields have been moved from the `jira_integration` root level to the `jira_integration.instances[name]` level:
+
+- `autoclose_transition_name` - The Jira transition to use when autoclosing issues
+- `finding_severity_normalized_threshold` - Minimum severity (0-100) for creating tickets
+- `include_product_names` - List of AWS product names to filter findings by
+
+**Old structure (v6.x):**
+```hcl
+jira_integration = {
+  autoclose_enabled                     = true
+  autoclose_transition_name             = "Done"
+  finding_severity_normalized_threshold = 80
+  include_product_names                 = ["Security Hub", "GuardDuty"]
+
+  instances = {
+    "team-a" = {
+      project_key                    = "TEAMA"
+      credentials_secretsmanager_arn = "arn:aws:secretsmanager:..."
+      include_account_ids            = ["111111111111"]
+    }
+  }
+}
+```
+
+**New structure (v7.0.0):**
+```hcl
+jira_integration = {
+  autoclose_enabled = true
+
+  instances = {
+    "team-a" = {
+      project_key                           = "TEAMA"
+      credentials_secretsmanager_arn        = "arn:aws:secretsmanager:..."
+      include_account_ids                   = ["111111111111"]
+      # Moved from global to per-instance:
+      autoclose_transition_name             = "Done"
+      finding_severity_normalized_threshold = 80
+      include_product_names                 = ["Security Hub", "GuardDuty"]
+    }
+  }
+}
+```
+
+### Behaviour (v7.0.0)
+
+**Benefits of per-instance settings:**
+- Different teams can have different severity thresholds
+- Different instances can filter different product types
+- Each instance can use a custom autoclose transition
+
+**Filtering behavior:**
+- The Step Function applies aggregate filtering (union of all product names, minimum of all thresholds) to reduce unnecessary Lambda invocations
+- The Lambda applies precise per-instance filtering after routing the finding to the correct instance
+- This two-stage filtering optimizes cost while enabling per-instance flexibility
+
+**Migration steps:**
+1. For each field (`autoclose_transition_name`, `finding_severity_normalized_threshold`, `include_product_names`), if set at the global level, move it into each instance configuration
+2. If you have multiple instances and want different settings per instance, configure them independently
+3. If all instances should use the same settings, copy the global value to each instance
+
+**Default values:**
+- `autoclose_transition_name`: defaults to `"Close Issue"`
+- `finding_severity_normalized_threshold`: defaults to `70`
+- `include_product_names`: defaults to `[]` (no filtering, all products accepted)
+
 ## Upgrading to v6.0.0
 
 The Jira integration has been restructured to support multiple Jira instances. This allows routing Security Hub findings to different Jira projects based on AWS account IDs.

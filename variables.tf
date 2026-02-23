@@ -88,13 +88,10 @@ variable "jira_eventbridge_iam_role_name" {
 variable "jira_integration" {
   type = object({
     # Global settings for all jira instances
-    autoclose_comment                     = optional(string, "Security Hub finding has been resolved. Autoclosing the issue.")
-    autoclose_enabled                     = optional(bool, false)
-    autoclose_suppressed_findings         = optional(bool, false)
-    autoclose_transition_name             = optional(string, "Close Issue")
-    exclude_account_ids                   = optional(list(string), [])
-    finding_severity_normalized_threshold = optional(number, 70)
-    include_product_names                 = optional(list(string), [])
+    autoclose_comment             = optional(string, "Security Hub finding has been resolved. Autoclosing the issue.")
+    autoclose_enabled             = optional(bool, false)
+    autoclose_suppressed_findings = optional(bool, false)
+    exclude_account_ids           = optional(list(string), [])
 
     security_group_egress_rules = optional(list(object({
       cidr_ipv4                    = optional(string)
@@ -121,15 +118,18 @@ variable "jira_integration" {
 
     # Per-instance configurations
     instances = optional(map(object({
-      enabled                         = optional(bool, true)
-      credentials_secretsmanager_arn  = optional(string)
-      credentials_ssm_secret_arn      = optional(string)
-      default_instance                = optional(bool, false)
-      include_account_ids             = optional(list(string), [])
-      include_intermediate_transition = optional(string)
-      issue_custom_fields             = optional(map(string), {})
-      issue_type                      = optional(string, "Security Advisory")
-      project_key                     = string
+      enabled                               = optional(bool, true)
+      credentials_secretsmanager_arn        = optional(string)
+      credentials_ssm_secret_arn            = optional(string)
+      default_instance                      = optional(bool, false)
+      include_account_ids                   = optional(list(string), [])
+      include_intermediate_transition       = optional(string)
+      issue_custom_fields                   = optional(map(string), {})
+      issue_type                            = optional(string, "Security Advisory")
+      project_key                           = string
+      autoclose_transition_name             = optional(string, "Close Issue")
+      finding_severity_normalized_threshold = optional(number, 70)
+      include_product_names                 = optional(list(string), [])
     })), {})
   })
   default     = null
