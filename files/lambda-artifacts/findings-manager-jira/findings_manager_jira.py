@@ -112,8 +112,10 @@ def lambda_handler(event: dict, context: LambdaContext):
                                       COMPLIANCE_STATUS_WARNING,
                                       COMPLIANCE_STATUS_MISSING]
             and record_state == RECORD_STATE_ACTIVE):
+
         # Create Jira issue and updates Security Hub status to NOTIFIED
         # and adds Jira issue key to note (in JSON format)
+        # Note: Duplicate prevention is handled by Step Function filter before Lambda invocation
         try:
             issue = helpers.create_jira_issue(
                 jira_client, jira_project_key, jira_issue_type, event_detail, jira_issue_custom_fields)

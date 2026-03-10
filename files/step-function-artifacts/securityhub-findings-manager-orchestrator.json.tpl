@@ -91,6 +91,23 @@
                 ]
               },
 %{ endif ~}
+              {
+                "Comment": "Prevent duplicate Jira tickets: only create NEW tickets if note doesn't contain jiraIssue",
+                "Or": [
+                  {
+                    "Not": {
+                      "Variable": "$.detail.findings[0].Note.Text",
+                      "StringMatches": "*jiraIssue*"
+                    }
+                  },
+                  {
+                    "Not": {
+                      "Variable": "$.detail.findings[0].Workflow.Status",
+                      "StringEquals": "NEW"
+                    }
+                  }
+                ]
+              },
               %{~ if jira_autoclose_enabled }
               {
                 "Or": [
