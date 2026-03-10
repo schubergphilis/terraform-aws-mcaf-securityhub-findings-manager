@@ -112,7 +112,7 @@
               {
                 "Or": [
                   {
-                    "Comment": "CREATE JIRA TICKET: Requires severity >= threshold and no existing Jira issue",
+                    "Comment": "CREATE JIRA TICKET: Requires severity >= threshold",
                     "And": [
                       {
                         "Variable": "$.detail.findings[0].Severity.Normalized",
