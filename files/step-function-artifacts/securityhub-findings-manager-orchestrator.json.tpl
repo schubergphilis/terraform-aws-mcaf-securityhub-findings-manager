@@ -138,18 +138,10 @@
                         ]
                       },
                       {
-                        "Comment": "Prevent duplicate Jira tickets: only create if no jiraIssue exists in note",
+                        "Comment": "Prevent duplicate Jira tickets: only create if note doesn't contain jiraIssue",
                         "Not": {
-                          "And": [
-                            {
-                              "Variable": "$.detail.findings[0].Note.Text",
-                              "IsPresent": true
-                            },
-                            {
-                              "Variable": "$.detail.findings[0].Note.Text",
-                              "StringMatches": "*jiraIssue*"
-                            }
-                          ]
+                          "Variable": "$.detail.findings[0].Note.Text",
+                          "StringMatches": "*jiraIssue*"
                         }
                       }
                     ]
@@ -227,6 +219,13 @@
                   {
                     "Variable": "$.detail.findings[0].Workflow.Status",
                     "StringEquals": "NEW"
+                  },
+                  {
+                    "Comment": "Prevent duplicate Jira tickets: only create if note doesn't contain jiraIssue",
+                    "Not": {
+                      "Variable": "$.detail.findings[0].Note.Text",
+                      "StringMatches": "*jiraIssue*"
+                    }
                   }
                 ]
               }

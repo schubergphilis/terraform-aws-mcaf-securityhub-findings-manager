@@ -113,38 +113,23 @@ def lambda_handler(event: dict, context: LambdaContext):
                                       COMPLIANCE_STATUS_MISSING]
             and record_state == RECORD_STATE_ACTIVE):
 
-        # Check if a Jira issue already exists for this finding
-        existing_jira_issue = None
-        if 'Note' in finding and 'Text' in finding['Note']:
-            try:
-                existing_note = json.loads(finding['Note']['Text'])
-                existing_jira_issue = existing_note.get('jiraIssue')
-            except (json.JSONDecodeError, KeyError):
-                # Note text is not JSON or doesn't contain jiraIssue, proceed with creation
-                logger.info(f"Note text for finding {finding['Id']} is not JSON or doesn't contain jiraIssue key. Proceeding with ticket creation.")
-
-        if existing_jira_issue:
-            logger.info(
-                f"Finding {finding['Id']} already has an associated Jira issue: {existing_jira_issue}. "
-                f"Skipping duplicate ticket creation."
-            )
-        else:
-            # Create Jira issue and updates Security Hub status to NOTIFIED
-            # and adds Jira issue key to note (in JSON format)
-            try:
-                issue = helpers.create_jira_issue(
-                    jira_client, jira_project_key, jira_issue_type, event_detail, jira_issue_custom_fields)
-                # Create note with instance tracking for proper autoclose handling
-                note = json.dumps({
-                    'jiraIssue': issue.key,
-                    'jiraInstance': instance_name
-                })
-                helpers.update_security_hub(
-                    securityhub, finding["Id"], finding["ProductArn"], STATUS_NOTIFIED, note)
-            except Exception as e:
-                logger.error(
-                    f"Error processing new finding for findingID {finding['Id']}: {e}")
-                raise RuntimeError(f"Failed to create Jira issue or update Security Hub for finding ID {finding['Id']}.") from e
+        # Create Jira issue and updates Security Hub status to NOTIFIED
+        # and adds Jira issue key to note (in JSON format)
+        # Note: Duplicate prevention is handled by Step Function filter before Lambda invocation
+        try:
+            issue = helpers.create_jira_issue(
+                jira_client, jira_project_key, jira_issue_type, event_detail, jira_issue_custom_fields)
+            # Create note with instance tracking for proper autoclose handling
+            note = json.dumps({
+                'jiraIssue': issue.key,
+                'jiraInstance': instance_name
+            })
+            helpers.update_security_hub(
+                securityhub, finding["Id"], finding["ProductArn"], STATUS_NOTIFIED, note)
+        except Exception as e:
+            logger.error(
+                f"Error processing new finding for findingID {finding['Id']}: {e}")
+            raise RuntimeError(f"Failed to create Jira issue or update Security Hub for finding ID {finding['Id']}.") from e
 
     # Handle resolved findings - Close Jira issue when:
     # 1. Workflow status is RESOLVED (finding explicitly resolved)
