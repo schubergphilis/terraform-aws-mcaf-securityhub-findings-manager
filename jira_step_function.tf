@@ -55,7 +55,7 @@ data "aws_iam_policy_document" "jira_step_function_iam_role" {
       "logs:PutLogEvents"
     ]
     resources = [
-      "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:*"
+      "arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:*"
     ]
   }
 }
