@@ -30,7 +30,7 @@ data "aws_iam_policy_document" "jira_lambda_iam_role" {
       "logs:PutLogEvents"
     ]
     resources = [
-      "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:*"
+      "arn:aws:logs:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:*"
     ]
   }
 
@@ -62,7 +62,7 @@ data "aws_iam_policy_document" "jira_lambda_iam_role" {
       "securityhub:BatchUpdateFindings"
     ]
     resources = [
-      "arn:aws:securityhub:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:hub/default"
+      "arn:aws:securityhub:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:hub/default"
     ]
     condition {
       test     = "ForAnyValue:StringEquals"
@@ -116,7 +116,7 @@ module "jira_lambda" {
   description                 = "Lambda to create jira ticket and set the Security Hub workflow status to notified"
   handler                     = "findings_manager_jira.lambda_handler"
   kms_key_arn                 = var.kms_key_arn
-  layers                      = ["arn:aws:lambda:${data.aws_region.current.name}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
+  layers                      = ["arn:aws:lambda:${data.aws_region.current.region}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
   log_retention               = 365
   memory_size                 = var.jira_integration.lambda_settings.memory_size
   policy                      = data.aws_iam_policy_document.jira_lambda_iam_role[0].json

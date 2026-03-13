@@ -40,6 +40,6 @@ data "aws_iam_policy_document" "sqs_sechub" {
       "securityhub:BatchUpdateFindings",
       "securityhub:GetFindings"
     ]
-    resources = ["arn:aws:securityhub:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:hub/default"]
+    resources = ["arn:aws:securityhub:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:hub/default"]
   }
 }
