@@ -1,11 +1,13 @@
 resource "aws_sqs_queue" "servicenow_queue" {
   name              = "AwsServiceManagementConnectorForSecurityHubQueue"
   kms_master_key_id = var.kms_key_arn
+  region            = var.region
 }
 
 resource "aws_sqs_queue_policy" "servicenow" {
   policy    = data.aws_iam_policy_document.servicenow_sqs_policy.json
   queue_url = aws_sqs_queue.servicenow_queue.id
+  region    = var.region
 }
 
 data "aws_iam_policy_document" "servicenow_sqs_policy" {

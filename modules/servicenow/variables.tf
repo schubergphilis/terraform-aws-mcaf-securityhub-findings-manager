@@ -10,15 +10,21 @@ variable "create_access_keys" {
   description = "Whether to create an access_key and secret_access key for the ServiceNow user"
 }
 
+variable "kms_key_arn" {
+  type        = string
+  description = "The ARN of the KMS key used to encrypt the resources"
+}
+
+variable "region" {
+  type        = string
+  default     = null
+  description = "The AWS region where the resources will be created. If omitted, the default provider region is used."
+}
+
 variable "severity_label_filter" {
   type        = list(string)
   default     = []
   description = "Only forward findings to ServiceNow with severity labels from this list (by default all severity labels are forwarded)"
-}
-
-variable "kms_key_arn" {
-  type        = string
-  description = "The ARN of the KMS key used to encrypt the resources"
 }
 
 variable "tags" {
