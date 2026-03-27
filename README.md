@@ -99,7 +99,7 @@ A lambda layer provides aws-lambda-powertools. To have these dependencies locall
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.7.0 |
 | <a name="requirement_archive"></a> [archive](#requirement\_archive) | >= 2.0 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 4.9 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.0 |
 | <a name="requirement_external"></a> [external](#requirement\_external) | >= 2.0 |
 | <a name="requirement_local"></a> [local](#requirement\_local) | >= 1.0 |
 | <a name="requirement_null"></a> [null](#requirement\_null) | >= 2.0 |
@@ -108,19 +108,19 @@ A lambda layer provides aws-lambda-powertools. To have these dependencies locall
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 4.9 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.0 |
 
 ## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_findings_manager_bucket"></a> [findings\_manager\_bucket](#module\_findings\_manager\_bucket) | schubergphilis/mcaf-s3/aws | ~> 0.14.1 |
-| <a name="module_findings_manager_events_lambda"></a> [findings\_manager\_events\_lambda](#module\_findings\_manager\_events\_lambda) | schubergphilis/mcaf-lambda/aws | ~> 1.4.1 |
-| <a name="module_findings_manager_trigger_lambda"></a> [findings\_manager\_trigger\_lambda](#module\_findings\_manager\_trigger\_lambda) | schubergphilis/mcaf-lambda/aws | ~> 1.4.1 |
-| <a name="module_findings_manager_worker_lambda"></a> [findings\_manager\_worker\_lambda](#module\_findings\_manager\_worker\_lambda) | schubergphilis/mcaf-lambda/aws | ~> 1.4.1 |
-| <a name="module_jira_eventbridge_iam_role"></a> [jira\_eventbridge\_iam\_role](#module\_jira\_eventbridge\_iam\_role) | schubergphilis/mcaf-role/aws | ~> 0.3.2 |
-| <a name="module_jira_lambda"></a> [jira\_lambda](#module\_jira\_lambda) | schubergphilis/mcaf-lambda/aws | ~> 1.4.1 |
-| <a name="module_jira_step_function_iam_role"></a> [jira\_step\_function\_iam\_role](#module\_jira\_step\_function\_iam\_role) | schubergphilis/mcaf-role/aws | ~> 0.3.2 |
+| <a name="module_findings_manager_bucket"></a> [findings\_manager\_bucket](#module\_findings\_manager\_bucket) | schubergphilis/mcaf-s3/aws | ~> 2.0.0 |
+| <a name="module_findings_manager_events_lambda"></a> [findings\_manager\_events\_lambda](#module\_findings\_manager\_events\_lambda) | schubergphilis/mcaf-lambda/aws | ~> 3.0.0 |
+| <a name="module_findings_manager_trigger_lambda"></a> [findings\_manager\_trigger\_lambda](#module\_findings\_manager\_trigger\_lambda) | schubergphilis/mcaf-lambda/aws | ~> 3.0.0 |
+| <a name="module_findings_manager_worker_lambda"></a> [findings\_manager\_worker\_lambda](#module\_findings\_manager\_worker\_lambda) | schubergphilis/mcaf-lambda/aws | ~> 3.0.0 |
+| <a name="module_jira_eventbridge_iam_role"></a> [jira\_eventbridge\_iam\_role](#module\_jira\_eventbridge\_iam\_role) | schubergphilis/mcaf-role/aws | ~> 0.5.3 |
+| <a name="module_jira_lambda"></a> [jira\_lambda](#module\_jira\_lambda) | schubergphilis/mcaf-lambda/aws | ~> 3.0.0 |
+| <a name="module_jira_step_function_iam_role"></a> [jira\_step\_function\_iam\_role](#module\_jira\_step\_function\_iam\_role) | schubergphilis/mcaf-role/aws | ~> 0.5.3 |
 | <a name="module_servicenow_integration"></a> [servicenow\_integration](#module\_servicenow\_integration) | ./modules/servicenow/ | n/a |
 
 ## Resources
@@ -167,6 +167,7 @@ A lambda layer provides aws-lambda-powertools. To have these dependencies locall
 | <a name="input_jira_integration"></a> [jira\_integration](#input\_jira\_integration) | Findings Manager - Jira integration settings | <pre>object({<br/>    # Global settings for all jira instances<br/>    autoclose_comment                     = optional(string, "Security Hub finding has been resolved. Autoclosing the issue.")<br/>    autoclose_enabled                     = optional(bool, false)<br/>    autoclose_suppressed_findings         = optional(bool, false)<br/>    autoclose_transition_name             = optional(string, "Close Issue")<br/>    exclude_account_ids                   = optional(list(string), [])<br/>    finding_severity_normalized_threshold = optional(number, 70)<br/>    include_product_names                 = optional(list(string), [])<br/><br/>    security_group_egress_rules = optional(list(object({<br/>      cidr_ipv4                    = optional(string)<br/>      cidr_ipv6                    = optional(string)<br/>      description                  = string<br/>      from_port                    = optional(number, 0)<br/>      ip_protocol                  = optional(string, "-1")<br/>      prefix_list_id               = optional(string)<br/>      referenced_security_group_id = optional(string)<br/>      to_port                      = optional(number, 0)<br/>    })), [])<br/><br/>    lambda_settings = optional(object({<br/>      name        = optional(string, "securityhub-findings-manager-jira")<br/>      log_level   = optional(string, "ERROR")<br/>      memory_size = optional(number, 256)<br/>      timeout     = optional(number, 60)<br/>    }), {})<br/><br/>    step_function_settings = optional(object({<br/>      log_level = optional(string, "ERROR")<br/>      retention = optional(number, 90)<br/>    }), {})<br/><br/>    # Per-instance configurations<br/>    instances = optional(map(object({<br/>      enabled                         = optional(bool, true)<br/>      credentials_secretsmanager_arn  = optional(string)<br/>      credentials_ssm_secret_arn      = optional(string)<br/>      default_instance                = optional(bool, false)<br/>      include_account_ids             = optional(list(string), [])<br/>      include_intermediate_transition = optional(string)<br/>      issue_custom_fields             = optional(map(string), {})<br/>      issue_type                      = optional(string, "Security Advisory")<br/>      project_key                     = string<br/>    })), {})<br/>  })</pre> | `null` | no |
 | <a name="input_jira_step_function_iam_role_name"></a> [jira\_step\_function\_iam\_role\_name](#input\_jira\_step\_function\_iam\_role\_name) | The name of the role which will be assumed by AWS Step Function for Jira integration | `string` | `"SecurityHubFindingsManagerJiraStepFunction"` | no |
 | <a name="input_lambda_runtime"></a> [lambda\_runtime](#input\_lambda\_runtime) | The version of Python to use for the Lambda functions | `string` | `"python3.12"` | no |
+| <a name="input_region"></a> [region](#input\_region) | The AWS region where the resources will be created. If omitted, the default provider region is used. | `string` | `null` | no |
 | <a name="input_rules_filepath"></a> [rules\_filepath](#input\_rules\_filepath) | Pathname to the file that stores the manager rules | `string` | `""` | no |
 | <a name="input_rules_s3_object_name"></a> [rules\_s3\_object\_name](#input\_rules\_s3\_object\_name) | The S3 object containing the rules to be applied to Security Hub findings manager | `string` | `"rules.yaml"` | no |
 | <a name="input_servicenow_integration"></a> [servicenow\_integration](#input\_servicenow\_integration) | ServiceNow integration settings | <pre>object({<br/>    enabled                   = optional(bool, false)<br/>    create_access_keys        = optional(bool, false)<br/>    cloudwatch_retention_days = optional(number, 365)<br/>    severity_label_filter     = optional(list(string), [])<br/>  })</pre> | <pre>{<br/>  "enabled": false<br/>}</pre> | no |
