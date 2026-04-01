@@ -137,7 +137,17 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
   region      = var.region
   tags        = var.tags
 
-  event_pattern = <<EOF
+  event_pattern = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false) ? jsonencode({
+    source      = ["aws.securityhub"]
+    detail-type = ["Security Hub Findings - Imported"]
+    detail = {
+      findings = {
+        Workflow = {
+          Status = ["NEW", "NOTIFIED"]
+        }
+      }
+    }
+  }) : <<EOF
 {
   "source": ["aws.securityhub"],
   "detail-type": ["Security Hub Findings - Imported"],
