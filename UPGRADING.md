@@ -2,6 +2,12 @@
 
 This document captures required refactoring on your part when upgrading to a module version that contains breaking changes.
 
+## Upgrading to v7.0.0
+
+### Key Changes v7.0.0
+
+This module now requires a minimum AWS provider version of 6.0 to support the region parameter. If you are using multiple AWS provider blocks, please read [migrating from multiple provider configurations](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/guides/enhanced-region-support#migrating-from-multiple-provider-configurations).
+
 ## Upgrading to v6.0.0
 
 The Jira integration has been restructured to support multiple Jira instances. This allows routing Security Hub findings to different Jira projects based on AWS account IDs.
@@ -20,6 +26,7 @@ The Jira integration has been restructured to support multiple Jira instances. T
 The `jira_integration` variable structure has been completely redesigned:
 
 **Old structure:**
+
 ```hcl
 jira_integration = {
   enabled                               = true
@@ -38,6 +45,7 @@ jira_integration = {
 ```
 
 **New structure:**
+
 ```hcl
 jira_integration = {
   autoclose_comment                     = "Closing issue"
@@ -77,7 +85,7 @@ The following variable defaults have been modified:
 - `findings_manager_events_lambda.log_level` -> default: `ERROR` (previous default: `INFO`). The logging configuration has been updated, and `ERROR` is now more logical as the default level.
 - `findings_manager_trigger_lambda.log_level` -> default: `ERROR` (previous default: `INFO`). The logging configuration has been updated, and `ERROR` is now more logical as the default level.
 - `findings_manager_trigger_lambda.memory_size` -> default: `256` (previous default: `1024`). With the new setup, the trigger Lambda requires less memory.
-- `findings_manager_trigger_lambda.timeout` -> default: `300` (previous default: `900`).  With the new setup, the trigger Lambda completes tasks in less time.
+- `findings_manager_trigger_lambda.timeout` -> default: `300` (previous default: `900`). With the new setup, the trigger Lambda completes tasks in less time.
 
 The following variables have been introduced:
 
