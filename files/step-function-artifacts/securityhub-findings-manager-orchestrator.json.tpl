@@ -6,6 +6,20 @@
         "Type": "Choice",
         "Choices": [
           {
+            "Comment": "Skip suppression for deleted resources - go straight to Jira autoclose check",
+            "And": [
+              {
+                "Variable": "$.detail.findings[0].RecordState",
+                "StringEquals": "ARCHIVED"
+              },
+              {
+                "Variable": "$.detail.findings[0].Compliance.Status",
+                "StringEquals": "NOT_AVAILABLE"
+              }
+            ],
+            "Next": "ChoiceJiraIntegration"
+          },
+          {
             "Or": [
               {
                 "Variable": "$.detail.findings[0].Workflow.Status",
@@ -92,19 +106,36 @@
               },
 %{ endif ~}
               {
-                "Comment": "Prevent duplicate Jira tickets: only create NEW tickets if note doesn't contain jiraIssue",
+                "Comment": "Prevent duplicate Jira tickets: only create NEW tickets if note doesn't contain jiraIssue, OR allow ARCHIVED findings for closure",
                 "Or": [
                   {
-                    "Not": {
-                      "Variable": "$.detail.findings[0].Note.Text",
-                      "StringMatches": "*jiraIssue*"
-                    }
+                    "Variable": "$.detail.findings[0].Note.Text",
+                    "IsPresent": false
+                  },
+                  {
+                    "And": [
+                      {
+                        "Variable": "$.detail.findings[0].Note.Text",
+                        "IsPresent": true
+                      },
+                      {
+                        "Not": {
+                          "Variable": "$.detail.findings[0].Note.Text",
+                          "StringMatches": "*jiraIssue*"
+                        }
+                      }
+                    ]
                   },
                   {
                     "Not": {
                       "Variable": "$.detail.findings[0].Workflow.Status",
                       "StringEquals": "NEW"
                     }
+                  },
+                  {
+                    "Comment": "Allow ARCHIVED findings through for autoclose even if note has jiraIssue and status is NEW",
+                    "Variable": "$.detail.findings[0].RecordState",
+                    "StringEquals": "ARCHIVED"
                   }
                 ]
               },
@@ -178,30 +209,35 @@
                               {
                                 "Or": [
                                   {
-                                    "Variable": "$.detail.findings[0].RecordState",
-                                    "StringEquals": "ARCHIVED"
+                                    "Variable": "$.detail.findings[0].Compliance.Status",
+                                    "StringEquals": "PASSED"
                                   },
                                   {
                                     "And": [
                                       {
-                                        "Variable": "$.detail.findings[0].Compliance.Status",
-                                        "IsPresent": true
+                                        "Variable": "$.detail.findings[0].RecordState",
+                                        "StringEquals": "ARCHIVED"
                                       },
                                       {
-                                        "Or": [
-                                          {
-                                            "Variable": "$.detail.findings[0].Compliance.Status",
-                                            "StringEquals": "PASSED"
-                                          },
-                                          {
-                                            "Variable": "$.detail.findings[0].Compliance.Status",
-                                            "StringEquals": "NOT_AVAILABLE"
-                                          }
-                                        ]
+                                        "Variable": "$.detail.findings[0].Compliance.Status",
+                                        "StringEquals": "NOT_AVAILABLE"
                                       }
                                     ]
                                   }
                                 ]
+                              }
+                            ]
+                          },
+                          {
+                            "Comment": "CLOSE for ARCHIVED resources even if Workflow reset to NEW",
+                            "And": [
+                              {
+                                "Variable": "$.detail.findings[0].RecordState",
+                                "StringEquals": "ARCHIVED"
+                              },
+                              {
+                                "Variable": "$.detail.findings[0].Compliance.Status",
+                                "StringEquals": "NOT_AVAILABLE"
                               }
                             ]
                           }
