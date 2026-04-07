@@ -137,17 +137,7 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
   region      = var.region
   tags        = var.tags
 
-  event_pattern = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false) ? jsonencode({
-    source      = ["aws.securityhub"]
-    detail-type = ["Security Hub Findings - Imported"]
-    detail = {
-      findings = {
-        Workflow = {
-          Status = ["NEW", "NOTIFIED"]
-        }
-      }
-    }
-  }) : <<EOF
+  event_pattern = <<EOF
 {
   "source": ["aws.securityhub"],
   "detail-type": ["Security Hub Findings - Imported"],
@@ -171,6 +161,33 @@ resource "aws_cloudwatch_event_rule" "securityhub_findings_events" {
   }
 }
 EOF
+}
+
+# Separate EventBridge Rule for deleted resources (ARCHIVED + NOT_AVAILABLE) when autoclose is enabled
+# This allows catching findings that SecurityHub resets to NEW when a resource is deleted
+resource "aws_cloudwatch_event_rule" "securityhub_findings_deleted_resources" {
+  count = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false) ? 1 : 0
+
+  name        = "rule-deleted-${var.findings_manager_events_lambda.name}"
+  description = "EventBridge rule for detecting deleted resource findings (ARCHIVED + NOT_AVAILABLE), triggering autoclose for Jira tickets."
+  region      = var.region
+  tags        = var.tags
+
+  event_pattern = jsonencode({
+    source      = ["aws.securityhub"]
+    detail-type = ["Security Hub Findings - Imported"]
+    detail = {
+      findings = {
+        Workflow = {
+          Status = ["NEW", "NOTIFIED"]
+        }
+        RecordState = ["ARCHIVED"]
+        Compliance = {
+          Status = ["NOT_AVAILABLE"]
+        }
+      }
+    }
+  })
 }
 
 resource "aws_cloudwatch_event_rule" "securityhub_findings_resolved_events" {
