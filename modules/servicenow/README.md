@@ -5,19 +5,19 @@
 | Name | Version |
 |------|---------|
 | <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3.0 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 4.9 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 6.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 4.9 |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 6.0 |
 
 ## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_sync-user"></a> [sync-user](#module\_sync-user) | github.com/schubergphilis/terraform-aws-mcaf-user | v0.4.0 |
+| <a name="module_sync-user"></a> [sync-user](#module\_sync-user) | schubergphilis/mcaf-user/aws | 1.0.0 |
 
 ## Resources
 
@@ -45,6 +45,7 @@
 | <a name="input_tags"></a> [tags](#input\_tags) | A mapping of tags to assign to the resources | `map(string)` | n/a | yes |
 | <a name="input_cloudwatch_retention_days"></a> [cloudwatch\_retention\_days](#input\_cloudwatch\_retention\_days) | Time to retain the CloudWatch Logs for the ServiceNow integration | `number` | `365` | no |
 | <a name="input_create_access_keys"></a> [create\_access\_keys](#input\_create\_access\_keys) | Whether to create an access\_key and secret\_access key for the ServiceNow user | `bool` | `false` | no |
+| <a name="input_region"></a> [region](#input\_region) | The AWS region where the resources will be created. If omitted, the default provider region is used. | `string` | `null` | no |
 | <a name="input_severity_label_filter"></a> [severity\_label\_filter](#input\_severity\_label\_filter) | Only forward findings to ServiceNow with severity labels from this list (by default all severity labels are forwarded) | `list(string)` | `[]` | no |
 
 ## Outputs
