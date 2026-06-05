@@ -121,7 +121,7 @@ module "jira_lambda" {
   memory_size                 = var.jira_integration.lambda_settings.memory_size
   region                      = var.region
   runtime                     = var.lambda_runtime
-  s3_bucket                   = var.s3_bucket_name
+  s3_bucket                   = module.findings_manager_bucket.name
   s3_key                      = aws_s3_object.jira_lambda_deployment_package[0].key
   s3_object_version           = aws_s3_object.jira_lambda_deployment_package[0].version_id
   security_group_egress_rules = var.jira_integration.security_group_egress_rules

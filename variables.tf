@@ -256,6 +256,7 @@ variable "subnet_ids" {
 
 variable "s3_bucket_name" {
   type        = string
+  default     = null
   description = "The name for the S3 bucket which will be created for storing the function's deployment package"
 }
 

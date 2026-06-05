@@ -108,7 +108,7 @@ module "findings_manager_events_lambda" {
   memory_size                 = var.findings_manager_events_lambda.memory_size
   region                      = var.region
   runtime                     = var.lambda_runtime
-  s3_bucket                   = var.s3_bucket_name
+  s3_bucket                   = module.findings_manager_bucket.name
   s3_key                      = aws_s3_object.findings_manager_lambdas_deployment_package.key
   s3_object_version           = aws_s3_object.findings_manager_lambdas_deployment_package.version_id
   security_group_egress_rules = var.findings_manager_events_lambda.security_group_egress_rules
@@ -118,7 +118,7 @@ module "findings_manager_events_lambda" {
   timeout                     = var.findings_manager_events_lambda.timeout
 
   environment = {
-    S3_BUCKET_NAME              = var.s3_bucket_name
+    S3_BUCKET_NAME              = module.findings_manager_bucket.name
     S3_OBJECT_NAME              = var.rules_s3_object_name
     LOG_LEVEL                   = var.findings_manager_events_lambda.log_level
     POWERTOOLS_LOGGER_LOG_EVENT = "false"
@@ -233,7 +233,7 @@ module "findings_manager_trigger_lambda" {
   memory_size                 = var.findings_manager_trigger_lambda.memory_size
   region                      = var.region
   runtime                     = var.lambda_runtime
-  s3_bucket                   = var.s3_bucket_name
+  s3_bucket                   = module.findings_manager_bucket.name
   s3_key                      = aws_s3_object.findings_manager_lambdas_deployment_package.key
   s3_object_version           = aws_s3_object.findings_manager_lambdas_deployment_package.version_id
   security_group_egress_rules = var.findings_manager_trigger_lambda.security_group_egress_rules
@@ -243,7 +243,7 @@ module "findings_manager_trigger_lambda" {
   timeout                     = var.findings_manager_trigger_lambda.timeout
 
   environment = {
-    S3_BUCKET_NAME              = var.s3_bucket_name
+    S3_BUCKET_NAME              = module.findings_manager_bucket.name
     S3_OBJECT_NAME              = var.rules_s3_object_name
     LOG_LEVEL                   = var.findings_manager_trigger_lambda.log_level
     SQS_QUEUE_NAME              = aws_sqs_queue.findings_manager_rule_q.name
@@ -301,7 +301,7 @@ module "findings_manager_worker_lambda" {
   memory_size                 = var.findings_manager_worker_lambda.memory_size
   region                      = var.region
   runtime                     = var.lambda_runtime
-  s3_bucket                   = var.s3_bucket_name
+  s3_bucket                   = module.findings_manager_bucket.name
   s3_key                      = aws_s3_object.findings_manager_lambdas_deployment_package.key
   s3_object_version           = aws_s3_object.findings_manager_lambdas_deployment_package.version_id
   security_group_egress_rules = var.findings_manager_worker_lambda.security_group_egress_rules
