@@ -1,13 +1,3 @@
-locals {
-  s3_bucket_name = "securityhub-findings-manager-${random_string.suffix.result}"
-}
-
-resource "random_string" "suffix" {
-  length  = 8
-  special = false
-  upper   = false
-}
-
 provider "aws" {}
 
 data "aws_caller_identity" "current" {}
@@ -26,7 +16,6 @@ module "aws_securityhub_findings_manager" {
   source = "../../"
 
   kms_key_arn    = module.kms.arn
-  s3_bucket_name = local.s3_bucket_name
   rules_filepath = "${path.module}/../rules.yaml"
   tags           = { Terraform = true }
 }
