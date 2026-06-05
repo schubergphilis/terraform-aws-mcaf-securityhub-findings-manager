@@ -146,6 +146,7 @@ module "jira_lambda" {
   }
 
   execution_role = {
-    policy = data.aws_iam_policy_document.jira_lambda_iam_role[0].json
+    create_policy = true
+    policy        = data.aws_iam_policy_document.jira_lambda_iam_role[0].json
   }
 }

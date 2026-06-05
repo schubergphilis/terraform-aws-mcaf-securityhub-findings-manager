@@ -126,7 +126,8 @@ module "findings_manager_events_lambda" {
   }
 
   execution_role = {
-    policy = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
+    create_policy = true
+    policy        = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
   }
 }
 
@@ -252,7 +253,8 @@ module "findings_manager_trigger_lambda" {
   }
 
   execution_role = {
-    policy = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
+    create_policy = true
+    policy        = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
   }
 }
 
@@ -317,7 +319,8 @@ module "findings_manager_worker_lambda" {
   }
 
   execution_role = {
-    policy = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
+    create_policy = true
+    policy        = data.aws_iam_policy_document.findings_manager_lambda_iam_role.json
   }
 }
 
