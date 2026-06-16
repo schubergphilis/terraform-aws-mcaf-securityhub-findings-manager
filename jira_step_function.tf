@@ -143,3 +143,12 @@ resource "aws_cloudwatch_event_target" "jira_orchestrator_resolved" {
   role_arn = module.jira_eventbridge_iam_role[0].arn
   rule     = aws_cloudwatch_event_rule.securityhub_findings_resolved_events[0].name
 }
+
+resource "aws_cloudwatch_event_target" "jira_orchestrator_deleted_resources" {
+  count = local.jira_integration_enabled && try(var.jira_integration.autoclose_enabled, false) ? 1 : 0
+
+  arn      = aws_sfn_state_machine.jira_orchestrator[0].arn
+  region   = var.region
+  role_arn = module.jira_eventbridge_iam_role[0].arn
+  rule     = aws_cloudwatch_event_rule.securityhub_findings_deleted_resources[0].name
+}

@@ -138,6 +138,7 @@ def lambda_handler(event: dict, context: LambdaContext):
     #    - Compliance status is PASSED (resolved but not yet marked in SecurityHub)
     #    - Compliance status is NOT_AVAILABLE (resource deleted)
     #    - Record state is ARCHIVED
+    # 4. Workflow status is NEW (reset by SecurityHub) AND resource is deleted (ARCHIVED + NOT_AVAILABLE)
     # Note: Findings closed from NOTIFIED status are automatically marked as RESOLVED in SecurityHub.
     #       SecurityHub will reopen and create a new ticket if the finding becomes relevant again.
     elif (workflow_status == STATUS_RESOLVED
@@ -145,7 +146,10 @@ def lambda_handler(event: dict, context: LambdaContext):
             or (workflow_status == STATUS_NOTIFIED
                 and (compliance_status in [COMPLIANCE_STATUS_PASSED,
                                            COMPLIANCE_STATUS_NOT_AVAILABLE]
-                     or record_state == RECORD_STATE_ARCHIVED))):
+                     or record_state == RECORD_STATE_ARCHIVED))
+            or (workflow_status == STATUS_NEW
+                and record_state == RECORD_STATE_ARCHIVED
+                and compliance_status == COMPLIANCE_STATUS_NOT_AVAILABLE)):
         # Close Jira issue if finding is resolved.
         # Note text should contain Jira issue key in JSON format
         try:
@@ -212,11 +216,11 @@ def lambda_handler(event: dict, context: LambdaContext):
                     updated_note_json['jiraClosedIssue'] = updated_note_json.pop('jiraIssue')
                 updated_note = json.dumps(updated_note_json)
 
-                # Update Security Hub note for NOTIFIED and SUPPRESSED findings
-                # NOTIFIED: Change to RESOLVED (finding will reopen if compliance fails again)
+                # Update Security Hub note for NOTIFIED, SUPPRESSED, and NEW findings
+                # NOTIFIED or NEW: Change to RESOLVED (finding will reopen if compliance fails again)
                 # SUPPRESSED: Keep SUPPRESSED status
-                if workflow_status in [STATUS_NOTIFIED, STATUS_SUPPRESSED]:
-                    target_status = STATUS_RESOLVED if workflow_status == STATUS_NOTIFIED else STATUS_SUPPRESSED
+                if workflow_status in [STATUS_NOTIFIED, STATUS_SUPPRESSED, STATUS_NEW]:
+                    target_status = STATUS_SUPPRESSED if workflow_status == STATUS_SUPPRESSED else STATUS_RESOLVED
                     helpers.update_security_hub(
                         securityhub, finding["Id"], finding["ProductArn"], target_status, updated_note)
                     
