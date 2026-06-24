@@ -116,7 +116,7 @@ module "jira_lambda" {
   description                 = "Lambda to create jira ticket and set the Security Hub workflow status to notified"
   handler                     = "findings_manager_jira.lambda_handler"
   kms_key_arn                 = var.kms_key_arn
-  layers                      = ["arn:aws:lambda:${local.account_region}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
+  layers                      = [local.powertools_layer_arn]
   log_retention               = 365
   memory_size                 = var.jira_integration.lambda_settings.memory_size
   region                      = var.region

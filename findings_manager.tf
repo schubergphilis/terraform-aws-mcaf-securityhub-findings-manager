@@ -103,7 +103,7 @@ module "findings_manager_events_lambda" {
   description                 = "Lambda to manage Security Hub findings in response to an EventBridge event"
   handler                     = "securityhub_events.lambda_handler"
   kms_key_arn                 = var.kms_key_arn
-  layers                      = ["arn:aws:lambda:${local.account_region}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
+  layers                      = [local.powertools_layer_arn]
   log_retention               = 365
   memory_size                 = var.findings_manager_events_lambda.memory_size
   region                      = var.region
@@ -229,7 +229,7 @@ module "findings_manager_trigger_lambda" {
   description                 = "Lambda to manage Security Hub findings in response to S3 rules file uploads"
   handler                     = "securityhub_trigger.lambda_handler"
   kms_key_arn                 = var.kms_key_arn
-  layers                      = ["arn:aws:lambda:${local.account_region}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
+  layers                      = [local.powertools_layer_arn]
   log_retention               = 365
   memory_size                 = var.findings_manager_trigger_lambda.memory_size
   region                      = var.region
@@ -298,7 +298,7 @@ module "findings_manager_worker_lambda" {
   description                 = "Lambda to manage Security Hub findings in response to rules on SQS"
   handler                     = "securityhub_trigger_worker.lambda_handler"
   kms_key_arn                 = var.kms_key_arn
-  layers                      = ["arn:aws:lambda:${local.account_region}:017000801446:layer:AWSLambdaPowertoolsPythonV2:79"]
+  layers                      = [local.powertools_layer_arn]
   log_retention               = 365
   memory_size                 = var.findings_manager_worker_lambda.memory_size
   region                      = var.region
