@@ -8,6 +8,7 @@ on:
       - master
     paths:
       - files/lambda-artifacts/**
+      - .github/workflows/build-lambda.yaml
 
 permissions:
   contents: write
@@ -55,6 +56,9 @@ jobs:
           find . -name '*.so' -type f -exec strip "{}" \;
           find . -wholename "*/tests/*" -type f -delete
           find . -regex '^.*\(__pycache__\|\.py[co]\)$' -delete
+          # Remove dependency lock files shipped inside packages (e.g. awsfindingsmanagerlib/Pipfile.lock).
+          # Inspector scans these as an SBOM and reports phantom CVEs for packages that aren't actually installed.
+          find . \( -name 'Pipfile' -o -name 'Pipfile.lock' \) -type f -delete
 
           # Remove old package
           rm ../../../../../../../$PKG_DIR/lambda_${{ matrix.lambda-name }}_python${{ matrix.python-version }}.zip
