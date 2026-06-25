@@ -1,1 +1,1 @@
-awsfindingsmanagerlib==1.4.0
+awsfindingsmanagerlib==1.5.0
